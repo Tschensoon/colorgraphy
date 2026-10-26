@@ -251,7 +251,6 @@ section{padding-block:clamp(2.5rem,6vw,4.5rem)}
 .sq{position:relative;aspect-ratio:1;max-width:100%;display:block;overflow:hidden;border-radius:10px;background:#0b0a12}
 .sq::after{content:"";position:absolute;inset:0;background:rgba(0,0,0,0);transition:background .2s}
 .sq:hover::after{background:rgba(139,92,246,.25)}
-.feed-note{margin-top:.8rem;text-align:center;color:var(--muted);font-size:.8rem}
 
 /* Warum Colorgraphy */
 .rainbow{background:linear-gradient(90deg,#ff4d6d,#ffb020,#3ddc84,#3aa0ff,#8b5cf6,#ff4d6d);background-size:200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent}
@@ -512,7 +511,6 @@ footer .wrap{padding-block:1.75rem;display:flex;justify-content:space-between;ga
         <p class="dm-note">Fragen zu Bildern, Einstellungen oder Bearbeitung? Schreib mir gern eine Nachricht.</p>
       </div>
       <div class="feed" id="feed" aria-label="Neueste Beiträge"></div>
-      <p class="feed-note">Beispielbilder · jedes Bild öffnet das Profil</p>
     </div>
   </section>
 </main>
@@ -725,7 +723,6 @@ function zeigeFotos(liste){
   if(e.zeit) hud[0].textContent = e.zeit.replace(/ s$/, "");
   if(e.blende) hud[1].textContent = e.blende.replace("f/", "F");
   if(e.iso) hud[3].textContent = e.iso;
-  document.querySelector(".feed-note").textContent = (liste.length < 9 ? "Teils noch Beispielbilder · " : "") + "jedes Bild öffnet das Profil";
 }
 
 function baueFeed(liste){
