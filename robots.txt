@@ -13,4 +13,4 @@ Allow: /
 User-agent: Google-Extended
 Allow: /
 
-Sitemap: https://tschensoon.github.io/colorgraphy/sitemap.xml
+Sitemap: https://colorgraphy.de/sitemap.xml
