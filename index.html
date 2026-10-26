@@ -224,10 +224,6 @@ section{padding-block:clamp(2.5rem,6vw,4.5rem)}
 .tile figcaption strong{font-size:1.25rem;letter-spacing:-.01em}
 .exif{font-family:var(--mono);font-size:.74rem;color:#cfcbe0;font-variant-numeric:tabular-nums}
 .tag{position:absolute;top:1rem;left:1rem;font-size:.72rem;font-weight:600;color:#fff;background:rgba(0,0,0,.45);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);padding:.25rem .65rem;border-radius:999px}
-.try{margin-top:1.75rem;display:grid;justify-items:center;gap:.4rem;color:var(--muted);font-size:.9rem;text-align:center}
-.try input{position:absolute;width:1px;height:1px;opacity:0}
-.try label{color:var(--link);cursor:pointer;font-weight:500;font-size:1.05rem}
-.try label::after{content:" ›"}
 @media (max-width:640px){.gallery{grid-template-columns:minmax(0,1fr)}.tile.wide{aspect-ratio:4/5}}
 
 /* Bento: Ausrüstung in Zahlen */
@@ -301,7 +297,6 @@ a,button,label{-webkit-tap-highlight-color:transparent}
 .more{display:inline-block;padding:.6rem .25rem}
 .pill.small{padding:.65rem 1.05rem}
 .copy{padding:.6rem 1rem}
-.try label{display:inline-block;padding:.6rem .25rem}
 footer a{display:inline-block;padding:.5rem 0}
 .swipe-hint{display:none}
 @media (max-width:640px){
@@ -407,11 +402,6 @@ footer .wrap{padding-block:1.75rem;display:flex;justify-content:space-between;ga
       </div>
       <div class="gallery" id="gallery"></div>
       <p class="swipe-hint">Wischen für mehr Bilder →</p>
-      <div class="try">
-        <label for="own-photos">Eigene Fotos ausprobieren</label>
-        <input type="file" id="own-photos" accept="image/*" multiple>
-        <span>Ersetzt die Beispielbilder nur in deinem Browser. Nichts wird hochgeladen.</span>
-      </div>
     </div>
   </section>
 
@@ -735,7 +725,6 @@ function zeigeFotos(liste){
   if(e.zeit) hud[0].textContent = e.zeit.replace(/ s$/, "");
   if(e.blende) hud[1].textContent = e.blende.replace("f/", "F");
   if(e.iso) hud[3].textContent = e.iso;
-  document.querySelector(".try").hidden = true;
   document.querySelector(".feed-note").textContent = (liste.length < 9 ? "Teils noch Beispielbilder · " : "") + "jedes Bild öffnet das Profil";
 }
 
@@ -766,18 +755,6 @@ fetch("gallery.json", {cache:"no-cache"}).then(r => r.ok ? r.json() : []).catch(
   paintAll();
 });
 let rt, lastW=innerWidth; window.addEventListener("resize",()=>{if(innerWidth===lastW) return; lastW=innerWidth; clearTimeout(rt); rt=setTimeout(paintAll,150)});
-
-document.getElementById("own-photos").addEventListener("change",e=>{
-  const files=[...e.target.files].filter(f=>f.type.startsWith("image/"));
-  const targets=[document.getElementById("hero-vf"), ...gallery.querySelectorAll(".tile"), ...feed.querySelectorAll(".sq")];
-  files.slice(0,targets.length).forEach((file,i)=>{
-    const t=targets[i];
-    let img=t.querySelector("img");
-    if(!img){img=document.createElement("img"); img.alt=""; t.insertBefore(img, t.firstChild.nextSibling); const c=t.querySelector("canvas"); if(c) c.hidden=true;}
-    img.src=URL.createObjectURL(file);
-    const tag=t.querySelector(".tag"); if(tag) tag.hidden=true;
-  });
-});
 
 document.querySelectorAll(".copy").forEach(b=>{
   b.addEventListener("click",()=>{
