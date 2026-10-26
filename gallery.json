@@ -1,16 +1,1 @@
-[
- {
-  "datei": "live-test-bild.jpg",
-  "titel": "Live Test Bild",
-  "exif": {
-   "mm": "35 mm",
-   "blende": "f/8",
-   "zeit": "1/250 s",
-   "iso": "ISO 100"
-  },
-  "breite": 2000,
-  "hoehe": 1333,
-  "hinzugefuegt": "2026-10-26T20:29:51Z",
-  "sha": "ea508819b29b3b32c247781fdcd0c1542bfde412cb781feabf2f15a36c798521"
- }
-]
+[]
