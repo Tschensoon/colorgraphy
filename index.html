@@ -1,0 +1,812 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Colorgraphy – Hobbyfotografie</title>
+<meta name="description" content="Colorgraphy: Hobbyfotografie ohne festes Thema. Natur, Menschen, Tiere und Städte, fotografiert mit Sony α7 II und entwickelt in Lightroom. Neue Bilder auf Instagram @colorgraphy.de.">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="https://tschensoon.github.io/colorgraphy/">
+<meta name="theme-color" content="#000000">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="de_DE">
+<meta property="og:site_name" content="Colorgraphy">
+<meta property="og:title" content="Colorgraphy – Hobbyfotografie">
+<meta property="og:description" content="Bilder von zu Hause und unterwegs. Hobbyfotografie mit Sony α7 II.">
+<meta property="og:url" content="https://tschensoon.github.io/colorgraphy/">
+<meta property="og:image" content="https://tschensoon.github.io/colorgraphy/og-image.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": "https://tschensoon.github.io/colorgraphy/#website",
+      "url": "https://tschensoon.github.io/colorgraphy/",
+      "name": "Colorgraphy",
+      "description": "Hobbyfotografie ohne festes Thema",
+      "inLanguage": "de-DE",
+      "publisher": {
+        "@id": "https://tschensoon.github.io/colorgraphy/#person"
+      }
+    },
+    {
+      "@type": "Person",
+      "@id": "https://tschensoon.github.io/colorgraphy/#person",
+      "name": "Colorgraphy",
+      "jobTitle": "Hobbyfotograf",
+      "description": "Hobbyfotograf mit Wohnort Heilbronn, fotografiert zu Hause und unterwegs.",
+      "url": "https://tschensoon.github.io/colorgraphy/",
+      "homeLocation": {
+        "@type": "Place",
+        "name": "Heilbronn",
+        "address": {
+          "@type": "PostalAddress",
+          "addressLocality": "Heilbronn",
+          "addressRegion": "Baden-Württemberg",
+          "addressCountry": "DE"
+        }
+      },
+      "knowsAbout": [
+        "Fotografie",
+        "Adobe Lightroom",
+        "Sony Alpha"
+      ],
+      "sameAs": [
+        "https://www.instagram.com/colorgraphy.de/"
+      ]
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Wer steckt hinter Colorgraphy?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Colorgraphy ist das Fotografie-Projekt eines Hobbyfotografen. Zu Hause ist er in Heilbronn, fotografiert wird überall."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Was bedeutet Colorgraphy?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Der Name verbindet „Color“ und „Photography“. Fotografie heißt wörtlich „mit Licht zeichnen“, Colorgraphy also „mit Licht und Farbe zeichnen“."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Was fotografierst du?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Alles, was gerade reizt: Natur, Menschen, Tiere und Städte, zu Hause und unterwegs. Ein festes Thema gibt es bewusst nicht."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Mit welcher Kamera fotografierst du?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Mit einer Sony α7 II (Vollformat, 24 MP), dem Sony FE 85 mm F1.8 und dem Sony FE 24–105 mm F4 G OSS. Alle Bilder entstehen im RAW-Format und werden in Adobe Lightroom bearbeitet."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Kann ich ein Fotoshooting buchen?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Nein, Colorgraphy ist ein reines Hobbyprojekt. Es werden keine bezahlten Fotoshootings angeboten."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Wo sehe ich neue Bilder?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Neue Fotos erscheinen zuerst auf Instagram unter @colorgraphy.de."
+          }
+        }
+      ]
+    }
+  ]
+}
+</script>
+<style>
+/* Schriften lokal eingebunden (SIL Open Font License, siehe fonts/) */
+@font-face{font-family:"Figtree";font-style:normal;font-display:swap;font-weight:300 900;src:url(fonts/figtree-latin-wght-normal.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Figtree";font-style:normal;font-display:swap;font-weight:300 900;src:url(fonts/figtree-latin-ext-wght-normal.woff2) format("woff2");unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:"JetBrains Mono";font-style:normal;font-display:swap;font-weight:100 800;src:url(fonts/jetbrains-mono-latin-wght-normal.woff2) format("woff2")}
+body{margin:0}img{max-width:100%}[hidden]{display:none!important}
+/* Layout: Produktseiten-Rhythmus – zentrierte Riesen-Headlines, viel Schwarz, große abgerundete Flächen, violetter Glow wie RGB-Licht. Bewusst nur dunkel. */
+:root{
+  --bg:#000; --surface:#111018; --surface-2:#1a1724; --fg:#f5f5f7; --muted:#a29fb8; --line:#26223a;
+  --accent:#8b5cf6; --accent-2:#4f6bff; --link:#b9a2ff; --af:#45d562;
+  --glow:0 0 28px rgba(139,92,246,.45);
+  --sans:"Figtree", Arial, sans-serif;
+  --mono:"JetBrains Mono", Consolas, "Courier New", monospace;
+  --radius:28px;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:1.0625rem;line-height:1.5;-webkit-font-smoothing:antialiased}
+h1,h2,h3{margin:0;font-weight:700;letter-spacing:-.025em;line-height:1.05;text-wrap:balance}
+p{margin:0}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--link);outline-offset:3px;border-radius:6px}
+.wrap{max-width:68rem;margin-inline:auto;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px))}
+.center{text-align:center}
+.eyebrow{font-weight:600;font-size:1.05rem;color:var(--link)}
+.grad{background:linear-gradient(90deg,#c9b6ff,var(--accent) 45%,var(--accent-2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.sub{color:var(--muted);font-size:clamp(1.1rem,2.2vw,1.45rem);line-height:1.4;max-width:40rem;margin-inline:auto;font-weight:500}
+.links{display:flex;justify-content:center;gap:1.75rem;flex-wrap:wrap}
+.more{color:var(--link);text-decoration:none;font-size:1.1rem;font-weight:500}
+.more::after{content:" ›"}
+.more:hover{text-decoration:underline}
+.pill{display:inline-flex;align-items:center;justify-content:center;padding:.75rem 1.4rem;border-radius:999px;background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#fff;text-decoration:none;font-weight:600;font-size:1rem;border:0;cursor:pointer;box-shadow:var(--glow);transition:transform .2s, box-shadow .2s}
+@media (hover:hover){.pill:hover{transform:scale(1.03);box-shadow:0 0 40px rgba(139,92,246,.6)}}
+.pill.small{padding:.35rem .9rem;font-size:.8rem;box-shadow:none}
+
+/* Navigation: schwebend, transluzent */
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top, 0px);z-index:10;background:rgba(0,0,0,.72)}
+.nav{position:sticky;top:env(safe-area-inset-top, 0px);z-index:9;background:rgba(0,0,0,.72);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid rgba(255,255,255,.08)}
+.nav .wrap{display:flex;align-items:center;justify-content:space-between;gap:1rem;height:3rem}
+.brand{font-weight:700;letter-spacing:-.01em;text-decoration:none;font-size:1.05rem}
+.nav nav{display:flex;gap:1.6rem}
+.nav nav a{text-decoration:none;font-size:.82rem;color:#d4d1e4;opacity:.85}
+.nav nav a:hover{opacity:1;color:#fff}
+.nav-actions{display:flex;align-items:center;gap:.25rem}
+.menu-btn{display:none;width:44px;height:44px;place-items:center;align-content:center;gap:6px;background:none;border:0;cursor:pointer;padding:0}
+.menu-btn span{display:block;width:20px;height:2px;border-radius:2px;background:var(--fg);transition:transform .25s}
+.nav.open .menu-btn span:first-child{transform:translateY(4px) rotate(45deg)}
+.nav.open .menu-btn span:last-child{transform:translateY(-4px) rotate(-45deg)}
+@media (max-width:560px){
+  .menu-btn{display:grid}
+  .nav nav{display:none}
+  .nav.open nav{display:flex;flex-direction:column;position:absolute;top:100%;left:0;right:0;gap:0;background:#000;box-shadow:0 30px 60px rgba(0,0,0,.6);padding-block:.25rem 1rem;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));border-bottom:1px solid rgba(255,255,255,.1)}
+  .nav.open nav a{font-size:1.15rem;font-weight:600;padding:.9rem 0;border-bottom:1px solid rgba(255,255,255,.08);opacity:1;color:#fff}
+  .nav.open nav a:last-child{border-bottom:0}
+}
+
+/* Hero */
+.hero{padding-block:clamp(3.5rem,9vw,7rem) clamp(2rem,5vw,4rem)}
+.hero .wrap{display:grid;gap:1.4rem;justify-items:center}
+.hero h1{font-size:clamp(2.6rem,8vw,5.6rem);font-weight:800}
+.viewfinder{position:relative;width:100%;max-width:60rem;aspect-ratio:3/2;margin-top:clamp(1.5rem,4vw,3rem);border-radius:var(--radius);overflow:hidden;background:#0b0a12;box-shadow:0 0 90px rgba(139,92,246,.30),0 0 180px rgba(79,107,255,.14)}
+canvas.ph,.viewfinder img,.tile img,.sq img{position:absolute;inset:0;width:100%;height:100%;display:block;object-fit:cover}
+.vf-hud{position:absolute;inset:0;pointer-events:none;color:#f2f5f0;font-family:var(--mono);font-size:clamp(.6rem,1.3vw,.82rem)}
+.vf-hud .top,.vf-hud .bottom{position:absolute;left:5%;right:5%;display:flex;justify-content:space-between;gap:.5rem;text-shadow:0 1px 2px rgba(0,0,0,.6)}
+.vf-hud .top{top:5%}.vf-hud .bottom{bottom:5%}
+.eye-af{position:absolute;left:58%;top:34%;width:8%;aspect-ratio:1;border:2px solid var(--af);box-shadow:0 0 0 1px rgba(0,0,0,.35)}
+
+/* Abschnitte */
+section{padding-block:clamp(2.5rem,6vw,4.5rem)}
+.sec-title{display:grid;gap:1rem;margin-bottom:clamp(2rem,5vw,3.5rem)}
+.sec-title h2{font-size:clamp(2.2rem,6vw,4rem)}
+
+/* Segmentsteuerung */
+.segmented{display:inline-flex;padding:4px;border-radius:999px;background:var(--surface-2);gap:2px;margin-inline:auto}
+.segmented button{border:0;background:transparent;color:var(--muted);font:600 .92rem var(--sans);padding:.5rem 1.15rem;border-radius:999px;cursor:pointer;transition:background .2s,color .2s}
+.segmented button[aria-pressed="true"]{background:var(--fg);color:#000}
+.seg-wrap{display:flex;justify-content:center;margin-bottom:2rem}
+
+/* Galerie */
+.gallery{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}
+.tile{position:relative;margin:0;border-radius:var(--radius);overflow:hidden;background:#0b0a12;aspect-ratio:4/5;max-width:100%}
+.tile.wide{grid-column:1/-1;aspect-ratio:16/9}
+.tile canvas,.tile img{transition:transform .6s cubic-bezier(.2,.7,.2,1)}
+@media (hover:hover){.tile:hover canvas,.tile:hover img{transform:scale(1.04)}}
+.tile figcaption{position:absolute;left:0;right:0;bottom:0;padding:3rem 1.4rem 1.2rem;background:linear-gradient(transparent,rgba(0,0,0,.75));display:grid;gap:.2rem}
+.tile figcaption strong{font-size:1.25rem;letter-spacing:-.01em}
+.exif{font-family:var(--mono);font-size:.74rem;color:#cfcbe0;font-variant-numeric:tabular-nums}
+.tag{position:absolute;top:1rem;left:1rem;font-size:.72rem;font-weight:600;color:#fff;background:rgba(0,0,0,.45);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);padding:.25rem .65rem;border-radius:999px}
+.try{margin-top:1.75rem;display:grid;justify-items:center;gap:.4rem;color:var(--muted);font-size:.9rem;text-align:center}
+.try input{position:absolute;width:1px;height:1px;opacity:0}
+.try label{color:var(--link);cursor:pointer;font-weight:500;font-size:1.05rem}
+.try label::after{content:" ›"}
+@media (max-width:640px){.gallery{grid-template-columns:minmax(0,1fr)}.tile.wide{aspect-ratio:4/5}}
+
+/* Bento: Ausrüstung in Zahlen */
+.bento{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:1rem}
+.cell{background:var(--surface);border-radius:var(--radius);padding:clamp(1.4rem,3vw,2.2rem);display:grid;gap:.6rem;align-content:space-between;min-height:14rem;min-width:0;position:relative;overflow:hidden}
+.cell .big{font-size:clamp(2.6rem,6vw,4.4rem);font-weight:800;letter-spacing:-.04em;line-height:1}
+.cell p{color:var(--muted)}
+.cell strong{color:var(--fg);font-weight:600}
+.c-a{grid-column:span 4}.c-b{grid-column:span 2}.c-c{grid-column:span 2}.c-d{grid-column:span 2}.c-e{grid-column:span 2}
+.cell.glow::before{content:"";position:absolute;inset:auto -30% -60% auto;width:70%;aspect-ratio:1;background:radial-gradient(circle,rgba(139,92,246,.35),transparent 65%)}
+@media (max-width:820px){.bento{grid-template-columns:repeat(2,minmax(0,1fr))}.c-a{grid-column:1/-1}.c-b,.c-c,.c-d,.c-e{grid-column:span 1}}
+@media (max-width:480px){.bento{gap:.75rem}.cell{min-height:auto;padding:1.1rem;gap:.45rem}.cell .big{font-size:clamp(1.6rem,8vw,2.4rem)}.c-a .big{font-size:clamp(2.2rem,11vw,3rem)}.cell p{font-size:.88rem}}
+
+/* Über mich */
+.about p{font-size:clamp(1.25rem,3vw,2rem);font-weight:600;letter-spacing:-.015em;line-height:1.3;max-width:52rem;margin-inline:auto;color:var(--muted)}
+.about p strong{color:var(--fg);font-weight:600}
+
+/* Instagram */
+.ig-card{display:grid;justify-items:center;gap:1rem}
+.avatar{width:5.5rem;aspect-ratio:1;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;display:grid;place-items:center;font-weight:800;font-size:2.2rem;box-shadow:0 0 0 4px var(--bg),0 0 0 6px var(--accent),var(--glow)}
+.handle{font-family:var(--mono);font-size:1.05rem;word-break:break-all}
+.handle-row{display:flex;gap:.75rem;align-items:center;flex-wrap:wrap;justify-content:center}
+.copy{font:500 .8rem var(--sans);background:var(--surface-2);border:0;color:var(--fg);padding:.4rem .85rem;cursor:pointer;border-radius:999px}
+.feed{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;max-width:40rem;margin:2.5rem auto 0}
+.sq{position:relative;aspect-ratio:1;max-width:100%;display:block;overflow:hidden;border-radius:10px;background:#0b0a12}
+.sq::after{content:"";position:absolute;inset:0;background:rgba(0,0,0,0);transition:background .2s}
+.sq:hover::after{background:rgba(139,92,246,.25)}
+.feed-note{margin-top:.8rem;text-align:center;color:var(--muted);font-size:.8rem}
+
+/* Warum Colorgraphy */
+.rainbow{background:linear-gradient(90deg,#ff4d6d,#ffb020,#3ddc84,#3aa0ff,#8b5cf6,#ff4d6d);background-size:200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent}
+.equation{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:1rem;align-items:stretch}
+.word-card{background:var(--surface);border-radius:var(--radius);padding:clamp(1.5rem,3.5vw,2.5rem);display:grid;gap:1rem;align-content:start;text-align:left;min-width:0}
+.word{font-size:clamp(3.2rem,9vw,6rem);font-weight:800;letter-spacing:-.05em;line-height:1}
+.word-card p{color:var(--muted)}
+.word-card strong{color:var(--fg)}
+.op{align-self:center;font-size:clamp(2rem,5vw,3.5rem);font-weight:800;color:var(--muted)}
+.result{margin-top:clamp(2rem,5vw,3.5rem);font-size:clamp(1.5rem,4vw,2.6rem);font-weight:700;letter-spacing:-.025em;line-height:1.2;text-wrap:balance}
+@media (max-width:700px){.equation{grid-template-columns:minmax(0,1fr);gap:.5rem}.op{justify-self:center;line-height:1;font-size:2.4rem;color:var(--fg)}}
+@media (prefers-reduced-motion:no-preference){
+  .rainbow{animation:rainbow 8s linear infinite}
+  @keyframes rainbow{to{background-position:200% 0}}
+}
+
+/* Engerer Übergang vom Namen zur Galerie */
+.why{padding-bottom:clamp(1.5rem,4vw,3rem)}
+#galerie{padding-top:clamp(1.5rem,4vw,3rem)}
+
+.brand{display:inline-flex;align-items:center;gap:.5rem;font-weight:800;letter-spacing:-.02em}
+.brand .logo-icon{width:1.5rem;height:1.5rem;flex:none}
+.avatar{background:#000}
+.avatar .logo-icon{width:72%;height:72%}
+
+/* Call to Action */
+.cta-band{position:relative;display:grid;grid-template-columns:minmax(0,1.4fr) auto;gap:clamp(1.25rem,3vw,2.5rem);align-items:center;padding:clamp(1.6rem,4vw,3rem);border-radius:var(--radius);background:var(--surface);overflow:hidden}
+.cta-band::before{content:"";position:absolute;inset:0;border-radius:inherit;padding:1.5px;background:linear-gradient(90deg,#ff4d6d,#ffb020,#3ddc84,#3aa0ff,#8b5cf6);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none}
+.cta-band::after{content:"";position:absolute;right:-10%;top:-60%;width:55%;aspect-ratio:1;background:radial-gradient(circle,rgba(139,92,246,.28),transparent 65%);pointer-events:none}
+.cta-text{display:grid;gap:.75rem;min-width:0;position:relative;z-index:1}
+.cta-text h2{font-size:clamp(1.7rem,4vw,2.6rem)}
+.cta-text p{color:var(--muted);max-width:36rem}
+.cta-actions{display:flex;gap:.75rem;flex-wrap:wrap;justify-content:center;position:relative;z-index:1}
+.pill.ghost{background:transparent;color:var(--fg);box-shadow:none;border:1px solid var(--line)}
+.pill.ghost:hover{border-color:var(--accent);box-shadow:var(--glow)}
+.dm-note{color:var(--muted);font-size:.95rem}
+.cta-section{padding-block:clamp(1rem,3vw,2rem)}
+@media (max-width:760px){.cta-band{grid-template-columns:minmax(0,1fr)}.cta-actions{justify-content:flex-start}}
+
+/* Farbschnur: schlängelt sich hinter den Inhalten durch die ganze Seite */
+body{position:relative}
+.string{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:0;overflow:visible}
+main,footer{position:relative;z-index:1}
+.str-track{fill:none;stroke:rgba(255,255,255,.05);stroke-width:2}
+.str-draw{fill:none;stroke-width:4;stroke-linecap:round}
+.str-glow{fill:none;stroke-width:10;stroke-linecap:round;opacity:.55}
+@media (max-width:700px){.str-draw{stroke-width:3}.str-glow{stroke-width:7}}
+
+/* Mobile Feinschliff */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+a,button,label{-webkit-tap-highlight-color:transparent}
+.more{display:inline-block;padding:.6rem .25rem}
+.pill.small{padding:.65rem 1.05rem}
+.copy{padding:.6rem 1rem}
+.try label{display:inline-block;padding:.6rem .25rem}
+footer a{display:inline-block;padding:.5rem 0}
+.swipe-hint{display:none}
+@media (max-width:640px){
+  .gallery{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:12px;margin-left:calc(-1 * max(16px, env(safe-area-inset-left, 0px)));margin-right:calc(-1 * max(16px, env(safe-area-inset-right, 0px)));padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));scroll-padding-inline:max(16px, env(safe-area-inset-left, 0px));scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .gallery::-webkit-scrollbar{display:none}
+  .tile,.tile.wide{flex:0 0 84%;aspect-ratio:4/5;scroll-snap-align:start}
+  .swipe-hint{display:block;text-align:center;color:var(--muted);font-size:.85rem;margin-top:.75rem}
+  .hero{padding-block:2.5rem 1.5rem}
+  .sec-title{margin-bottom:1.5rem}
+  .qa{padding:1.2rem}
+  .cta-actions .pill{flex:1 1 auto}
+}
+@media (max-width:700px){.str-glow{display:none}}
+
+/* Fragen */
+.faq{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}
+.qa{background:var(--surface);border-radius:var(--radius);padding:clamp(1.3rem,3vw,2rem);display:grid;gap:.6rem;align-content:start;min-width:0}
+.qa h3{font-size:1.25rem;letter-spacing:-.015em}
+.qa p{color:var(--muted)}
+.qa:last-child:nth-child(odd){grid-column:1/-1}
+@media (max-width:640px){.faq{grid-template-columns:minmax(0,1fr)}}
+
+footer{border-top:1px solid var(--line)}
+footer .wrap{padding-block:1.75rem;display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;color:var(--muted);font-size:.8rem}
+
+/* Bewegung: nur Verschiebung beim Scrollen, Inhalte bleiben immer sichtbar */
+@media (prefers-reduced-motion:no-preference){
+  .eye-af{animation:af 1.6s ease-out 1}
+  @keyframes af{0%{transform:scale(1.6);opacity:0}40%{opacity:1}100%{transform:scale(1)}}
+  @supports (animation-timeline: view()){
+    .rise{animation:rise linear both;animation-timeline:view();animation-range:entry 0% entry 60%}
+    @keyframes rise{from{transform:translateY(40px) scale(.97)}to{transform:none}}
+  }
+}
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <div class="wrap">
+    <a class="brand" href="#top" aria-label="Colorgraphy"><svg class="logo-icon" viewBox="0 0 512 512" aria-hidden="true"><path d="M256.00 163.84 L426.75 65.26 A256.0 256.0 0 0 1 506.56 308.50 L335.81 209.92 Z" fill="#ff4d6d"/><path d="M335.81 209.92 L506.56 308.50 A256.0 256.0 0 0 1 335.81 499.24 L335.81 302.08 Z" fill="#ff9f1c"/><path d="M335.81 302.08 L335.81 499.24 A256.0 256.0 0 0 1 85.25 446.74 L256.00 348.16 Z" fill="#ffd23f"/><path d="M256.00 348.16 L85.25 446.74 A256.0 256.0 0 0 1 5.44 203.50 L176.19 302.08 Z" fill="#3ddc84"/><path d="M176.19 302.08 L5.44 203.50 A256.0 256.0 0 0 1 176.19 12.76 L176.19 209.92 Z" fill="#3aa0ff"/><path d="M176.19 209.92 L176.19 12.76 A256.0 256.0 0 0 1 426.75 65.26 L256.00 163.84 Z" fill="#8b5cf6"/></svg><span><span class="rainbow">color</span>graphy</span></a>
+    <nav id="main-nav" aria-label="Hauptnavigation">
+      <a href="#top">Start</a>
+      <a href="#galerie">Galerie</a>
+      <a href="#ausruestung">Ausrüstung</a>
+      <a href="#ueber">Über mich</a>
+      <a href="#instagram">Instagram</a>
+    </nav>
+    <div class="nav-actions">
+      <a class="pill small ig-link" href="https://www.instagram.com/" target="_blank" rel="noopener">Folgen</a>
+      <button class="menu-btn" type="button" aria-label="Menü öffnen" aria-expanded="false" aria-controls="main-nav"><span></span><span></span></button>
+    </div>
+  </div>
+</header>
+
+<svg class="string" id="string" aria-hidden="true">
+  <defs>
+    <linearGradient id="str-grad" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="1000"></linearGradient>
+    <filter id="str-glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="6"/></filter>
+  </defs>
+  <path class="str-track"/>
+  <path class="str-glow" stroke="url(#str-grad)" filter="url(#str-glow)"/>
+  <path class="str-draw" stroke="url(#str-grad)"/>
+  <circle class="str-head" r="6"/>
+</svg>
+
+<main id="top">
+  <div class="hero">
+    <div class="wrap center">
+      <span class="eyebrow">Hobbyfotografie</span>
+      <h1><span class="rainbow">Farbe.</span> Licht.<br><span class="grad">Der richtige Moment.</span></h1>
+      <p class="sub">Ich bin Hobbyfotograf und halte fest, was mir vor die Linse kommt: Natur, Menschen, Tiere, Städte und alles dazwischen. Zu Hause und unterwegs.</p>
+      <div class="links">
+        <a class="more" href="#galerie">Galerie ansehen</a>
+        <a class="more ig-link" href="https://www.instagram.com/" target="_blank" rel="noopener">Auf Instagram folgen</a>
+      </div>
+      <div class="viewfinder rise" id="hero-vf" aria-label="Sucheransicht mit Augen-Autofokus">
+        <canvas class="ph" id="hero-canvas"></canvas>
+        <div class="vf-hud" aria-hidden="true">
+          <div class="top"><span>A</span><span>RAW</span><span>AF-S</span></div>
+          <div class="eye-af"></div>
+          <div class="bottom"><span>1/250</span><span>F1.8</span><span>±0.0</span><span>ISO 200</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <section id="warum" class="why">
+    <div class="wrap center">
+      <div class="sec-title">
+        <span class="eyebrow">Warum Colorgraphy?</span>
+        <h2>Zwei Wörter.<br>Ein Name.</h2>
+      </div>
+      <div class="equation">
+        <div class="word-card rise">
+          <div class="word rainbow">Color</div>
+          <p><strong>Weil ich es bunt mag.</strong> Kräftige Farben, warmes Abendlicht, Neon in der Nacht. Wenn ein Bild leuchtet, bin ich zufrieden.</p>
+        </div>
+        <div class="op" aria-hidden="true">+</div>
+        <div class="word-card rise">
+          <div class="word">graphy</div>
+          <p><strong>Von Photography.</strong> Das griechische <em>phōs</em> heißt Licht, <em>graphein</em> heißt zeichnen. Fotografie bedeutet also wörtlich: mit Licht zeichnen.</p>
+        </div>
+      </div>
+      <p class="result">Colorgraphy heißt für mich: <span class="rainbow">mit Licht und Farbe zeichnen.</span></p>
+    </div>
+  </section>
+
+  <section id="galerie">
+    <div class="wrap">
+      <div class="sec-title center">
+        <h2>Galerie.</h2>
+        <p class="sub">Bilder von zu Hause und unterwegs. Die neuesten findest du auf Instagram.</p>
+      </div>
+      <div class="gallery" id="gallery"></div>
+      <p class="swipe-hint">Wischen für mehr Bilder →</p>
+      <div class="try">
+        <label for="own-photos">Eigene Fotos ausprobieren</label>
+        <input type="file" id="own-photos" accept="image/*" multiple>
+        <span>Ersetzt die Beispielbilder nur in deinem Browser. Nichts wird hochgeladen.</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="cta-section">
+    <div class="wrap">
+      <div class="cta-band rise">
+        <div class="cta-text">
+          <h2>Gefällt dir, was du siehst?</h2>
+          <p>Folg mir auf Instagram, dort erscheinen neue Bilder zuerst. Und wenn du Fragen hast, zu einem Foto, zu Einstellungen oder zur Bearbeitung: Schreib mir einfach eine Nachricht.</p>
+        </div>
+        <div class="cta-actions">
+          <a class="pill ig-link" href="https://www.instagram.com/" target="_blank" rel="noopener">Auf Instagram folgen</a>
+          <a class="pill ghost ig-dm" href="https://ig.me/" target="_blank" rel="noopener">Nachricht schreiben</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="ausruestung">
+    <div class="wrap">
+      <div class="sec-title center">
+        <h2>Ausrüstung.<br><span class="grad">Mein Werkzeug für Fotos.</span></h2>
+      </div>
+      <div class="bento">
+        <div class="cell c-a glow rise">
+          <span class="eyebrow">Sony α7 II</span>
+          <div class="big">24 MP</div>
+          <p><strong>Vollformat mit 5-Achsen-Stabilisator im Gehäuse.</strong> Jedes Objektiv ist stabilisiert, auch bei langen Zeiten im Wald oder am Abend.</p>
+        </div>
+        <div class="cell c-b rise">
+          <span class="eyebrow">FE 85 mm</span>
+          <div class="big grad">f/1.8</div>
+          <p>Für cremig unscharfe Hintergründe.</p>
+        </div>
+        <div class="cell c-c rise">
+          <span class="eyebrow">FE 24–105 mm G</span>
+          <div class="big">105 mm</div>
+          <p>Das Immerdrauf, von weit bis nah ran.</p>
+        </div>
+        <div class="cell c-d rise">
+          <span class="eyebrow">Hinter der Kamera</span>
+          <div class="big">15 Jahre</div>
+          <p>So lange fotografiere ich schon. Die Neugier ist geblieben.</p>
+        </div>
+        <div class="cell c-e glow rise">
+          <span class="eyebrow">Entwicklung</span>
+          <div class="big">RAW</div>
+          <p>Jedes Bild selbst bearbeitet in Lightroom.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="ueber" class="about">
+    <div class="wrap center">
+      <p><strong>Fotografie ist mein Ausgleich zum Alltag.</strong> Ob zu Hause, auf Reisen, in der Stadt oder mitten in der Natur: Ich fotografiere, was mich gerade reizt, und lasse mich gern überraschen. <span class="grad">Am Ende zählt der eine Moment, in dem alles passt.</span></p>
+    </div>
+  </section>
+
+  <section id="fragen">
+    <div class="wrap">
+      <div class="sec-title center">
+        <h2>Häufige Fragen.</h2>
+      </div>
+      <div class="faq">
+        <div class="qa rise">
+          <h3>Wer steckt hinter Colorgraphy?</h3>
+          <p>Colorgraphy ist das Fotografie-Projekt eines Hobbyfotografen. Zu Hause bin ich in Heilbronn, fotografiert wird überall.</p>
+        </div>
+        <div class="qa rise">
+          <h3>Was bedeutet Colorgraphy?</h3>
+          <p>Der Name verbindet „Color" und „Photography". Fotografie heißt wörtlich „mit Licht zeichnen", Colorgraphy also „mit Licht und Farbe zeichnen", weil ich bunte Bilder liebe.</p>
+        </div>
+        <div class="qa rise">
+          <h3>Was fotografierst du?</h3>
+          <p>Alles, was mich gerade reizt: Natur, Menschen, Tiere und Städte, zu Hause und unterwegs. Ein festes Thema gibt es bewusst nicht.</p>
+        </div>
+        <div class="qa rise">
+          <h3>Mit welcher Kamera fotografierst du?</h3>
+          <p>Mit einer Sony α7 II (Vollformat, 24 MP), dem Sony FE 85 mm F1.8 für Porträts und dem Sony FE 24–105 mm F4 G OSS. Alle Bilder entstehen im RAW-Format und werden in Adobe Lightroom bearbeitet.</p>
+        </div>
+        <div class="qa rise">
+          <h3>Kann ich ein Fotoshooting buchen?</h3>
+          <p>Nein, Colorgraphy ist ein reines Hobbyprojekt. Ich biete keine bezahlten Fotoshootings an.</p>
+        </div>
+        <div class="qa rise">
+          <h3>Wo sehe ich neue Bilder?</h3>
+          <p>Neue Fotos erscheinen zuerst auf Instagram unter <span class="ig-name">@colorgraphy.de</span>. Dort kannst du mir auch eine Nachricht schreiben.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="instagram">
+    <div class="wrap">
+      <div class="ig-card center">
+        <div class="avatar" aria-hidden="true"><svg class="logo-icon" viewBox="0 0 512 512" aria-hidden="true"><path d="M256.00 163.84 L426.75 65.26 A256.0 256.0 0 0 1 506.56 308.50 L335.81 209.92 Z" fill="#ff4d6d"/><path d="M335.81 209.92 L506.56 308.50 A256.0 256.0 0 0 1 335.81 499.24 L335.81 302.08 Z" fill="#ff9f1c"/><path d="M335.81 302.08 L335.81 499.24 A256.0 256.0 0 0 1 85.25 446.74 L256.00 348.16 Z" fill="#ffd23f"/><path d="M256.00 348.16 L85.25 446.74 A256.0 256.0 0 0 1 5.44 203.50 L176.19 302.08 Z" fill="#3ddc84"/><path d="M176.19 302.08 L5.44 203.50 A256.0 256.0 0 0 1 176.19 12.76 L176.19 209.92 Z" fill="#3aa0ff"/><path d="M176.19 209.92 L176.19 12.76 A256.0 256.0 0 0 1 426.75 65.26 L256.00 163.84 Z" fill="#8b5cf6"/></svg></div>
+        <h2 style="font-size:clamp(2.2rem,6vw,4rem)">Mehr auf Instagram.</h2>
+        <p class="sub">Neue Bilder, Kameraeinstellungen und Vorher/Nachher aus Lightroom.</p>
+        <div class="handle-row">
+          <code class="handle" id="ig">@colorgraphy.de</code>
+          <button class="copy" type="button" data-copy="ig">Kopieren</button>
+        </div>
+        <div class="cta-actions">
+          <a class="pill ig-link" href="https://www.instagram.com/" target="_blank" rel="noopener">Folgen</a>
+          <a class="pill ghost ig-dm" href="https://ig.me/" target="_blank" rel="noopener">Nachricht schreiben</a>
+        </div>
+        <p class="dm-note">Fragen zu Bildern, Einstellungen oder Bearbeitung? Schreib mir gern eine Nachricht.</p>
+      </div>
+      <div class="feed" id="feed" aria-label="Neueste Beiträge"></div>
+      <p class="feed-note">Beispielbilder · jedes Bild öffnet das Profil</p>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>© 2026 Colorgraphy · Hobbyfotografie</span>
+    <span>Hobbyfotografie mit Sony α7 II ·<a class="ig-link" href="https://www.instagram.com/" target="_blank" rel="noopener">Instagram</a></span>
+  </div>
+</footer>
+
+<script>
+// Hier nur deinen Instagram-Namen eintragen (ohne @). Alle Links und Knöpfe übernehmen ihn.
+const INSTAGRAM = "colorgraphy.de";
+const igUrl = "https://www.instagram.com/" + INSTAGRAM + "/";
+document.getElementById("ig").textContent = "@" + INSTAGRAM;
+document.querySelectorAll(".ig-name").forEach(s => s.textContent = "@" + INSTAGRAM);
+
+const photos = [
+  {t:"Weinberge im Oktober", scene:"weinberg", exif:"35 mm · f/8 · 1/250 s · ISO 100", wide:true},
+  {t:"Morgennebel am Fluss", scene:"nebel", exif:"105 mm · f/5.6 · 1/320 s · ISO 200"},
+  {t:"Goldener Wald", scene:"wald", exif:"24 mm · f/4 · 1/125 s · ISO 400"},
+  {t:"Herbstsonne über den Hügeln", scene:"huegel", exif:"70 mm · f/8 · 1/500 s · ISO 100", wide:true},
+  {t:"Waldweg im Laub", scene:"weg", exif:"50 mm · f/4 · 1/160 s · ISO 320"},
+  {t:"Spiegelung am See", scene:"see", exif:"24 mm · f/11 · 1/100 s · ISO 100"},
+  {t:"Erster Frost", scene:"frost", exif:"85 mm · f/2.8 · 1/1000 s · ISO 100", wide:true},
+  {t:"Abendrot über den Weinbergen", scene:"abend", exif:"105 mm · f/5.6 · 1/400 s · ISO 200", wide:true}
+];
+
+// Generierte Herbstlandschaften als Platzhalter, bis echte Fotos da sind
+const AUTUMN = ["#e0791f","#c9431a","#f2b233","#a3361a","#d9a441","#b85a1a","#e8a23a"];
+const SCENES = {
+  weinberg:{sky:["#4a3a7a","#e0895a","#ffd894"], sun:[.74,.36,.05,"#fff3cc"],
+    layers:[{y:.5,amp:.035,col:"#a77a8a"},{y:.58,amp:.05,col:"#8a5a4a",trees:.35},{y:.7,amp:.06,col:"#9a4a1c",vines:["#e07a1f","#c4421a","#f2b134","#8a3a12"]},{y:.9,amp:.03,col:"#4a240f",trees:.9}], leaves:10},
+  nebel:{sky:["#8e9cad","#d6cfc0","#efe5d2"], sun:[.32,.34,.045,"#fff8e4"],
+    layers:[{y:.47,amp:.05,col:"#a8aca2",trees:.7,far:true},{y:.56,amp:.03,col:"#8d8a70",trees:1}], fog:4, lake:.64},
+  wald:{sky:["#2e3b26","#b9802c","#f4cf72"], sun:[.56,.22,.045,"#fff5cf"], forest:true, rays:true, leaves:35},
+  huegel:{sky:["#1f1645","#a5405e","#f6a050"], sun:[.5,.58,.065,"#ffd77e"],
+    layers:[{y:.56,amp:.045,col:"#8e4c6c"},{y:.63,amp:.06,col:"#6c3552",trees:.25},{y:.72,amp:.06,col:"#4a2238",trees:.5},{y:.85,amp:.04,col:"#24101c",trees:.9}], fog:1},
+  weg:{sky:["#6b8db0","#d8c08c","#f3d99c"], sun:[.5,.26,.035,"#fff7da"], path:true, leaves:45},
+  see:{sky:["#3c628c","#9cbacb","#eadcb2"], sun:[.8,.26,.035,"#fffbe9"],
+    layers:[{y:.38,amp:.07,col:"#7d8d92",far:true},{y:.49,amp:.025,col:"#a65a1c",trees:1.3}], lake:.55},
+  frost:{sky:["#7c9bc0","#cddae6","#f2ebdf"], sun:[.24,.32,.04,"#ffffff"], frost:true,
+    layers:[{y:.52,amp:.05,col:"#aebccb",trees:.4,far:true},{y:.66,amp:.05,col:"#c7d1d9",trees:.6,bare:true},{y:.85,amp:.03,col:"#e4eaee",trees:.45,bare:true}], fog:2},
+  abend:{sky:["#170f38","#7c2b6b","#ff8c3e"], sun:[.34,.52,.06,"#ffd06c"],
+    layers:[{y:.57,amp:.05,col:"#6b3060"},{y:.67,amp:.07,col:"#3e1a3d",vines:["#7d2b3c","#9c3c2a","#5c1b2c"]},{y:.85,amp:.04,col:"#1a0c1c",trees:.85}], leaves:6}
+};
+
+function rng(seed){return()=>{seed=(seed*16807)%2147483647;return(seed-1)/2147483646}}
+function hexA(h,a){const n=parseInt(h.slice(1),16);return `rgba(${n>>16&255},${n>>8&255},${n&255},${a})`}
+function shade(h,f){const n=parseInt(h.slice(1),16);return "rgb("+[n>>16&255,n>>8&255,n&255].map(v=>Math.round(f<0?v*(1+f):v+(255-v)*f)).join(",")+")"}
+const grain=(()=>{const c=document.createElement("canvas");c.width=c.height=96;const g=c.getContext("2d"),d=g.createImageData(96,96),r=rng(5);
+  for(let i=0;i<d.data.length;i+=4){const v=Math.floor(r()*255);d.data[i]=d.data[i+1]=d.data[i+2]=v;d.data[i+3]=255}g.putImageData(d,0,0);return c})();
+
+function tree(g,x,y,sz,rand,bare,far){
+  g.strokeStyle=far?"rgba(70,60,55,.5)":"#2a1a12"; g.lineWidth=Math.max(1,sz*.12); g.lineCap="round";
+  g.beginPath(); g.moveTo(x,y); g.lineTo(x,y-sz*1.3); g.stroke();
+  if(bare){
+    g.lineWidth=Math.max(.6,sz*.05); g.strokeStyle="rgba(60,55,60,.8)";
+    for(let i=0;i<5;i++){const a=-Math.PI/2+(rand()-.5)*1.6,l=sz*(.5+rand()*.6),by=y-sz*(.6+rand()*.6);
+      g.beginPath(); g.moveTo(x,by); g.lineTo(x+Math.cos(a)*l,by+Math.sin(a)*l); g.stroke();}
+    g.fillStyle="rgba(240,246,250,.55)"; g.beginPath(); g.arc(x,y-sz*1.4,sz*.55,0,7); g.fill();
+    return;
+  }
+  for(let i=0;i<6;i++){
+    const cx=x+(rand()-.5)*sz*.9, cy=y-sz*(1.3+rand()*.7), cr=sz*(.38+rand()*.3), col=AUTUMN[Math.floor(rand()*AUTUMN.length)];
+    g.fillStyle=far?hexA(col,.55):shade(col,-.25); g.beginPath(); g.arc(cx+cr*.15,cy+cr*.15,cr,0,7); g.fill();
+    g.fillStyle=far?hexA(col,.6):col; g.beginPath(); g.arc(cx,cy,cr*.85,0,7); g.fill();
+  }
+}
+
+function landscape(canvas, s, seed){
+  const rc=canvas.getBoundingClientRect(), dpr=Math.min(window.devicePixelRatio||1,2);
+  const W=Math.max(1,Math.round(rc.width*dpr)), H=Math.max(1,Math.round(rc.height*dpr));
+  canvas.width=W; canvas.height=H;
+  const g=canvas.getContext("2d"), rand=rng(seed*7919+3), M=Math.min(W,H);
+  const sk=g.createLinearGradient(0,0,0,H*.8); sk.addColorStop(0,s.sky[0]); sk.addColorStop(.62,s.sky[1]); sk.addColorStop(1,s.sky[2]);
+  g.fillStyle=sk; g.fillRect(0,0,W,H);
+  const [sx,sy,sr,sc]=s.sun, SX=sx*W, SY=sy*H, SR=sr*M;
+  let gl=g.createRadialGradient(SX,SY,0,SX,SY,SR*9); gl.addColorStop(0,hexA(sc,.6)); gl.addColorStop(1,hexA(sc,0));
+  g.fillStyle=gl; g.fillRect(0,0,W,H); g.fillStyle=sc; g.beginPath(); g.arc(SX,SY,SR,0,7); g.fill();
+
+  if(s.forest){
+    for(let d=0;d<4;d++){
+      const far=d<2, n=14-d*2;
+      for(let i=0;i<n;i++){
+        const x=rand()*W, w=M*(.012+d*.012)*(.7+rand()*.6);
+        g.fillStyle=far?`rgba(90,70,50,${.25+d*.15})`:shade("#3a2414",-.2+d*.05);
+        g.fillRect(x-w/2,0,w,H*.86);
+        for(let k=0;k<5;k++){const col=AUTUMN[Math.floor(rand()*AUTUMN.length)], cy=rand()*H*.45, cr=M*(.05+d*.03)*(.6+rand()*.6);
+          g.fillStyle=hexA(col,far?.35:.85); g.beginPath(); g.arc(x+(rand()-.5)*cr*2,cy,cr,0,7); g.fill();}
+      }
+    }
+    const gr=g.createLinearGradient(0,H*.78,0,H); gr.addColorStop(0,"#8a4a18"); gr.addColorStop(1,"#4a2410");
+    g.fillStyle=gr; g.fillRect(0,H*.8,W,H*.2);
+  }
+  if(s.rays){
+    g.save(); g.globalCompositeOperation="lighter";
+    for(let i=0;i<7;i++){const a=Math.PI/2+(rand()-.5)*1.2, l=H*1.3, wd=.03+rand()*.05;
+      g.fillStyle="rgba(255,226,150,.07)"; g.beginPath(); g.moveTo(SX,SY);
+      g.lineTo(SX+Math.cos(a-wd)*l,SY+Math.sin(a-wd)*l); g.lineTo(SX+Math.cos(a+wd)*l,SY+Math.sin(a+wd)*l); g.closePath(); g.fill();}
+    g.restore();
+  }
+  if(s.path){
+    const VX=W*.5, VY=H*.5;
+    const gr=g.createLinearGradient(0,VY,0,H); gr.addColorStop(0,"#9a6a2a"); gr.addColorStop(1,"#6a3412");
+    g.fillStyle=gr; g.fillRect(0,VY,W,H-VY);
+    const pg=g.createLinearGradient(0,VY,0,H); pg.addColorStop(0,"#c9a272"); pg.addColorStop(1,"#8a6440");
+    g.fillStyle=pg; g.beginPath(); g.moveTo(W*.34,H); g.lineTo(W*.66,H); g.lineTo(VX+W*.012,VY); g.lineTo(VX-W*.012,VY); g.closePath(); g.fill();
+    for(let k=14;k>=0;k--){const t=Math.pow(k/14,.7), y=VY+(H*1.02-VY)*(1-t), sz=M*(.02+.24*(1-t));
+      for(const side of [-1,1]){const x=VX+side*(W*.03+W*.5*(1-t))+(rand()-.5)*sz*.4; tree(g,x,y,sz,rand,false,t>.75);}}
+  }
+  (s.layers||[]).forEach((L,li)=>{
+    const ph=[rand()*6.3,rand()*6.3,rand()*6.3], fr=[1.2+rand()*.6,3+rand()*1.2,7+rand()*3];
+    const f=x=>L.y*H+L.amp*H*(Math.sin(x/W*fr[0]*Math.PI+ph[0])*.6+Math.sin(x/W*fr[1]*Math.PI+ph[1])*.3+Math.sin(x/W*fr[2]*Math.PI+ph[2])*.1);
+    const step=Math.max(2,4*dpr);
+    g.beginPath(); g.moveTo(0,H); for(let x=0;x<=W+step;x+=step) g.lineTo(x,f(x)); g.lineTo(W,H); g.closePath();
+    const lg=g.createLinearGradient(0,L.y*H-L.amp*H,0,H); lg.addColorStop(0,shade(L.col,.08)); lg.addColorStop(1,shade(L.col,-.35));
+    g.fillStyle=lg; g.fill();
+    if(L.vines){
+      g.save(); g.clip(); g.lineCap="round";
+      let off=H*.012, sp=H*.007;
+      while(L.y*H-L.amp*H+off<H){
+        g.lineWidth=sp*.55;
+        L.vines.forEach((col,k)=>{g.strokeStyle=col; g.beginPath();
+          for(let x=0;x<W;x+=step*3){if(((x*13+off*7)|0)%L.vines.length===k){const y=f(x)+off; g.moveTo(x,y); g.lineTo(x+step*3,f(x+step*3)+off);}}
+          g.stroke();});
+        off+=sp; sp*=1.09;
+      }
+      g.restore();
+    }
+    if(L.trees){
+      const n=Math.round(L.trees*W/(M*.035));
+      for(let i=0;i<n;i++){const x=rand()*W, sz=M*(.012+li*.011)*(.7+rand()*.6); tree(g,x,f(x)+sz*.3,sz,rand,!!L.bare,!!L.far);}
+    }
+  });
+  for(let i=0;i<(s.fog||0)*3;i++){
+    const x=rand()*W, y=H*(.42+rand()*.3), rr=H*(.05+rand()*.05);
+    g.save(); g.translate(x,y); g.scale(7,1);
+    const fg=g.createRadialGradient(0,0,0,0,0,rr); fg.addColorStop(0,"rgba(255,252,245,.32)"); fg.addColorStop(1,"rgba(255,252,245,0)");
+    g.fillStyle=fg; g.beginPath(); g.arc(0,0,rr,0,7); g.fill(); g.restore();
+  }
+  if(s.lake){
+    const yW=s.lake*H;
+    g.save(); g.beginPath(); g.rect(0,yW,W,H-yW); g.clip();
+    g.fillStyle=s.sky[1]; g.fillRect(0,yW,W,H-yW);
+    g.translate(0,2*yW); g.scale(1,-1); g.globalAlpha=.7; g.drawImage(canvas,0,0,W,yW,0,0,W,yW);
+    g.restore();
+    const wg=g.createLinearGradient(0,yW,0,H); wg.addColorStop(0,"rgba(40,70,100,.15)"); wg.addColorStop(1,"rgba(20,35,55,.55)");
+    g.fillStyle=wg; g.fillRect(0,yW,W,H-yW);
+    for(let i=0;i<40;i++){const y=yW+rand()*(H-yW), x=rand()*W, l=W*(.05+rand()*.15);
+      g.fillStyle=`rgba(255,255,255,${.05+rand()*.1})`; g.fillRect(x,y,l,Math.max(1,dpr));}
+    g.fillStyle="rgba(30,20,15,.5)"; g.fillRect(0,yW-dpr,W,2*dpr);
+  }
+  for(let i=0;i<(s.leaves||0);i++){
+    const x=rand()*W, y=rand()*H, l=M*(.006+rand()*.006);
+    g.save(); g.translate(x,y); g.rotate(rand()*6.3); g.fillStyle=AUTUMN[Math.floor(rand()*AUTUMN.length)];
+    g.beginPath(); g.ellipse(0,0,l,l*.5,0,0,7); g.fill(); g.restore();
+  }
+  if(s.frost){g.fillStyle="rgba(235,242,250,.12)"; g.fillRect(0,0,W,H);}
+  g.save(); g.globalAlpha=.06; g.globalCompositeOperation="overlay"; g.fillStyle=g.createPattern(grain,"repeat"); g.fillRect(0,0,W,H); g.restore();
+  const v=g.createRadialGradient(W/2,H/2,Math.min(W,H)*.35,W/2,H/2,Math.max(W,H)*.75);
+  v.addColorStop(0,"rgba(0,0,0,0)"); v.addColorStop(1,"rgba(0,0,0,.42)"); g.fillStyle=v; g.fillRect(0,0,W,H);
+}
+
+const gallery = document.getElementById("gallery");
+photos.forEach(p=>{
+  const fig = document.createElement("figure");
+  fig.className = "tile rise" + (p.wide ? " wide" : "");
+  fig.setAttribute("aria-label", `${p.t} – Beispielbild`);
+  fig.innerHTML = `<canvas class="ph"></canvas><span class="tag">Beispiel</span>
+    <figcaption><strong>${p.t}</strong><span class="exif">${p.exif}</span></figcaption>`;
+  gallery.appendChild(fig);
+});
+
+const feed = document.getElementById("feed");
+for(let i=0;i<9;i++){
+  const a = document.createElement("a");
+  a.className = "sq ig-link"; a.target = "_blank"; a.rel = "noopener";
+  a.setAttribute("aria-label", "Beitrag " + (i+1) + " auf Instagram ansehen");
+  a.innerHTML = '<canvas class="ph"></canvas>';
+  feed.appendChild(a);
+}
+document.querySelectorAll(".ig-link").forEach(a => a.href = igUrl);
+document.querySelectorAll(".ig-dm").forEach(a => a.href = "https://ig.me/m/" + INSTAGRAM);
+
+function paintAll(){
+  landscape(document.getElementById("hero-canvas"), SCENES.weinberg, 7);
+  gallery.querySelectorAll(".tile").forEach((f,i)=>{
+    const c=f.querySelector("canvas"); if(c && !c.hidden && !f.hidden) landscape(c, SCENES[photos[i].scene], i+1);
+  });
+  feed.querySelectorAll(".sq").forEach((s,i)=>{
+    const c=s.querySelector("canvas"); if(c && !c.hidden) landscape(c, SCENES[photos[(i*3)%photos.length].scene], 40+i);
+  });
+}
+paintAll();
+let rt, lastW=innerWidth; window.addEventListener("resize",()=>{if(innerWidth===lastW) return; lastW=innerWidth; clearTimeout(rt); rt=setTimeout(paintAll,150)});
+
+document.getElementById("own-photos").addEventListener("change",e=>{
+  const files=[...e.target.files].filter(f=>f.type.startsWith("image/"));
+  const targets=[document.getElementById("hero-vf"), ...gallery.querySelectorAll(".tile"), ...feed.querySelectorAll(".sq")];
+  files.slice(0,targets.length).forEach((file,i)=>{
+    const t=targets[i];
+    let img=t.querySelector("img");
+    if(!img){img=document.createElement("img"); img.alt=""; t.insertBefore(img, t.firstChild.nextSibling); const c=t.querySelector("canvas"); if(c) c.hidden=true;}
+    img.src=URL.createObjectURL(file);
+    const tag=t.querySelector(".tag"); if(tag) tag.hidden=true;
+  });
+});
+
+document.querySelectorAll(".copy").forEach(b=>{
+  b.addEventListener("click",()=>{
+    const el=document.getElementById(b.dataset.copy), text=el.textContent;
+    const done=()=>{b.textContent="Kopiert"; setTimeout(()=>b.textContent="Kopieren",1500)};
+    const select=()=>{const s=getSelection(), r=document.createRange(); r.selectNodeContents(el); s.removeAllRanges(); s.addRange(r); b.textContent="Markiert";};
+    try{ navigator.clipboard.writeText(text).then(done, select); }catch(_){ select(); }
+  });
+});
+
+
+// Farbschnur
+(()=>{
+  const svg=document.getElementById("string"), grad=document.getElementById("str-grad");
+  const track=svg.querySelector(".str-track"), draw=svg.querySelector(".str-draw"), glow=svg.querySelector(".str-glow"), head=svg.querySelector(".str-head");
+  const RAINBOW=["#ff4d6d","#ff9f1c","#ffd23f","#3ddc84","#3aa0ff","#8b5cf6"];
+  let L=1, table=[], ticking=false, lastH=0;
+  function build(){
+    const W=document.documentElement.clientWidth, H=document.body.scrollHeight;
+    svg.setAttribute("viewBox",`0 0 ${W} ${H}`); svg.style.height=H+"px"; lastH=H;
+    // Zickzack-Punkte kreuz und quer über die Seite
+    const r=rng(11), pts=[[W*.5,0]], step=Math.max(380,innerHeight*.55);
+    let side=r()<.5?0:1;
+    for(let y=step*.6; y<H; y+=step*(.8+r()*.4)){
+      const x=side? W*(.78+r()*.18) : W*(.04+r()*.18); side=1-side; pts.push([x,y]);
+    }
+    pts.push([W*.5,H]);
+    // Catmull-Rom zu Bezier für weiche Kurven
+    let d=`M${pts[0][0]} ${pts[0][1]}`;
+    for(let i=0;i<pts.length-1;i++){
+      const p0=pts[i-1]||pts[i], p1=pts[i], p2=pts[i+1], p3=pts[i+2]||p2;
+      const c1=[p1[0]+(p2[0]-p0[0])/6, p1[1]+(p2[1]-p0[1])/6], c2=[p2[0]-(p3[0]-p1[0])/6, p2[1]-(p3[1]-p1[1])/6];
+      d+=` C${c1[0].toFixed(1)} ${c1[1].toFixed(1)} ${c2[0].toFixed(1)} ${c2[1].toFixed(1)} ${p2[0].toFixed(1)} ${p2[1].toFixed(1)}`;
+    }
+    [track,draw,glow].forEach(el=>el.setAttribute("d",d));
+    L=draw.getTotalLength(); draw.style.strokeDasharray=glow.style.strokeDasharray=L;
+    table=[]; for(let i=0;i<=400;i++){const l=L*i/400; table.push([l,draw.getPointAtLength(l).y]);}
+    // Regenbogen entlang der Seite, dreimal von oben nach unten
+    grad.setAttribute("y2",H); grad.innerHTML="";
+    const n=RAINBOW.length*3;
+    for(let i=0;i<=n;i++){const s=document.createElementNS("http://www.w3.org/2000/svg","stop"); s.setAttribute("offset",i/n); s.setAttribute("stop-color",RAINBOW[i%RAINBOW.length]); grad.appendChild(s);}
+    update();
+  }
+  function lengthAtY(y){
+    if(y<=table[0][1]) return 0;
+    for(let i=1;i<table.length;i++) if(table[i][1]>=y){const a=table[i-1],b=table[i];return a[0]+(b[0]-a[0])*((y-a[1])/((b[1]-a[1])||1));}
+    return L;
+  }
+  function update(){
+    ticking=false;
+    const atEnd=scrollY+innerHeight>=document.body.scrollHeight-4;
+    const l=atEnd?L:lengthAtY(scrollY+innerHeight*.62);
+    draw.style.strokeDashoffset=glow.style.strokeDashoffset=L-l;
+    const pt=draw.getPointAtLength(Math.max(.01,l)), H=lastH||1;
+    head.setAttribute("cx",pt.x); head.setAttribute("cy",pt.y);
+    const col=RAINBOW[Math.floor((pt.y/H)*RAINBOW.length*3)%RAINBOW.length];
+    head.style.fill=col; head.style.filter=`drop-shadow(0 0 8px ${col}) drop-shadow(0 0 18px ${col})`;
+  }
+  addEventListener("scroll",()=>{if(!ticking){ticking=true;requestAnimationFrame(update)}},{passive:true});
+  let rt; const rebuild=()=>{clearTimeout(rt); rt=setTimeout(build,150)};
+  let lastSW=innerWidth; addEventListener("resize",()=>{if(innerWidth!==lastSW){lastSW=innerWidth; rebuild();}});
+  if("ResizeObserver" in window) new ResizeObserver(()=>{if(Math.abs(document.body.scrollHeight-lastH)>2) rebuild();}).observe(document.body);
+  build();
+})();
+
+// Mobile-Menü
+(()=>{
+  const nav=document.querySelector(".nav"), btn=nav.querySelector(".menu-btn");
+  const set=open=>{nav.classList.toggle("open",open); btn.setAttribute("aria-expanded",String(open)); btn.setAttribute("aria-label",open?"Menü schließen":"Menü öffnen");};
+  btn.addEventListener("click",()=>set(!nav.classList.contains("open")));
+  nav.querySelectorAll("nav a").forEach(a=>a.addEventListener("click",()=>set(false)));
+  document.addEventListener("keydown",e=>{if(e.key==="Escape") set(false);});
+})();
+</script>
+
+</body>
+</html>

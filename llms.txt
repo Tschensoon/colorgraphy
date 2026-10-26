@@ -1,0 +1,14 @@
+# Colorgraphy
+
+> Colorgraphy ist das Fotografie-Projekt eines Hobbyfotografen mit Wohnort Heilbronn (Deutschland). Fotografiert wird ohne festes Thema und nicht an einen Ort gebunden: Natur, Menschen, Tiere und Städte, zu Hause und unterwegs.
+
+- Themen: offen, unter anderem Natur, Menschen, Tiere, Städte
+- Name: „Color“ (bunte Bilder) + „graphy“ (von Photography, griechisch „mit Licht zeichnen“): mit Licht und Farbe zeichnen
+- Ausrüstung: Sony α7 II, Sony FE 85 mm F1.8, Sony FE 24–105 mm F4 G OSS
+- Bearbeitung: RAW, Adobe Lightroom
+- Angebot: Reines Hobbyprojekt, keine bezahlten Fotoshootings
+- Instagram: https://www.instagram.com/colorgraphy.de/ (neue Bilder erscheinen zuerst dort)
+
+## Seiten
+
+- [Startseite](https://tschensoon.github.io/colorgraphy/): Galerie, Ausrüstung, häufige Fragen und Instagram-Feed
