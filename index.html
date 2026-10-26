@@ -276,15 +276,6 @@ section{padding-block:clamp(2.5rem,6vw,4.5rem)}
 .cta-section{padding-block:clamp(1rem,3vw,2rem)}
 @media (max-width:760px){.cta-band{grid-template-columns:minmax(0,1fr)}.cta-actions{justify-content:flex-start}}
 
-/* Farbschnur: schlängelt sich hinter den Inhalten durch die ganze Seite */
-body{position:relative}
-.string{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:0;overflow:visible}
-main,footer{position:relative;z-index:1}
-.str-track{fill:none;stroke:rgba(255,255,255,.05);stroke-width:2}
-.str-draw{fill:none;stroke-width:4;stroke-linecap:round}
-.str-glow{fill:none;stroke-width:10;stroke-linecap:round;opacity:.55}
-@media (max-width:700px){.str-draw{stroke-width:3}.str-glow{stroke-width:7}}
-
 /* Mobile Feinschliff */
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 a,button,label{-webkit-tap-highlight-color:transparent}
@@ -304,7 +295,6 @@ footer a{display:inline-block;padding:.5rem 0}
   .qa{padding:1.2rem}
   .cta-actions .pill{flex:1 1 auto}
 }
-@media (max-width:700px){.str-glow{display:none}}
 
 /* Fragen */
 .faq{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}
@@ -346,17 +336,6 @@ footer .wrap{padding-block:1.75rem;display:flex;justify-content:space-between;ga
     </div>
   </div>
 </header>
-
-<svg class="string" id="string" aria-hidden="true">
-  <defs>
-    <linearGradient id="str-grad" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="1000"></linearGradient>
-    <filter id="str-glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="6"/></filter>
-  </defs>
-  <path class="str-track"/>
-  <path class="str-glow" stroke="url(#str-grad)" filter="url(#str-glow)"/>
-  <path class="str-draw" stroke="url(#str-grad)"/>
-  <circle class="str-head" r="6"/>
-</svg>
 
 <main id="top">
   <div class="hero">
@@ -789,60 +768,6 @@ document.querySelectorAll(".copy").forEach(b=>{
   });
 });
 
-
-// Farbschnur
-(()=>{
-  const svg=document.getElementById("string"), grad=document.getElementById("str-grad");
-  const track=svg.querySelector(".str-track"), draw=svg.querySelector(".str-draw"), glow=svg.querySelector(".str-glow"), head=svg.querySelector(".str-head");
-  const RAINBOW=["#ff4d6d","#ff9f1c","#ffd23f","#3ddc84","#3aa0ff","#8b5cf6"];
-  let L=1, table=[], ticking=false, lastH=0;
-  function build(){
-    const W=document.documentElement.clientWidth, H=document.body.scrollHeight;
-    svg.setAttribute("viewBox",`0 0 ${W} ${H}`); svg.style.height=H+"px"; lastH=H;
-    // Zickzack-Punkte kreuz und quer über die Seite
-    const r=rng(11), pts=[[W*.5,0]], step=Math.max(380,innerHeight*.55);
-    let side=r()<.5?0:1;
-    for(let y=step*.6; y<H; y+=step*(.8+r()*.4)){
-      const x=side? W*(.78+r()*.18) : W*(.04+r()*.18); side=1-side; pts.push([x,y]);
-    }
-    pts.push([W*.5,H]);
-    // Catmull-Rom zu Bezier für weiche Kurven
-    let d=`M${pts[0][0]} ${pts[0][1]}`;
-    for(let i=0;i<pts.length-1;i++){
-      const p0=pts[i-1]||pts[i], p1=pts[i], p2=pts[i+1], p3=pts[i+2]||p2;
-      const c1=[p1[0]+(p2[0]-p0[0])/6, p1[1]+(p2[1]-p0[1])/6], c2=[p2[0]-(p3[0]-p1[0])/6, p2[1]-(p3[1]-p1[1])/6];
-      d+=` C${c1[0].toFixed(1)} ${c1[1].toFixed(1)} ${c2[0].toFixed(1)} ${c2[1].toFixed(1)} ${p2[0].toFixed(1)} ${p2[1].toFixed(1)}`;
-    }
-    [track,draw,glow].forEach(el=>el.setAttribute("d",d));
-    L=draw.getTotalLength(); draw.style.strokeDasharray=glow.style.strokeDasharray=L;
-    table=[]; for(let i=0;i<=400;i++){const l=L*i/400; table.push([l,draw.getPointAtLength(l).y]);}
-    // Regenbogen entlang der Seite, dreimal von oben nach unten
-    grad.setAttribute("y2",H); grad.innerHTML="";
-    const n=RAINBOW.length*3;
-    for(let i=0;i<=n;i++){const s=document.createElementNS("http://www.w3.org/2000/svg","stop"); s.setAttribute("offset",i/n); s.setAttribute("stop-color",RAINBOW[i%RAINBOW.length]); grad.appendChild(s);}
-    update();
-  }
-  function lengthAtY(y){
-    if(y<=table[0][1]) return 0;
-    for(let i=1;i<table.length;i++) if(table[i][1]>=y){const a=table[i-1],b=table[i];return a[0]+(b[0]-a[0])*((y-a[1])/((b[1]-a[1])||1));}
-    return L;
-  }
-  function update(){
-    ticking=false;
-    const atEnd=scrollY+innerHeight>=document.body.scrollHeight-4;
-    const l=atEnd?L:lengthAtY(scrollY+innerHeight*.62);
-    draw.style.strokeDashoffset=glow.style.strokeDashoffset=L-l;
-    const pt=draw.getPointAtLength(Math.max(.01,l)), H=lastH||1;
-    head.setAttribute("cx",pt.x); head.setAttribute("cy",pt.y);
-    const col=RAINBOW[Math.floor((pt.y/H)*RAINBOW.length*3)%RAINBOW.length];
-    head.style.fill=col; head.style.filter=`drop-shadow(0 0 8px ${col}) drop-shadow(0 0 18px ${col})`;
-  }
-  addEventListener("scroll",()=>{if(!ticking){ticking=true;requestAnimationFrame(update)}},{passive:true});
-  let rt; const rebuild=()=>{clearTimeout(rt); rt=setTimeout(build,150)};
-  let lastSW=innerWidth; addEventListener("resize",()=>{if(innerWidth!==lastSW){lastSW=innerWidth; rebuild();}});
-  if("ResizeObserver" in window) new ResizeObserver(()=>{if(Math.abs(document.body.scrollHeight-lastH)>2) rebuild();}).observe(document.body);
-  build();
-})();
 
 // Mobile-Menü
 (()=>{
