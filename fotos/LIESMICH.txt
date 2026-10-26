@@ -1,0 +1,6 @@
+Hier JPG-Fotos hineinlegen. Der Dateiname wird zum Titel:
+neckar-bei-nacht.jpg  ->  "Neckar bei Nacht"
+
+Nach dem Hochladen verkleinert GitHub die Bilder automatisch, entfernt alle
+persönlichen Metadaten und zeigt sie nach 1-2 Minuten auf der Website.
+Foto löschen = es verschwindet auch von der Website.

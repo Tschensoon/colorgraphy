@@ -196,7 +196,7 @@ section{padding-block:clamp(2.5rem,6vw,4.5rem)}
 .seg-wrap{display:flex;justify-content:center;margin-bottom:2rem}
 
 /* Galerie */
-.gallery{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}
+.gallery{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem;grid-auto-flow:dense}
 .tile{position:relative;margin:0;border-radius:var(--radius);overflow:hidden;background:#0b0a12;aspect-ratio:4/5;max-width:100%}
 .tile.wide{grid-column:1/-1;aspect-ratio:16/9}
 .tile canvas,.tile img{transition:transform .6s cubic-bezier(.2,.7,.2,1)}
@@ -690,28 +690,68 @@ function landscape(canvas, s, seed){
 }
 
 const gallery = document.getElementById("gallery");
-photos.forEach(p=>{
-  const fig = document.createElement("figure");
-  fig.className = "tile rise" + (p.wide ? " wide" : "");
-  fig.setAttribute("aria-label", `${p.t} – Beispielbild`);
-  fig.innerHTML = `<canvas class="ph"></canvas><span class="tag">Beispiel</span>
-    <figcaption><strong>${p.t}</strong><span class="exif">${p.exif}</span></figcaption>`;
-  gallery.appendChild(fig);
-});
-
 const feed = document.getElementById("feed");
-for(let i=0;i<9;i++){
-  const a = document.createElement("a");
-  a.className = "sq ig-link"; a.target = "_blank"; a.rel = "noopener";
-  a.setAttribute("aria-label", "Beitrag " + (i+1) + " auf Instagram ansehen");
-  a.innerHTML = '<canvas class="ph"></canvas>';
-  feed.appendChild(a);
-}
 document.querySelectorAll(".ig-link").forEach(a => a.href = igUrl);
 document.querySelectorAll(".ig-dm").forEach(a => a.href = "https://ig.me/m/" + INSTAGRAM);
 
+// Echte Fotos stehen in gallery.json (schreibt die GitHub Action aus dem Ordner fotos/).
+// Gibt es keine, bleiben die gezeichneten Beispielbilder.
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const url = (ordner, f) => ordner + "/" + encodeURIComponent(f.datei) + "?v=" + (f.sha||"").slice(0,8);
+function bild(f, sizes){
+  const img = document.createElement("img");
+  const klein = Math.round(f.breite * Math.min(1, 800 / Math.max(f.breite, f.hoehe)));
+  img.src = url("vorschau", f);
+  if(sizes){ img.srcset = `${url("vorschau", f)} ${klein}w, ${url("fotos", f)} ${f.breite}w`; img.sizes = sizes; }
+  img.alt = f.titel; img.loading = "lazy"; img.decoding = "async";
+  return img;
+}
+
+function zeigeBeispiele(){
+  photos.forEach(p=>{
+    const fig = document.createElement("figure");
+    fig.className = "tile rise" + (p.wide ? " wide" : "");
+    fig.setAttribute("aria-label", `${p.t} – Beispielbild`);
+    fig.innerHTML = `<canvas class="ph"></canvas><span class="tag">Beispiel</span>
+      <figcaption><strong>${p.t}</strong><span class="exif">${p.exif}</span></figcaption>`;
+    gallery.appendChild(fig);
+  });
+}
+
+function zeigeFotos(liste){
+  liste.forEach(f=>{
+    const wide = f.breite / f.hoehe >= 1.25, e = f.exif || {};
+    const exif = [e.mm, e.blende, e.zeit, e.iso].filter(Boolean).join(" · ");
+    const fig = document.createElement("figure");
+    fig.className = "tile rise" + (wide ? " wide" : "");
+    fig.innerHTML = `<figcaption><strong>${esc(f.titel)}</strong>${exif ? `<span class="exif">${esc(exif)}</span>` : ""}</figcaption>`;
+    fig.prepend(bild(f, wide ? "(max-width:640px) 84vw, min(100vw, 68rem)" : "(max-width:640px) 84vw, min(50vw, 34rem)"));
+    gallery.appendChild(fig);
+  });
+  // Startbild: das neueste Querformat
+  const held = liste.find(f => f.breite > f.hoehe) || liste[0], e = held.exif || {};
+  const hero = document.getElementById("hero-canvas"), img = bild(held, "min(100vw, 60rem)");
+  img.loading = "eager"; hero.hidden = true; hero.after(img);
+  const hud = document.querySelectorAll("#hero-vf .bottom span");
+  if(e.zeit) hud[0].textContent = e.zeit.replace(/ s$/, "");
+  if(e.blende) hud[1].textContent = e.blende.replace("f/", "F");
+  if(e.iso) hud[3].textContent = e.iso;
+  document.querySelector(".try").hidden = true;
+  document.querySelector(".feed-note").textContent = (liste.length < 9 ? "Teils noch Beispielbilder · " : "") + "jedes Bild öffnet das Profil";
+}
+
+function baueFeed(liste){
+  for(let i=0;i<9;i++){
+    const a = document.createElement("a");
+    a.className = "sq ig-link"; a.target = "_blank"; a.rel = "noopener"; a.href = igUrl;
+    a.setAttribute("aria-label", "Beitrag " + (i+1) + " auf Instagram ansehen");
+    if(liste[i]) a.appendChild(bild(liste[i])); else a.innerHTML = '<canvas class="ph"></canvas>';
+    feed.appendChild(a);
+  }
+}
+
 function paintAll(){
-  landscape(document.getElementById("hero-canvas"), SCENES.weinberg, 7);
+  const hero=document.getElementById("hero-canvas"); if(!hero.hidden) landscape(hero, SCENES.weinberg, 7);
   gallery.querySelectorAll(".tile").forEach((f,i)=>{
     const c=f.querySelector("canvas"); if(c && !c.hidden && !f.hidden) landscape(c, SCENES[photos[i].scene], i+1);
   });
@@ -719,7 +759,13 @@ function paintAll(){
     const c=s.querySelector("canvas"); if(c && !c.hidden) landscape(c, SCENES[photos[(i*3)%photos.length].scene], 40+i);
   });
 }
-paintAll();
+
+fetch("gallery.json", {cache:"no-cache"}).then(r => r.ok ? r.json() : []).catch(() => []).then(liste=>{
+  const echt = Array.isArray(liste) ? liste.filter(f => f && f.datei && f.breite && f.hoehe) : [];
+  if(echt.length) zeigeFotos(echt); else zeigeBeispiele();
+  baueFeed(echt);
+  paintAll();
+});
 let rt, lastW=innerWidth; window.addEventListener("resize",()=>{if(innerWidth===lastW) return; lastW=innerWidth; clearTimeout(rt); rt=setTimeout(paintAll,150)});
 
 document.getElementById("own-photos").addEventListener("change",e=>{
