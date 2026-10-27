@@ -54,6 +54,10 @@
     <h1>Kurz und ehrlich.</h1>
     <p><strong>Colorgraphy ist eine private Hobbyseite ohne Werbung, ohne Verkauf und ohne Cookies.</strong> Hier steht, welche Daten trotzdem anfallen, wenn du die Seite besuchst, und was damit passiert.</p>
 
+    <h2>Verantwortlich</h2>
+    <p>Jens Altmann<br>Falterstr. 5<br>74223 Flein<br>E-Mail: <a id="mail" href="#">wird geladen …</a><noscript>altmannjens [at] outlook.com</noscript></p>
+    <p>Weitere Angaben findest du im <a href="impressum.html">Impressum</a>.</p>
+
     <h2>Hosting bei GitHub Pages</h2>
     <p>Die Seite liegt bei GitHub Pages (GitHub Inc., USA). Wie bei jedem Webserver verarbeitet GitHub beim Abruf technische Daten wie deine IP-Adresse, um die Seite auszuliefern und vor Missbrauch zu schützen. Auf diese Daten habe ich keinen Zugriff. Details stehen in der <a href="https://docs.github.com/de/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener">Datenschutzerklärung von GitHub</a>.</p>
 
@@ -62,10 +66,10 @@
     <ul>
       <li>die aufgerufene Seite und ihr Titel,</li>
       <li>die Seite, von der du gekommen bist (z. B. Google oder Instagram),</li>
-      <li>Browser, Betriebssystem und Bildschirmbreite,</li>
+      <li>Browser und Betriebssystem,</li>
       <li>das ungefähre Land bzw. die Region, abgeleitet aus der IP-Adresse.</li>
     </ul>
-    <p>Laut GoatCounter wird die IP-Adresse nicht gespeichert. Um doppelte Zählungen zu vermeiden, wird für einige Stunden eine anonyme Prüfsumme gebildet. Ich sehe nur zusammengefasste Zahlen und kann niemanden persönlich erkennen. Das Zählskript liegt auf dieser Seite selbst, es wird nichts von fremden Servern nachgeladen.</p>
+    <p>Laut GoatCounter wird die IP-Adresse nicht gespeichert. Um doppelte Zählungen zu vermeiden, wird für einige Stunden eine anonyme Prüfsumme gebildet. Ich sehe nur zusammengefasste Zahlen und kann niemanden persönlich erkennen. Das Zählskript liegt auf dieser Seite selbst, es wird nichts von fremden Servern nachgeladen. Es liest keine Gerätedaten wie die Bildschirmgröße aus.</p>
     <p>Grundlage ist mein berechtigtes Interesse, die Reichweite meiner Seite anonym zu messen (Art. 6 Abs. 1 lit. f DSGVO). Du kannst jederzeit widersprechen:</p>
     <div class="zaehl-box">
       <p id="zaehl-status">Dieser Browser wird gezählt.</p>
@@ -82,7 +86,7 @@
     </ul>
 
     <h2>Deine Rechte und Kontakt</h2>
-    <p>Du hast das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung und Widerspruch. Da ich keine personenbezogenen Daten speichere, gibt es in der Regel nichts herauszugeben oder zu löschen. Fragen beantworte ich gern per Direktnachricht auf <a href="https://www.instagram.com/colorgraphy.de/" target="_blank" rel="noopener">Instagram @colorgraphy.de</a>.</p>
+    <p>Du hast das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung und Widerspruch. Da ich keine personenbezogenen Daten speichere, gibt es in der Regel nichts herauszugeben oder zu löschen. Schreib mir dazu einfach eine E-Mail an die oben genannte Adresse oder eine Direktnachricht auf <a href="https://www.instagram.com/colorgraphy.de/" target="_blank" rel="noopener">Instagram @colorgraphy.de</a>.</p>
     <p>Außerdem kannst du dich bei einer Datenschutz-Aufsichtsbehörde beschweren, in Baden-Württemberg beim <a href="https://www.baden-wuerttemberg.datenschutz.de" target="_blank" rel="noopener">Landesbeauftragten für den Datenschutz und die Informationsfreiheit</a>.</p>
     <p>Stand: Oktober 2026</p>
   </article>
@@ -90,12 +94,13 @@
 
 <footer>
   <div class="wrap">
-    <span>© 2026 Colorgraphy · Hobbyfotografie ·<a href="index.html">Startseite</a> ·<a href="lernen.html">Fotografieren lernen</a></span>
+    <span>© 2026 Colorgraphy · Hobbyfotografie ·<a href="index.html">Startseite</a> ·<a href="lernen.html">Fotografieren lernen</a> ·<a href="impressum.html">Impressum</a></span>
     <span>Hobbyfotografie mit Sony α7 II ·<a href="https://www.instagram.com/colorgraphy.de/" target="_blank" rel="noopener">Instagram</a></span>
   </div>
 </footer>
 
 <script>
+(() => { const a = document.getElementById("mail"), adr = ["altmannjens", "outlook.com"].join("@"); a.href = "mailto:" + adr; a.textContent = adr; })();
 // Zählung in diesem Browser ein- oder ausschalten (GoatCounter beachtet "skipgc")
 (() => {
   const status = document.getElementById("zaehl-status"), knopf = document.getElementById("zaehl-knopf");

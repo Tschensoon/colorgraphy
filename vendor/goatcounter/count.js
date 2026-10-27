@@ -1,5 +1,6 @@
 // GoatCounter: https://www.goatcounter.com
 // This file is released under the ISC license: https://opensource.org/licenses/ISC
+// Angepasst für colorgraphy.de: sendet die Bildschirmbreite nicht mit.
 ;(function() {
 	'use strict';
 
@@ -25,7 +26,6 @@
 			r: (vars.referrer === undefined ? goatcounter.referrer : vars.referrer),
 			t: (vars.title    === undefined ? goatcounter.title    : vars.title),
 			e: !!(vars.event || goatcounter.event),
-			s: window.screen.width,
 			b: is_bot(),
 			q: location.search,
 		}
