@@ -13,3 +13,4 @@
 
 - [Startseite](https://colorgraphy.de/): Galerie, Ausrüstung, häufige Fragen und Instagram-Feed
 - [Lernen](https://colorgraphy.de/lernen.html): Fotografieren lernen zum Ausprobieren – Blende, Belichtungszeit und ISO, Brennweite und Bildwinkel, Farbkreis und Weißabgleich, Bildgestaltung (Drittelregel, Horizont) und Licht mit Goldene-Stunde-Rechner
+- [Tools](https://colorgraphy.de/tools.html): Kostenloser Social-Media-Zuschneider – schneidet Fotos im Browser auf die richtigen Formate für Instagram, Facebook, TikTok, X, LinkedIn, Pinterest, YouTube und WhatsApp zu, ohne Upload

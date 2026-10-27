@@ -1,0 +1,72 @@
+/* Seite „Tools“: Social-Media-Zuschneider */
+.tools-hero .wrap{display:grid;grid-template-columns:minmax(0,1fr);gap:1.2rem;justify-items:center}
+.tools-hero h1{font-size:clamp(2.6rem,8vw,5.2rem);font-weight:800}
+.vorteile{list-style:none;margin:.5rem 0 0;padding:0;display:flex;flex-wrap:wrap;justify-content:center;gap:.5rem}
+.vorteile li{font-size:.85rem;font-weight:600;padding:.4rem .85rem;border-radius:999px;background:var(--surface);border:1px solid var(--line)}
+.vorteile li::before{content:"✓ ";color:var(--af)}
+
+.werkbank{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);grid-template-areas:"foto zuschnitt" "format zuschnitt" "format speichern";gap:1rem;align-items:start}
+#s-foto{grid-area:foto}#s-format{grid-area:format}#s-zuschnitt{grid-area:zuschnitt}#s-speichern{grid-area:speichern}
+.schritt{background:var(--surface);border-radius:var(--radius);padding:clamp(1rem,2.5vw,1.5rem);display:grid;gap:.9rem;min-width:0}
+.schritt h3{font-size:1.15rem;display:flex;align-items:center;gap:.6rem}
+.schritt h3 .nr{width:1.7rem;height:1.7rem;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;font:700 .85rem var(--sans);flex:none}
+
+.ablage{display:grid;justify-items:center;gap:.4rem;text-align:center;padding:1.6rem 1rem;border:2px dashed var(--line);border-radius:18px;cursor:pointer;transition:border-color .2s,background .2s}
+.ablage:hover,.ablage.drueber{border-color:var(--accent);background:var(--surface-2)}
+.ablage:focus-within{outline:2px solid var(--link);outline-offset:3px}
+.ablage-icon svg{width:40px;height:40px;color:var(--link)}
+.ablage span:last-child{color:var(--muted);font-size:.88rem}
+.ablage.geladen{padding:1rem}
+
+.plattformen{display:flex;flex-wrap:wrap;gap:.45rem}
+.plattformen button,.rand-wahl button{font:600 .85rem var(--sans);padding:.5rem .9rem;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--fg);cursor:pointer;transition:border-color .2s,background .2s}
+.plattformen button[aria-pressed="true"],.rand-wahl button[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.formate{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:.5rem}
+.formate button{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:.65rem;text-align:left;padding:.65rem .75rem;border-radius:14px;border:1px solid var(--line);background:var(--surface-2);color:var(--fg);cursor:pointer;font:inherit;transition:border-color .2s,box-shadow .2s}
+.formate button[aria-pressed="true"]{border-color:var(--accent);box-shadow:var(--glow)}
+.formate .form{display:grid;place-items:center;width:2.2rem;height:2.2rem}
+.formate .form i{display:block;border:2px solid var(--link);border-radius:3px}
+.formate .form i.rund{border-radius:50%}
+.formate b{display:block;font-size:.88rem;line-height:1.25}
+.formate small{display:block;color:var(--muted);font:500 .72rem var(--mono);margin-top:.15rem}
+.format-hinweis{color:var(--muted);font-size:.88rem;min-height:1.3em}
+
+.vorschau-box{display:grid;place-items:center;background:var(--surface-2);border-radius:18px;padding:clamp(.75rem,2vw,1.25rem);min-height:240px}
+.vorschau{position:relative;width:100%;display:grid;place-items:center}
+#vorschau{display:block;max-width:100%;max-height:min(62vh,560px);border-radius:6px;box-shadow:0 10px 40px rgba(0,0,0,.35);touch-action:none;cursor:grab;background:repeating-conic-gradient(#8884 0 25%,transparent 0 50%) 0 0/16px 16px}
+#vorschau:active{cursor:grabbing}
+#vorschau[hidden]{display:none}
+.leer{color:var(--muted);font-size:.95rem;padding:3rem 1rem;text-align:center}
+.steuerung{display:grid;gap:.8rem}
+.steuerung .segmented{margin:0;justify-self:start}
+.regler-zeile{display:grid;gap:.3rem}
+.regler-zeile label{display:flex;justify-content:space-between;font-weight:700;font-size:.92rem}
+.regler-zeile output{font:600 .9rem var(--mono);color:var(--link)}
+.regler-zeile input{width:100%;accent-color:var(--accent);margin:0;height:28px}
+.rand-wahl{display:flex;flex-wrap:wrap;gap:.45rem}
+.knopf-zeile{display:flex;flex-wrap:wrap;align-items:center;gap:.6rem 1rem}
+.haken{display:inline-flex;align-items:center;gap:.4rem;font-size:.9rem;color:var(--muted);cursor:pointer}
+.haken input{accent-color:var(--accent);width:18px;height:18px}
+.tipp{font-size:.82rem;color:var(--muted)}
+.ergebnis{font-weight:600}
+.ergebnis small{display:block;color:var(--muted);font-weight:500;font-size:.85rem;margin-top:.2rem}
+.warnung{font-size:.88rem;padding:.6rem .8rem;border-radius:12px;background:rgba(224,138,0,.14);color:var(--fg);border:1px solid rgba(224,138,0,.45)}
+.pill:disabled{opacity:.45;cursor:default;transform:none;box-shadow:none}
+.merke{margin-top:1rem;padding:1rem 1.25rem;border-left:3px solid var(--accent);background:var(--surface);border-radius:0 16px 16px 0;color:var(--muted)}
+.merke strong{color:var(--fg)}
+
+.tabelle-box{overflow-x:auto;border-radius:var(--radius);background:var(--surface)}
+.groessen{width:100%;border-collapse:collapse;font-size:.92rem}
+.groessen th,.groessen td{text-align:left;padding:.65rem 1rem;border-bottom:1px solid var(--line)}
+.groessen thead th{font-size:.78rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.groessen tbody th{font-weight:700;vertical-align:top}
+.groessen td:nth-child(3),.groessen td:nth-child(4){font-family:var(--mono);font-size:.84rem;white-space:nowrap}
+.groessen td:first-child{color:var(--muted)}
+
+@media (max-width:860px){
+  .werkbank{grid-template-columns:minmax(0,1fr);grid-template-areas:"foto" "format" "zuschnitt" "speichern"}
+}
+@media (max-width:480px){
+  .formate{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .groessen th,.groessen td{padding:.55rem .6rem}
+}
