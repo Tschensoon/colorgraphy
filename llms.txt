@@ -19,3 +19,4 @@
 - [Foto-Splitter](https://colorgraphy.de/tools/foto-splitter.html): ein Foto als Panorama-Karussell, Instagram-Profilraster oder Puzzle in mehrere Bilder teilen
 - [PDF-Werkzeug](https://colorgraphy.de/tools/pdf.html): PDFs im Browser zusammenfügen, aufteilen, sortieren, drehen, komprimieren, in Bilder umwandeln, Bilder zu PDF, Seitenzahlen und Wasserzeichen setzen, Text herausholen – ohne Upload
 - [QR-Code-Generator](https://colorgraphy.de/tools/qr-code.html): QR-Codes für Links, WLAN, Kontakte (vCard), E-Mail, Telefon, SMS, WhatsApp, Orte und Termine, mit Farben, Logo, PNG/SVG und WLAN-Karte – ohne Anmeldung und ohne Ablaufdatum
+- [Colorgraphy-Looks](https://colorgraphy.de/tools/looks.html): Fünf Lightroom-Looks von Colorgraphy direkt im Browser auf eigene Fotos anwenden, mit Stärke-Regler, Vorher/Nachher-Vergleich und Speichern in voller Auflösung ohne Metadaten – ohne Upload

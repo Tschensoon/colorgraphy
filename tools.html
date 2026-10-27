@@ -52,6 +52,11 @@
           "@type": "WebApplication",
           "name": "QR-Code-Generator",
           "url": "https://colorgraphy.de/tools/qr-code.html"
+        },
+        {
+          "@type": "WebApplication",
+          "name": "Colorgraphy-Looks",
+          "url": "https://colorgraphy.de/tools/looks.html"
         }
       ]
     },
@@ -76,7 +81,7 @@
 }
 </script>
 <link rel="stylesheet" href="style.css?v=3">
-<link rel="stylesheet" href="tools.css?v=6">
+<link rel="stylesheet" href="tools.css?v=7">
 </head>
 <body>
 
@@ -132,6 +137,16 @@
             <span class="more">Tool öffnen</span>
           </span>
         </a>
+        <a class="tool-karte" href="tools/looks.html">
+          <span class="tool-bild"><svg viewBox="0 0 240 150" aria-hidden="true"><defs><linearGradient id="gl1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffb020"/><stop offset="1" stop-color="#ff4d6d"/></linearGradient><linearGradient id="gl2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3aa0ff"/><stop offset="1" stop-color="#8b5cf6"/></linearGradient></defs><rect x="40" y="18" width="160" height="114" rx="12" fill="#2a2440"/><path d="M40 30a12 12 0 0 1 12-12h68v114H52a12 12 0 0 1-12-12z" fill="url(#gl2)" opacity=".75"/><path d="M120 18h68a12 12 0 0 1 12 12v90a12 12 0 0 1-12 12h-68z" fill="url(#gl1)"/><path d="M40 112l40-34 30 24 30-30 60 50v8a12 12 0 0 1-12 12H52a12 12 0 0 1-12-12z" fill="rgba(10,8,30,.45)"/><rect x="118" y="10" width="4" height="130" rx="2" fill="#fff"/><circle cx="120" cy="75" r="13" fill="#fff"/><path d="M114 75h12M114 75l3-3M114 75l3 3M126 75l-3-3M126 75l-3 3" stroke="#16131f" stroke-width="2" stroke-linecap="round"/></svg></span>
+          <span class="tool-text">
+            <span class="eyebrow">Foto</span>
+            <strong class="tool-titel">Colorgraphy-Looks</strong>
+            <span class="tool-beschr">Meine Lightroom-Presets für dein Foto: Bild auswählen, Look antippen, Stärke einstellen und speichern. Mit Vorher/Nachher-Vergleich.</span>
+            <span class="chips"><span>5 Looks</span><span>Vorher/Nachher</span><span>Volle Auflösung</span></span>
+            <span class="more">Tool öffnen</span>
+          </span>
+        </a>
         <a class="tool-karte" href="tools/zuschneider.html">
           <span class="tool-bild"><svg viewBox="0 0 240 150" aria-hidden="true"><defs><linearGradient id="gz" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffb020"/><stop offset=".5" stop-color="#8b5cf6"/><stop offset="1" stop-color="#4f6bff"/></linearGradient></defs><rect x="18" y="22" width="84" height="105" rx="8" fill="url(#gz)"/><rect x="114" y="10" width="60" height="130" rx="8" fill="url(#gz)" opacity=".85"/><rect x="186" y="45" width="40" height="40" rx="20" fill="url(#gz)" opacity=".7"/><path d="M10 34V14h20M110 4v14M226 34V14h-20" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round"/></svg></span>
           <span class="tool-text">
@@ -181,7 +196,7 @@
 </footer>
 
 <script>(() => { const z = {"#zuschneider":"tools/zuschneider.html","#splitter":"tools/foto-splitter.html"}[location.hash]; if (z) location.replace(z); })();</script>
-<script src="seite.js?v=7" defer></script>
+<script src="seite.js?v=8" defer></script>
 <script data-goatcounter="https://colorgraphy.goatcounter.com/count" async src="vendor/goatcounter/count.js"></script>
 </body>
 </html>
