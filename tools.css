@@ -102,6 +102,18 @@
 .tool-bild{display:grid;place-items:center;padding:1.6rem 1.2rem;background:var(--surface-2);color:var(--link)}
 .tool-bild svg{width:min(100%,260px);height:auto}
 .tool-text{display:grid;gap:.55rem;padding:1.3rem 1.4rem 1.5rem;align-content:start}
+/* Karten einer Reihe teilen sich die Zeilen: Titel, Text, Stichpunkte und Link stehen auf gleicher Höhe */
+@supports (grid-template-rows:subgrid){
+  .tool-karten{row-gap:1.2rem}
+  .tool-karte{grid-template-rows:subgrid;grid-row:span 6;row-gap:0}
+  .tool-text{grid-template-rows:subgrid;grid-row:span 5;row-gap:.55rem}
+  .tool-text .chips{align-self:start}
+  .tool-text .more{align-self:end}
+}
+@supports not (grid-template-rows:subgrid){
+  .tool-text{display:flex;flex-direction:column}
+  .tool-text .chips{margin-top:auto}
+}
 .tool-titel{font-size:clamp(1.4rem,3vw,1.8rem);letter-spacing:-.02em;line-height:1.1}
 .tool-beschr{color:var(--muted)}
 .chips{display:flex;flex-wrap:wrap;gap:.4rem}
