@@ -621,7 +621,8 @@ function aufbauen(T, RoomEnvironment) {
 
   // Ablauf
   const explosion = ["tubus", "linsen", "blende", "tasten", "sucher", "rueckwand", "display", "gehaeuse", "akku", "bajonett", "verschluss", "sensor", "platine", "ibis"];
-  const AUF_A = 0.05, AUF_B = 0.34, SCHRITTE = 0.37;
+  // Fortschritt 0–1: auseinander, kurz offen lassen (zum Anschauen), wieder zusammen
+  const AUF = [0.04, 0.34], ZU = [0.66, 0.94];
   const klemmen = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
   const weich = (x) => x * x * (3 - 2 * x);
   const akzent = new T.Color(0x8b5cf6).multiplyScalar(0.55);
@@ -654,29 +655,33 @@ function aufbauen(T, RoomEnvironment) {
 
   const box3 = new T.Box3(), hilf = new T.Box3(), v = new T.Vector3(), mitte = new T.Vector3();
   const blick = new T.Vector3(), ziel3 = new T.Vector3(), zielGlatt = new T.Vector3(), rechts = new T.Vector3(), oben = new T.Vector3();
-  let abstandGlatt = 0, breite = 1, hoehe = 1, zuletztAktiv = -3, erstesBild = true;
+  let abstandGlatt = 0, breite = 1, hoehe = 1, zuletztZustand = "", erstesBild = true;
+  let gewaehlt = -1, offen = false; // gewähltes Bauteil (Maus darüber oder angetippt)
+  const beruehrung = matchMedia("(hover: none)").matches;
 
-  const unterzeileSetzen = (i, auf) => {
-    const zustand = i >= 0 ? i : auf ? -1 : -2;
-    if (zustand === zuletztAktiv) return;
-    zuletztAktiv = zustand;
+  const unterzeileSetzen = (i, zustand) => {
+    if (zustand === zuletztZustand) return;
+    zuletztZustand = zustand;
     if (i >= 0) {
       const t = marken[i];
       unterzeile.innerHTML = `<span class="nr">${String(i + 1).padStart(2, "0")} / ${marken.length}</span><strong></strong><p></p>`;
       unterzeile.querySelector("strong").textContent = t.name;
       unterzeile.querySelector("p").textContent = t.text;
     } else {
-      unterzeile.innerHTML = auf
-        ? `<span class="nr">${marken.length} Bauteile</span><strong>So sieht die Kamera von innen aus.</strong><p>Scroll weiter, dann stelle ich dir jedes Teil einzeln vor.</p>`
-        : `<span class="nr">Scroll weiter</span><strong>Gleich fliegt die Kamera auseinander.</strong><p>Ein vereinfachtes Modell meiner Sony α7 II mit dem 24–105 mm.</p>`;
+      unterzeile.innerHTML = {
+        offen: `<span class="nr">${marken.length} Bauteile</span><strong>So sieht die Kamera von innen aus.</strong><p>${beruehrung ? "Tippe auf ein Bauteil oder eine Nummer" : "Fahr mit der Maus über ein Bauteil"}, um mehr zu erfahren. Oder scroll einfach weiter.</p>`,
+        start: `<span class="nr">Scroll weiter</span><strong>Gleich fliegt die Kamera auseinander.</strong><p>Ein vereinfachtes Modell meiner Sony α7 II mit dem 24–105 mm.</p>`,
+        zu: `<span class="nr">Fertig</span><strong>Wieder zusammengebaut.</strong><p>Weiter geht's mit ein paar Worten über mich.</p>`,
+      }[zustand];
     }
   };
 
   const zeichnen = (p) => {
-    const auf = weich(klemmen((p - AUF_A) / (AUF_B - AUF_A)));
-    const schritt = klemmen((p - SCHRITTE) / (1 - SCHRITTE));
-    const aktiv = p < SCHRITTE ? -1 : Math.min(marken.length - 1, Math.floor(schritt * marken.length));
-    unterzeileSetzen(aktiv, auf > 0.5);
+    const auf = weich(klemmen((p - AUF[0]) / (AUF[1] - AUF[0]))) * (1 - weich(klemmen((p - ZU[0]) / (ZU[1] - ZU[0]))));
+    offen = auf > 0.9;
+    if (!offen) gewaehlt = -1;
+    const aktiv = gewaehlt;
+    unterzeileSetzen(aktiv, aktiv >= 0 ? "teil" + aktiv : auf > 0.5 ? "offen" : p > 0.5 ? "zu" : "start");
     let bewegt = false;
 
     explosion.forEach((key, k) => {
@@ -698,7 +703,7 @@ function aufbauen(T, RoomEnvironment) {
 
     // Kamera: schaut schräg von vorne rechts, dreht beim Zerlegen zur Seite
     const schmal = breite < 640;
-    const theta = T.MathUtils.degToRad(36 + 22 * auf - 18 * schritt);
+    const theta = T.MathUtils.degToRad(36 + 22 * auf);
     const phi = T.MathUtils.degToRad(15 + 9 * auf);
     blick.set(Math.sin(theta) * Math.cos(phi), Math.sin(phi), Math.cos(theta) * Math.cos(phi));
     box3.makeEmpty();
@@ -711,7 +716,7 @@ function aufbauen(T, RoomEnvironment) {
     boden.position.set(mitte.x, box3.min.y - 0.6, mitte.z);
     if (aktiv >= 0) {
       hilf.setFromObject(marken[aktiv].teil).getCenter(v);
-      ziel3.lerp(v, schmal ? 0.7 : 0.15);
+      ziel3.lerp(v, schmal ? 0.35 : 0);
     }
     kamera.position.copy(ziel3).add(blick);
     kamera.lookAt(ziel3);
@@ -734,7 +739,7 @@ function aufbauen(T, RoomEnvironment) {
         abstand = Math.max(abstand, tiefe + Math.abs(v.dot(rechts)) / tanX, tiefe + Math.abs(v.dot(oben)) / tanY);
       }
     });
-    if (aktiv >= 0 && schmal) abstand *= 0.58;
+    if (aktiv >= 0 && schmal) abstand *= 0.8;
     if (erstesBild) { zielGlatt.copy(ziel3); abstandGlatt = abstand; erstesBild = false; }
     zielGlatt.lerp(ziel3, 0.18);
     abstandGlatt += (abstand - abstandGlatt) * 0.18;
@@ -745,9 +750,9 @@ function aufbauen(T, RoomEnvironment) {
     kamera.updateMatrixWorld();
     renderer.render(szene, kamera);
 
-    // Beschriftungen an die Teile heften (aktives Teil zuerst, damit es den besten Platz bekommt)
+    // Beschriftungen an die Teile heften (feste Reihenfolge, damit nichts unter der Maus wegspringt)
     const sichtbar = auf > 0.92, belegt = [];
-    marken.map((_, i) => i).sort((a, b) => (b === aktiv) - (a === aktiv)).forEach((i) => {
+    marken.forEach((_, i) => {
       const t = marken[i], ist = i === aktiv;
       hilf.setFromObject(t.teil).getCenter(v);
       if (t.richtung === "o") v.y = hilf.max.y;
@@ -759,8 +764,10 @@ function aufbauen(T, RoomEnvironment) {
       t.punkt.classList.toggle("aktiv", ist);
       t.etikett.classList.toggle("aktiv", ist);
       t.punkt.style.opacity = deckkraft;
+      t.punkt.style.pointerEvents = sichtbar ? "auto" : "none";
       t.punkt.style.transform = `translate(${x.toFixed(1)}px,${y.toFixed(1)}px) translate(-50%,-50%)`;
       t.etikett.style.opacity = t.linie.style.opacity = zeigen ? deckkraft : 0;
+      t.etikett.style.pointerEvents = zeigen ? "auto" : "none";
       if (!zeigen) return;
       if (!t.w) { t.w = t.etikett.offsetWidth; t.h = t.etikett.offsetHeight; }
       const { w, h, richtung: r } = t, abst = 24;
@@ -808,6 +815,33 @@ function aufbauen(T, RoomEnvironment) {
     erstesBild = true;
     anstossen();
   };
+  // Bauteil wählen: Maus darüber (PC) oder antippen (Handy), über das Modell oder die Beschriftung
+  const waehlen = (i) => {
+    if (!offen || i === gewaehlt) return;
+    gewaehlt = i;
+    canvas.style.cursor = i >= 0 ? "pointer" : "";
+    anstossen();
+  };
+  const strahl = new T.Raycaster(), zeiger = new T.Vector2();
+  const treffer = (e) => {
+    const r = canvas.getBoundingClientRect();
+    zeiger.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+    strahl.setFromCamera(zeiger, kamera);
+    const h = strahl.intersectObjects(modell.children, true)[0];
+    if (!h) return -1;
+    let o = h.object;
+    while (o.parent !== modell) o = o.parent;
+    return marken.findIndex((t) => t.teil === o);
+  };
+  canvas.addEventListener("pointermove", (e) => e.pointerType === "mouse" && waehlen(treffer(e)));
+  canvas.addEventListener("pointerleave", (e) => e.pointerType === "mouse" && waehlen(-1));
+  canvas.addEventListener("click", (e) => { const i = treffer(e); waehlen(i === gewaehlt ? -1 : i); });
+  marken.forEach((t, i) => [t.punkt, t.etikett].forEach((el) => {
+    el.addEventListener("pointerenter", (e) => e.pointerType === "mouse" && waehlen(i));
+    el.addEventListener("pointerleave", (e) => e.pointerType === "mouse" && waehlen(-1));
+    el.addEventListener("click", () => waehlen(gewaehlt === i && beruehrung ? -1 : i));
+  }));
+
   new ResizeObserver(groesse).observe(buehne);
   document.fonts?.ready.then(groesse);
   addEventListener("scroll", anstossen, { passive: true });
