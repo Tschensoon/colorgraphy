@@ -12,3 +12,4 @@
 ## Seiten
 
 - [Startseite](https://colorgraphy.de/): Galerie, Ausrüstung, häufige Fragen und Instagram-Feed
+- [Lernen](https://colorgraphy.de/lernen.html): Fotografieren lernen zum Ausprobieren – Blende, Belichtungszeit und ISO, Brennweite und Bildwinkel, Farbkreis und Weißabgleich
