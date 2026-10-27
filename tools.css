@@ -63,8 +63,31 @@
 .groessen td:nth-child(3),.groessen td:nth-child(4){font-family:var(--mono);font-size:.84rem;white-space:nowrap}
 .groessen td:first-child{color:var(--muted)}
 
+/* Tool-Auswahl oben */
+.tool-wahl{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:.8rem;width:100%;max-width:44rem;margin-top:1rem}
+.tool-wahl a{background:var(--surface);border-radius:20px;padding:1rem 1.2rem;text-decoration:none;display:grid;gap:.2rem;text-align:left;border:1px solid transparent;transition:border-color .2s}
+.tool-wahl a:hover{border-color:var(--accent)}
+.tool-wahl span{color:var(--muted);font-size:.88rem}
+
+/* Foto-Splitter */
+.splitter-bank{grid-template-areas:"pfoto pzuschnitt" "part pzuschnitt" "part pspeichern"}
+#p-foto{grid-area:pfoto}#p-art{grid-area:part}#p-zuschnitt{grid-area:pzuschnitt}#p-speichern{grid-area:pspeichern}
+.arten{display:grid;gap:.5rem}
+.arten button{display:grid;gap:.15rem;text-align:left;padding:.75rem .9rem;border-radius:14px;border:1px solid var(--line);background:var(--surface-2);color:var(--fg);cursor:pointer;font:inherit;transition:border-color .2s,box-shadow .2s}
+.arten button[aria-pressed="true"]{border-color:var(--accent);box-shadow:var(--glow)}
+.arten b{font-size:.95rem}
+.arten small{color:var(--muted);font-size:.82rem}
+.klein-titel{font-size:.8rem;color:var(--muted);font-weight:600;display:block;margin-bottom:.4rem}
+.teile-liste{display:flex;flex-wrap:wrap;gap:.4rem}
+.teile-liste:not(:empty)::before{content:"Einzeln laden:";width:100%;font-size:.8rem;color:var(--muted);font-weight:600}
+.teile-liste button{min-width:2.4rem;height:2.4rem;border-radius:10px;border:1px solid var(--line);background:var(--surface-2);color:var(--fg);font:600 .9rem var(--mono);cursor:pointer}
+.teile-liste button:hover{border-color:var(--accent)}
+#p-vorschau{display:block;max-width:100%;border-radius:6px;box-shadow:0 10px 40px rgba(0,0,0,.35);touch-action:none;cursor:grab}
+#p-vorschau[hidden]{display:none}
+
 @media (max-width:860px){
   .werkbank{grid-template-columns:minmax(0,1fr);grid-template-areas:"foto" "format" "zuschnitt" "speichern"}
+  .splitter-bank{grid-template-areas:"pfoto" "part" "pzuschnitt" "pspeichern"}
 }
 @media (max-width:480px){
   .formate{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}

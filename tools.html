@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Foto für Instagram, TikTok & Co. zuschneiden – kostenloses Tool | Colorgraphy</title>
-<meta name="description" content="Kostenloser Bild-Zuschneider für Social Media: Foto auswählen, Plattform wählen, automatisch im richtigen Format und in der richtigen Größe für Instagram, Facebook, TikTok, X, LinkedIn, Pinterest, YouTube und WhatsApp speichern. Ohne Upload, alles im Browser.">
+<title>Foto zuschneiden und teilen für Instagram & Co. – kostenlose Tools | Colorgraphy</title>
+<meta name="description" content="Kostenlose Foto-Tools: Bilder automatisch auf die richtigen Formate für Instagram, TikTok, Facebook & Co. zuschneiden und Fotos teilen, als Panorama-Karussell, Instagram-Profilraster oder Puzzle. Ohne Upload, alles im Browser.">
 <meta name="robots" content="index, follow, max-image-preview:large">
 <link rel="canonical" href="https://colorgraphy.de/tools.html">
 <meta name="theme-color" content="#000000">
@@ -15,8 +15,8 @@
 <meta property="og:type" content="website">
 <meta property="og:locale" content="de_DE">
 <meta property="og:site_name" content="Colorgraphy">
-<meta property="og:title" content="Foto-Zuschneider für Social Media">
-<meta property="og:description" content="Foto rein, Plattform wählen, im richtigen Format wieder raus. Kostenlos und ohne Upload.">
+<meta property="og:title" content="Foto-Tools: Zuschneider und Foto-Splitter">
+<meta property="og:description" content="Fotos fürs richtige Format zuschneiden oder als Panorama, Profilraster und Puzzle teilen. Kostenlos und ohne Upload.">
 <meta property="og:url" content="https://colorgraphy.de/tools.html">
 <meta property="og:image" content="https://colorgraphy.de/og-image.jpg">
 <meta name="twitter:card" content="summary_large_image">
@@ -47,7 +47,7 @@
 }
 </script>
 <link rel="stylesheet" href="style.css?v=2">
-<link rel="stylesheet" href="tools.css?v=1">
+<link rel="stylesheet" href="tools.css?v=2">
 </head>
 <body>
 
@@ -76,7 +76,11 @@
     <div class="wrap center">
       <span class="eyebrow">Tools</span>
       <h1>Kleine Helfer <span class="grad">für deine Fotos.</span></h1>
-      <p class="sub">Foto auswählen, Plattform wählen, fertig: Der Zuschneider bringt dein Bild automatisch ins richtige Format und die richtige Größe.</p>
+      <p class="sub">Bring deine Fotos ins richtige Format für jede Plattform oder teil sie in mehrere Bilder, als Panorama, Profilraster oder Puzzle.</p>
+      <nav class="tool-wahl" aria-label="Tools">
+        <a href="#zuschneider"><strong>Zuschneider</strong><span>Richtiges Format für Instagram, TikTok &amp; Co.</span></a>
+        <a href="#splitter"><strong>Foto-Splitter</strong><span>Panorama-Karussell, Profilraster, Puzzle</span></a>
+      </nav>
       <ul class="vorteile">
         <li>Kostenlos</li>
         <li>Ohne Anmeldung</li>
@@ -161,6 +165,77 @@
     </div>
   </section>
 
+  <section id="splitter" class="tool" aria-labelledby="t-splitter">
+    <div class="wrap">
+      <div class="sec-title center">
+        <h2 id="t-splitter">Foto-Splitter.</h2>
+        <p class="sub">Teil ein Foto in mehrere Bilder: als Panorama zum Durchwischen, als großes Bild im Instagram-Profil oder frei als Puzzle.</p>
+      </div>
+
+      <div class="werkbank splitter-bank">
+        <div class="schritt" id="p-foto">
+          <h3><span class="nr">1</span> Foto auswählen</h3>
+          <label class="ablage" id="p-ablage">
+            <input type="file" id="p-datei" accept="image/*" hidden>
+            <span class="ablage-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16M15 4v16M3 12h18"/></svg></span>
+            <strong id="p-ablage-titel">Foto hierher ziehen oder tippen</strong>
+            <span id="p-ablage-info">JPG, PNG oder WebP. Das Foto wird nicht hochgeladen.</span>
+          </label>
+          <button type="button" class="pill ghost small" id="p-uebernehmen" hidden>Foto aus dem Zuschneider übernehmen</button>
+        </div>
+
+        <div class="schritt" id="p-art">
+          <h3><span class="nr">2</span> Art der Aufteilung</h3>
+          <div class="arten" id="p-arten" role="group" aria-label="Art der Aufteilung">
+            <button type="button" data-a="karussell" aria-pressed="true"><b>Panorama-Karussell</b><small>Nebeneinander, zum Durchwischen in einem Beitrag</small></button>
+            <button type="button" data-a="raster" aria-pressed="false"><b>Profil-Raster</b><small>3 Spalten, ergibt ein großes Bild im Profil</small></button>
+            <button type="button" data-a="frei" aria-pressed="false"><b>Frei / Puzzle</b><small>Beliebig viele Reihen und Spalten</small></button>
+          </div>
+          <div class="regler-zeile" id="p-zeile-spalten">
+            <label for="p-spalten"><span id="p-spalten-name">Anzahl Bilder</span> <output id="o-spalten">3</output></label>
+            <input type="range" id="p-spalten" min="2" max="10" step="1" value="3">
+          </div>
+          <div class="regler-zeile" id="p-zeile-reihen" hidden>
+            <label for="p-reihen">Reihen <output id="o-reihen">2</output></label>
+            <input type="range" id="p-reihen" min="1" max="5" step="1" value="2">
+          </div>
+          <div id="p-format-zeile">
+            <span class="klein-titel">Format jedes Bildes</span>
+            <div class="rand-wahl" id="p-formate" role="group" aria-label="Format jedes Teilbildes"></div>
+          </div>
+          <p class="format-hinweis" id="p-hinweis"></p>
+        </div>
+
+        <div class="schritt" id="p-zuschnitt">
+          <h3><span class="nr">3</span> Vorschau</h3>
+          <div class="vorschau-box">
+            <div class="vorschau" id="p-rahmen">
+              <canvas id="p-vorschau" tabindex="0" role="img" aria-label="Vorschau der Aufteilung mit nummerierten Teilen. Mit Ziehen oder den Pfeiltasten verschieben." hidden></canvas>
+              <div class="leer" id="p-leer">Wähle oben ein Foto aus.</div>
+            </div>
+          </div>
+          <div class="regler-zeile" id="p-zoom-zeile">
+            <label for="p-zoom">Zoom <output id="o-pzoom">100 %</output></label>
+            <input type="range" id="p-zoom" min="1" max="3" step="0.01" value="1">
+          </div>
+          <p class="tipp" id="p-tipp">Zum Verschieben das Bild in der Vorschau ziehen. Die Zahlen zeigen die Reihenfolge.</p>
+        </div>
+
+        <div class="schritt" id="p-speichern">
+          <h3><span class="nr">4</span> Speichern</h3>
+          <p class="ergebnis" id="p-ergebnis">Noch kein Foto ausgewählt.</p>
+          <p class="warnung" id="p-warnung" hidden></p>
+          <div class="knopf-zeile">
+            <button type="button" class="pill" id="p-zip" disabled>Alle als ZIP laden</button>
+            <button type="button" class="pill ghost" id="p-teilen" hidden disabled>Alle teilen / in Fotos sichern</button>
+          </div>
+          <div class="teile-liste" id="p-teile" aria-label="Einzelne Teile laden"></div>
+          <p class="tipp" id="p-anleitung"></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <section id="groessen" aria-labelledby="t-groessen">
     <div class="wrap">
       <div class="sec-title center">
@@ -230,7 +305,7 @@
 </footer>
 
 <script type="application/json" id="format-daten">{"instagram": {"name": "Instagram", "formate": [{"name": "Beitrag Hochformat", "w": 1080, "h": 1350, "hinweis": "Nimmt im Feed die meiste Fläche ein. Meine Empfehlung für Fotos.", "rund": false, "sicher": null, "ratio": "4:5"}, {"name": "Beitrag 3:4", "w": 1080, "h": 1440, "hinweis": "Passt genau ins Profilraster, nichts wird abgeschnitten.", "rund": false, "sicher": null, "ratio": "3:4"}, {"name": "Beitrag Quadrat", "w": 1080, "h": 1080, "hinweis": "Der Klassiker.", "rund": false, "sicher": null, "ratio": "1:1"}, {"name": "Beitrag Querformat", "w": 1080, "h": 566, "hinweis": "Wirkt im Feed klein, eher für Panoramen.", "rund": false, "sicher": null, "ratio": "1,91:1"}, {"name": "Story & Reel", "w": 1080, "h": 1920, "hinweis": "Oben und unten liegen Bedienelemente, dort nichts Wichtiges platzieren.", "rund": false, "sicher": [0.13, 0, 0.18, 0], "ratio": "9:16"}, {"name": "Profilbild", "w": 320, "h": 320, "hinweis": "Wird rund angezeigt.", "rund": true, "sicher": null, "ratio": "1:1"}]}, "facebook": {"name": "Facebook", "formate": [{"name": "Beitrag Hochformat", "w": 1080, "h": 1350, "hinweis": "Viel Fläche im Feed.", "rund": false, "sicher": null, "ratio": "4:5"}, {"name": "Beitrag Quadrat", "w": 1080, "h": 1080, "hinweis": "", "rund": false, "sicher": null, "ratio": "1:1"}, {"name": "Story", "w": 1080, "h": 1920, "hinweis": "Oben und unten liegen Bedienelemente.", "rund": false, "sicher": [0.13, 0, 0.18, 0], "ratio": "9:16"}, {"name": "Titelbild", "w": 1702, "h": 630, "hinweis": "Doppelte Auflösung von 851 × 315. Am Handy werden die Seiten etwas beschnitten.", "rund": false, "sicher": [0, 0.12, 0, 0.12], "ratio": "2,70:1"}, {"name": "Profilbild", "w": 720, "h": 720, "hinweis": "Wird rund angezeigt.", "rund": true, "sicher": null, "ratio": "1:1"}]}, "tiktok": {"name": "TikTok", "formate": [{"name": "Foto & Video", "w": 1080, "h": 1920, "hinweis": "Rechts und unten liegen Knöpfe und Text.", "rund": false, "sicher": [0.08, 0.15, 0.22, 0.04], "ratio": "9:16"}, {"name": "Profilbild", "w": 720, "h": 720, "hinweis": "Wird rund angezeigt.", "rund": true, "sicher": null, "ratio": "1:1"}]}, "x": {"name": "X (Twitter)", "formate": [{"name": "Bild im Post", "w": 1600, "h": 900, "hinweis": "Wird im Verlauf ohne Beschnitt gezeigt.", "rund": false, "sicher": null, "ratio": "16:9"}, {"name": "Bild Quadrat", "w": 1080, "h": 1080, "hinweis": "", "rund": false, "sicher": null, "ratio": "1:1"}, {"name": "Header", "w": 1500, "h": 500, "hinweis": "Am Handy wird oben und unten etwas abgeschnitten, links unten liegt das Profilbild.", "rund": false, "sicher": [0.1, 0, 0.1, 0], "ratio": "3:1"}, {"name": "Profilbild", "w": 400, "h": 400, "hinweis": "Wird rund angezeigt.", "rund": true, "sicher": null, "ratio": "1:1"}]}, "linkedin": {"name": "LinkedIn", "formate": [{"name": "Beitrag Querformat", "w": 1200, "h": 627, "hinweis": "", "rund": false, "sicher": null, "ratio": "1,91:1"}, {"name": "Beitrag Quadrat", "w": 1200, "h": 1200, "hinweis": "", "rund": false, "sicher": null, "ratio": "1:1"}, {"name": "Beitrag Hochformat", "w": 1080, "h": 1350, "hinweis": "", "rund": false, "sicher": null, "ratio": "4:5"}, {"name": "Banner", "w": 1584, "h": 396, "hinweis": "Links unten liegt das Profilbild.", "rund": false, "sicher": null, "ratio": "4:1"}, {"name": "Profilbild", "w": 400, "h": 400, "hinweis": "Wird rund angezeigt.", "rund": true, "sicher": null, "ratio": "1:1"}]}, "pinterest": {"name": "Pinterest", "formate": [{"name": "Pin", "w": 1000, "h": 1500, "hinweis": "Das Standardformat 2:3.", "rund": false, "sicher": null, "ratio": "2:3"}, {"name": "Pin Quadrat", "w": 1000, "h": 1000, "hinweis": "", "rund": false, "sicher": null, "ratio": "1:1"}]}, "youtube": {"name": "YouTube", "formate": [{"name": "Thumbnail", "w": 1280, "h": 720, "hinweis": "Unten rechts steht die Videolänge.", "rund": false, "sicher": null, "ratio": "16:9"}, {"name": "Kanalbanner", "w": 2560, "h": 1440, "hinweis": "Sicher sichtbar ist nur die Mitte (1546 × 423), der Rest je nach Gerät.", "rund": false, "sicher": [0.353, 0.198, 0.353, 0.198], "ratio": "16:9"}, {"name": "Profilbild", "w": 800, "h": 800, "hinweis": "Wird rund angezeigt.", "rund": true, "sicher": null, "ratio": "1:1"}]}, "whatsapp": {"name": "WhatsApp", "formate": [{"name": "Status", "w": 1080, "h": 1920, "hinweis": "", "rund": false, "sicher": [0.1, 0, 0.12, 0], "ratio": "9:16"}, {"name": "Profilbild", "w": 640, "h": 640, "hinweis": "Wird rund angezeigt.", "rund": true, "sicher": null, "ratio": "1:1"}]}}</script>
-<script src="tools.js?v=1" defer></script>
+<script src="tools.js?v=2" defer></script>
 <script data-goatcounter="https://colorgraphy.goatcounter.com/count" async src="vendor/goatcounter/count.js"></script>
 </body>
 </html>
