@@ -1,153 +1,35 @@
-// Colorgraphy-Looks: Lightroom-Presets im Browser nachgebaut und auf eigene Fotos angewendet.
-// Jeder Look wird einmal in eine 3D-Farbtabelle (33³) umgerechnet; Klarheit und Vignette kommen danach dazu.
+// Colorgraphy-Looks: Lightroom-Presets im Browser auf eigene Fotos anwenden.
+// Jeder Look ist eine 3D-Farbtabelle (33³), die Lightroom selbst berechnet hat; Klarheit und Vignette kommen danach dazu.
 // Alles passiert im Browser, Fotos werden nicht hochgeladen.
 "use strict";
 
 const $ = (id) => document.getElementById(id);
 const klemmen = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
 const glatt = (a, b, x) => { const t = klemmen((x - a) / (b - a)); return t * t * (3 - 2 * t); };
-const linear = (v) => (v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4));
-const gamma = (v) => (v <= 0.0031308 ? v * 12.92 : 1.055 * Math.pow(Math.max(v, 0), 1 / 2.4) - 0.055);
-const helligkeit = (r, g, b) => 0.2126 * r + 0.7152 * g + 0.0722 * b;
 
-/* ---------- Gradationskurve: monotone kubische Interpolation (wie Lightroom-Punktkurven) ---------- */
-const kurvenTabelle = (punkte) => {
-  const xs = punkte.map((p) => p[0] / 255), ys = punkte.map((p) => p[1] / 255), n = xs.length, tab = new Float32Array(256);
-  if (n < 2) { for (let i = 0; i < 256; i++) tab[i] = i / 255; return tab; }
-  const d = [], m = new Array(n).fill(0);
-  for (let i = 0; i < n - 1; i++) d.push((ys[i + 1] - ys[i]) / Math.max(1e-6, xs[i + 1] - xs[i]));
-  m[0] = d[0]; m[n - 1] = d[n - 2];
-  for (let i = 1; i < n - 1; i++) m[i] = d[i - 1] * d[i] <= 0 ? 0 : (d[i - 1] + d[i]) / 2;
-  for (let i = 0; i < n - 1; i++) {
-    if (d[i] === 0) { m[i] = m[i + 1] = 0; continue; }
-    const a = m[i] / d[i], b = m[i + 1] / d[i], s = a * a + b * b;
-    if (s > 9) { const t = 3 / Math.sqrt(s); m[i] = t * a * d[i]; m[i + 1] = t * b * d[i]; }
-  }
-  for (let k = 0; k < 256; k++) {
-    const x = k / 255;
-    if (x <= xs[0]) { tab[k] = ys[0]; continue; }
-    if (x >= xs[n - 1]) { tab[k] = ys[n - 1]; continue; }
-    let i = 0;
-    while (x > xs[i + 1]) i++;
-    const h = xs[i + 1] - xs[i], t = (x - xs[i]) / h, t2 = t * t, t3 = t2 * t;
-    tab[k] = (2 * t3 - 3 * t2 + 1) * ys[i] + (t3 - 2 * t2 + t) * h * m[i] + (-2 * t3 + 3 * t2) * ys[i + 1] + (t3 - t2) * h * m[i + 1];
-  }
-  return tab;
-};
-const kurve = (tab, v) => { const x = klemmen(v) * 255, i = Math.min(254, Math.floor(x)), f = x - i; return tab[i] + (tab[i + 1] - tab[i]) * f; };
-
-/* ---------- Farbräume ---------- */
-const rgbZuHsl = (r, g, b) => {
-  const max = Math.max(r, g, b), min = Math.min(r, g, b), l = (max + min) / 2, d = max - min;
-  if (d < 1e-6) return [0, 0, l];
-  const s = d / (1 - Math.abs(2 * l - 1) + 1e-6);
-  let h = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
-  return [(h * 60 + 360) % 360, klemmen(s), l];
-};
-const hslZuRgb = (h, s, l) => {
-  const c = (1 - Math.abs(2 * l - 1)) * s, x = c * (1 - Math.abs(((h / 60) % 2) - 1)), m = l - c / 2;
-  const [r, g, b] = h < 60 ? [c, x, 0] : h < 120 ? [x, c, 0] : h < 180 ? [0, c, x] : h < 240 ? [0, x, c] : h < 300 ? [x, 0, c] : [c, 0, x];
-  return [r + m, g + m, b + m];
-};
-// Gewichte der 8 HSL-Farbbereiche (Rot, Orange, Gelb, Grün, Aquamarin, Blau, Lila, Magenta)
-const ZENTREN = [0, 30, 60, 120, 180, 240, 270, 300];
-const bandGewichte = (h) => {
-  const w = new Array(8).fill(0);
-  for (let i = 0; i < 8; i++) {
-    const a = ZENTREN[i], b = i === 7 ? 360 : ZENTREN[i + 1];
-    if (h >= a && h < b) { const t = (h - a) / (b - a); w[i] = 1 - t; w[(i + 1) % 8] = t; return w; }
-  }
-  w[0] = 1;
-  return w;
-};
-
-/* ---------- Ein Pixel durch alle Regler eines Presets schicken ---------- */
-const vorbereiten = (w) => ({
-  ...w,
-  tMaster: kurvenTabelle(w.Kurve), tRot: kurvenTabelle(w.KurveRed), tGruen: kurvenTabelle(w.KurveGreen), tBlau: kurvenTabelle(w.KurveBlue),
-});
-const bearbeiten = (p, r, g, b) => {
-  // 1. Weißabgleich und Belichtung (linear)
-  let lr = linear(r), lg = linear(g), lb = linear(b);
-  const y0 = helligkeit(lr, lg, lb), t = p.IncrementalTemperature / 100, ti = p.IncrementalTint / 100;
-  lr *= 1 + 0.22 * t; lb *= 1 - 0.22 * t; lg *= 1 - 0.16 * ti; lr *= 1 + 0.04 * ti; lb *= 1 + 0.04 * ti;
-  const y1 = helligkeit(lr, lg, lb);
-  const fw = y1 > 1e-6 ? y0 / y1 : 1, ev = Math.pow(2, p.Exposure2012);
-  lr *= fw * ev; lg *= fw * ev; lb *= fw * ev;
-  r = gamma(lr); g = gamma(lg); b = gamma(lb);
-
-  // 2. Tonwerte über die Helligkeit: Kontrast, Lichter, Tiefen, Weiß, Schwarz, Dunst, parametrische Kurve
-  const L0 = helligkeit(r, g, b);
-  let L = L0;
-  if (L > 0.9) L = 0.9 + 0.1 * Math.tanh((L - 0.9) / 0.1); // weiche Schulter, damit Überbelichtung nicht hart abreißt
-  const dunst = p.Dehaze / 100, c = p.Contrast2012 / 100 * 0.9 + dunst * 0.35, e = Math.pow(2, c * 0.9);
-  L = L < 0.5 ? 0.5 * Math.pow(2 * Math.max(L, 0), e) : 1 - 0.5 * Math.pow(2 * Math.max(1 - L, 0), e);
-  L += (p.Highlights2012 / 100) * 0.17 * glatt(0.58, 0.9, L) * (1 - glatt(0.9, 1.0, L));
-  L += (p.Shadows2012 / 100) * 0.2 * glatt(0.0, 0.14, L) * (1 - glatt(0.16, 0.5, L));
-  L += (p.Whites2012 / 100) * 0.14 * glatt(0.55, 1.0, L);
-  L += (p.Blacks2012 / 100) * 0.13 * (1 - glatt(0.0, 0.42, L)) - dunst * 0.05 * (1 - glatt(0, 0.35, L));
-  const s1 = p.ParametricShadowSplit / 100, s2 = p.ParametricMidtoneSplit / 100, s3 = p.ParametricHighlightSplit / 100;
-  [[p.ParametricShadows, s1 / 2, s1 / 1.6], [p.ParametricDarks, (s1 + s2) / 2, (s2 - s1) / 1.4 + 0.05], [p.ParametricLights, (s2 + s3) / 2, (s3 - s2) / 1.4 + 0.05], [p.ParametricHighlights, (s3 + 1) / 2, (1 - s3) / 1.6 + 0.03]]
-    .forEach(([wert, mitte, breite]) => { if (wert) L += (wert / 100) * 0.16 * Math.exp(-(((L - mitte) / breite) ** 2)); });
-  L = klemmen(L, 0, 1.2);
-  if (L0 > 1e-4) { const f = L / L0; r *= f; g *= f; b *= f; } else { r += L; g += L; b += L; }
-  const max = Math.max(r, g, b);
-  if (max > 1) { const k = 1 / max; r = (r * k + Math.min(r, 1)) / 2; g = (g * k + Math.min(g, 1)) / 2; b = (b * k + Math.min(b, 1)) / 2; }
-
-  // 3. Gradationskurven
-  r = kurve(p.tMaster, r); g = kurve(p.tMaster, g); b = kurve(p.tMaster, b);
-  r = kurve(p.tRot, r); g = kurve(p.tGruen, g); b = kurve(p.tBlau, b);
-
-  // 4. HSL, Kalibrierung, Dynamik und Sättigung
-  let [h, s, l] = rgbZuHsl(r, g, b);
-  if (s > 0.001) {
-    const gw = bandGewichte(h);
-    let dh = 0, fs = 0, fl = 0;
-    for (let i = 0; i < 8; i++) { dh += gw[i] * p.HslHue[i]; fs += gw[i] * p.HslSat[i]; fl += gw[i] * p.HslLum[i]; }
-    dh = dh * 0.3 + (gw[0] * p.RedHue + (gw[2] * 0.5 + gw[3] + gw[4] * 0.5) * p.GreenHue + (gw[5] + gw[6] * 0.5) * p.BlueHue) * 0.12;
-    fs += gw[0] * p.RedSaturation * 0.5 + (gw[3] + gw[2] * 0.5) * p.GreenSaturation * 0.5 + gw[5] * p.BlueSaturation * 0.5;
-    h = (h + dh * Math.min(1, s * 3) + 360) % 360;
-    s = klemmen(s * Math.max(0, 1 + fs / 100));
-    l = klemmen(l + (fl / 100) * 0.28 * s * (1 - Math.abs(2 * l - 1) * 0.6));
-  }
-  s = klemmen(s * (1 + p.Saturation / 100));
-  const v = p.Vibrance / 100;
-  s = klemmen(s + v * 0.7 * s * (1 - s) * (v > 0 ? 1 : 1.2));
-  s = klemmen(s * (1 + dunst * 0.25));
-  [r, g, b] = hslZuRgb(h, s, l);
-
-  // 5. Color Grading (Tiefen, Mitteltöne, Lichter), Helligkeit bleibt erhalten
-  const Lc = helligkeit(r, g, b), bal = p.SplitToningBalance / 100, pivot = klemmen(0.5 - 0.22 * bal, 0.2, 0.8), weich = 0.5 + (p.ColorGradeBlending / 100) * 0.5;
-  const tiefe = Math.pow(klemmen(1 - Lc / pivot), 1 / weich), licht = Math.pow(klemmen((Lc - pivot) / (1 - pivot)), 1 / weich), mitte = klemmen(1 - Math.abs(Lc - 0.5) * 2);
-  [[p.SplitToningShadowHue, p.SplitToningShadowSaturation, tiefe], [p.SplitToningHighlightHue, p.SplitToningHighlightSaturation, licht], [p.ColorGradeMidtoneHue, p.ColorGradeMidtoneSat, mitte], [p.ColorGradeGlobalHue, p.ColorGradeGlobalSat, 1]]
-    .forEach(([ton, satt, gewicht]) => {
-      if (!satt || !gewicht) return;
-      const [tr, tg, tb] = hslZuRgb(ton, 1, 0.5), k = (satt / 100) * 0.32 * gewicht;
-      r += (tr - 0.5) * k; g += (tg - 0.5) * k; b += (tb - 0.5) * k;
-    });
-  const dl = Lc - helligkeit(r, g, b);
-  r += dl; g += dl; b += dl;
-  if (p.Grau) { const y = helligkeit(r, g, b); r = g = b = y; }
-  return [klemmen(r), klemmen(g), klemmen(b)];
-};
-
-/* ---------- 3D-Farbtabelle ---------- */
+/* ---------- 3D-Farbtabellen aus Lightroom ----------
+   werkzeug/looks-lut.py erzeugt sie aus einem Testbild, das Lightroom mit dem jeweiligen Preset entwickelt hat.
+   Bild 1089 × 33: x = Rot + 33 · Grün, y = Blau. */
 const N = 33;
-const tabelleBauen = (w) => {
-  const p = vorbereiten(w), lut = new Float32Array(N * N * N * 3);
-  let i = 0;
-  for (let bi = 0; bi < N; bi++) for (let gi = 0; gi < N; gi++) for (let ri = 0; ri < N; ri++) {
-    const [r, g, b] = bearbeiten(p, ri / (N - 1), gi / (N - 1), bi / (N - 1));
-    lut[i++] = r; lut[i++] = g; lut[i++] = b;
-  }
-  return lut;
-};
+const tabelleLaden = (i) => new Promise((ok, fehler) => {
+  const img = new Image();
+  img.onload = async () => {
+    const bmp = await createImageBitmap(img, { colorSpaceConversion: "none", premultiplyAlpha: "none" });
+    const c = document.createElement("canvas"); c.width = bmp.width; c.height = bmp.height;
+    const cg = c.getContext("2d", { willReadFrequently: true }); cg.drawImage(bmp, 0, 0);
+    const d = cg.getImageData(0, 0, c.width, c.height).data, lut = new Float32Array(N * N * N * 3);
+    for (let j = 0; j < N * N * N; j++) { lut[j * 3] = d[j * 4] / 255; lut[j * 3 + 1] = d[j * 4 + 1] / 255; lut[j * 3 + 2] = d[j * 4 + 2] / 255; }
+    ok(lut);
+  };
+  img.onerror = () => { tabellen.delete(i); fehler(new Error("Look " + (i + 1) + " nicht geladen")); };
+  img.src = "looks/cg" + (i + 1) + ".png?v=1";
+});
 const tabellen = new Map();
-const tabelle = (i) => { if (!tabellen.has(i)) tabellen.set(i, tabelleBauen(LOOKS[i].w)); return tabellen.get(i); };
+const tabelle = (i) => { if (!tabellen.has(i)) tabellen.set(i, tabelleLaden(i)); return tabellen.get(i); };
 
 // Farbtabelle (trilinear) und Klarheit/Vignette auf Bilddaten anwenden
 const anwenden = async (quelle, w, h, lookIndex, staerke, pause = false) => {
-  const lut = tabelle(lookIndex), p = LOOKS[lookIndex].w, aus = new Uint8ClampedArray(quelle.length), S = (N - 1) / 255;
+  const lut = await tabelle(lookIndex), p = LOOKS[lookIndex].w, aus = new Uint8ClampedArray(quelle.length), S = (N - 1) / 255;
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
       const o = (y * w + x) * 4;
