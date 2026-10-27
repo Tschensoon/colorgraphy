@@ -237,10 +237,21 @@
 .lk-look small{display:block;color:var(--muted);font-size:.78rem;line-height:1.35;margin-top:.1rem}
 .lk-rechts .pill{justify-self:start}
 @media (max-width:860px){
-  .lk-bank{grid-template-columns:minmax(0,1fr)}
-  .lk-rechts{position:static}
-  .lk-looks{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
-  .lk-look{grid-template-columns:1fr;justify-items:center;text-align:center}
+  /* Handy: Vorschau klebt oben, Looks und Stärke darunter, damit man das Ergebnis beim Einstellen sieht */
+  .lk-bank{grid-template-columns:minmax(0,1fr);gap:.7rem}
+  .lk-links{display:contents}
+  .lk-buehne{position:sticky;top:calc(var(--lk-oben, 3.5rem) + .4rem);z-index:4;min-height:160px;padding:.5rem;box-shadow:0 10px 30px rgba(0,0,0,.45)}
+  .lk-rechts{position:static;gap:.7rem}
+  .lk-rechts .schritt{padding:.9rem;gap:.7rem}
+  .lk-rechts .schritt h3{font-size:1rem}
+  .lk-looks{grid-auto-flow:column;grid-auto-columns:88px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;padding:.2rem .1rem .3rem}
+  .lk-looks::-webkit-scrollbar{display:none}
+  .lk-look{grid-template-columns:1fr;justify-items:center;text-align:center;gap:.3rem;padding:.35rem;border-radius:14px;scroll-snap-align:start}
   .lk-look canvas{width:100%;height:auto;aspect-ratio:1}
+  .lk-look strong{font-size:.74rem;line-height:1.2}
   .lk-look small{display:none}
+  .lk-rechts .pill{justify-self:stretch;text-align:center}
+  .ablage.geladen{padding:.6rem .8rem;gap:.1rem}
+  .ablage.geladen .ablage-icon{display:none}
+  .ablage.geladen strong{font-size:.9rem}
 }

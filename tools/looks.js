@@ -85,6 +85,8 @@ const weichzeichnen = (daten, w, h) => {
 /* ---------- Oberfläche ---------- */
 let bild = null, name = "foto", gewaehlt = 0, vorschauDaten = null, vw = 0, vh = 0, teilung = 0.5, rechnet = 0;
 const buehne = $("lk-buehne"), canvas = $("lk-canvas"), g = canvas.getContext("2d");
+const navHoehe = () => document.documentElement.style.setProperty("--lk-oben", (document.querySelector(".nav")?.offsetHeight || 56) + "px");
+navHoehe(); addEventListener("resize", navHoehe);
 const original = document.createElement("canvas"), bearbeitet = document.createElement("canvas");
 const fortschritt = (anteil) => { $("lk-status").textContent = anteil < 1 ? `Wird berechnet … ${Math.round(anteil * 100)} %` : ""; };
 
@@ -122,6 +124,7 @@ const laden = (datei) => {
     name = (datei.name.replace(/\.[^.]+$/, "").normalize("NFKD").replace(/[^\w-]+/g, "-").replace(/^-+|-+$/g, "").toLowerCase() || "foto").slice(0, 40);
     $("lk-ablage-titel").textContent = "✓ " + datei.name;
     $("lk-ablage-info").textContent = `${img.naturalWidth} × ${img.naturalHeight} px · Tippen für ein anderes Foto`;
+    $("lk-ablage").classList.add("geladen");
     $("lk-leer").hidden = true; canvas.hidden = false; $("lk-laden").disabled = false;
     vorschauVorbereiten();
     await neuRechnen();
@@ -131,7 +134,9 @@ const laden = (datei) => {
   img.src = URL.createObjectURL(datei);
 };
 const vorschauVorbereiten = () => {
-  const box = buehne.getBoundingClientRect(), maxW = box.width, maxH = Math.min(innerHeight * 0.7, 720), dpr = Math.min(devicePixelRatio || 1, 2);
+  // Handy: Vorschau klein genug, dass sie oben kleben bleibt und Looks und Stärke darunter Platz haben
+  const handy = matchMedia("(max-width: 860px)").matches;
+  const box = buehne.getBoundingClientRect(), maxW = box.width - (handy ? 16 : 0), maxH = handy ? innerHeight * 0.4 : Math.min(innerHeight * 0.7, 720), dpr = Math.min(devicePixelRatio || 1, 2);
   const sk = Math.min(maxW / bild.naturalWidth, maxH / bild.naturalHeight, 1);
   const cw = Math.round(bild.naturalWidth * sk), ch = Math.round(bild.naturalHeight * sk);
   vw = Math.min(bild.naturalWidth, Math.round(cw * dpr)); vh = Math.min(bild.naturalHeight, Math.round(ch * dpr));
