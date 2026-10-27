@@ -1,0 +1,69 @@
+/* Foto-Challenge */
+.challenge-hero{padding-bottom:clamp(1.2rem,3vw,2rem)}
+.ch-tabs{margin-top:.8rem;flex-wrap:wrap;justify-content:center}
+.ch-bereich{padding-top:0}
+.ch-panel{max-width:52rem;margin-inline:auto}
+.ch-karte{position:relative;background:var(--surface);border-radius:var(--radius);padding:clamp(1.3rem,3.5vw,2.2rem);display:grid;gap:1rem;overflow:hidden}
+.ch-karte::before{content:"";position:absolute;inset:0 0 auto;height:4px;background:linear-gradient(90deg,#ff4d6d,#ff9f1c,#ffd23f,#3ddc84,#3aa0ff,#8b5cf6)}
+.ch-kopf{display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap}
+.sterne{font-size:.9rem;color:#ffb020;font-weight:700;letter-spacing:.05em}
+.sterne .leer{color:var(--line)}
+.ch-titel{font-size:clamp(1.6rem,4vw,2.4rem);letter-spacing:-.02em}
+.walzen{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.7rem}
+.walze{position:relative;display:grid;align-content:start;gap:.4rem;min-height:8.5rem;padding:1rem 1rem 1.1rem;border-radius:20px;background:var(--surface-2);border:1px solid var(--line);overflow:hidden;transition:transform .2s}
+.walze-name{font:700 .72rem var(--mono);text-transform:uppercase;letter-spacing:.08em;color:var(--link)}
+.walze-text{font-size:clamp(1.05rem,2.2vw,1.3rem);line-height:1.25;letter-spacing:-.01em}
+.walze.dreht .walze-text{filter:blur(1.2px);opacity:.75}
+.walze.stopp{animation:stopp .35s ease-out}
+@keyframes stopp{0%{transform:translateY(-6px)}60%{transform:translateY(3px)}100%{transform:none}}
+.walze[data-teil="motiv"]{box-shadow:inset 0 3px 0 #ff4d6d}
+.walze[data-teil="technik"]{box-shadow:inset 0 3px 0 #3aa0ff}
+.walze[data-teil="regel"]{box-shadow:inset 0 3px 0 #ffd23f}
+.joker-knopf{position:absolute;right:.5rem;bottom:.5rem;width:2.2rem;height:2.2rem;border-radius:50%;border:1px solid var(--line);background:var(--surface);cursor:pointer;font-size:1rem;line-height:1;transition:transform .2s}
+.joker-knopf:hover:not(:disabled){transform:rotate(25deg) scale(1.08)}
+.joker-knopf:disabled{opacity:.3;cursor:default}
+.ch-satz{font-size:clamp(1.15rem,2.6vw,1.4rem);font-weight:600;line-height:1.4}
+.ch-satz .regel{display:block;margin-top:.3rem;color:var(--muted);font-weight:500;font-size:.95em}
+.ch-tipp{color:var(--muted);font-size:.95rem;padding:.75rem .9rem;border-radius:14px;background:var(--surface-2)}
+.ch-tipp:empty{display:none}
+.ch-tipp strong{color:var(--fg)}
+.ch-tipp a{color:var(--link)}
+.ch-info{color:var(--muted);font-size:.86rem}
+.ch-info:empty{display:none}
+.ch-hinweis{color:var(--muted);text-align:center;margin-top:1.2rem;font-size:.92rem}
+.ch-hinweis a{color:var(--link)}
+.pill.gross{font-size:1.15rem;padding:.9rem 2rem}
+.ch-filter{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.6rem}
+.ch-filter label{display:grid;gap:.25rem;font-size:.8rem;font-weight:600;color:var(--muted)}
+.ch-filter select{font:500 .95rem var(--sans);padding:.55rem .7rem;border-radius:12px;border:1px solid var(--line);background:var(--surface-2);color:var(--fg);min-height:42px}
+.automat .walze{min-height:7rem;text-align:center;justify-items:center;align-content:center}
+.mission{min-height:16rem;align-content:center}
+.mission .ch-titel{font-size:clamp(1.8rem,5vw,2.8rem)}
+.mission.auftritt{animation:auftritt .45s cubic-bezier(.2,.8,.2,1.2)}
+@keyframes auftritt{from{transform:scale(.94) rotate(-1deg);opacity:.4}to{transform:none;opacity:1}}
+.statistik{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.7rem}
+.statistik div{background:var(--surface);border-radius:20px;padding:1rem;display:grid;gap:.2rem;text-align:center}
+.statistik .zahl{font-size:clamp(1.8rem,5vw,2.6rem);font-weight:800;letter-spacing:-.03em;background:linear-gradient(90deg,var(--grad-start),var(--accent) 45%,var(--accent-2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.statistik span:last-child{font-size:.82rem;color:var(--muted)}
+.ch-zwischen{font-size:1.3rem;margin:1.8rem 0 .8rem}
+.abzeichen{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:.6rem}
+.abz{display:grid;gap:.2rem;justify-items:center;text-align:center;padding:1rem .7rem;border-radius:18px;background:var(--surface);opacity:.5;filter:grayscale(1)}
+.abz.da{opacity:1;filter:none;box-shadow:inset 0 0 0 1px var(--accent)}
+.abz-icon{font-size:2rem;line-height:1.2}
+.abz strong{font-size:.92rem}
+.abz span:last-child{font-size:.75rem;color:var(--muted)}
+.verlauf{list-style:none;margin:0;padding:0;display:grid;gap:.4rem}
+.verlauf li{display:grid;grid-template-columns:4.5rem minmax(0,1fr);gap:.6rem;padding:.65rem .9rem;border-radius:14px;background:var(--surface);font-size:.9rem}
+.v-datum{color:var(--link);font-weight:700;font-family:var(--mono);font-size:.8rem;padding-top:.1rem}
+.leer-eintrag{grid-template-columns:1fr!important;color:var(--muted)}
+.link-knopf{background:none;border:0;color:var(--link);font:inherit;text-decoration:underline;cursor:pointer;padding:0}
+.konfetti{position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:50}
+.ch-toast{position:fixed;left:50%;bottom:calc(1.2rem + env(safe-area-inset-bottom,0px));transform:translate(-50%,150%);z-index:51;max-width:calc(100% - 32px);padding:.8rem 1.2rem;border-radius:999px;background:var(--fg);color:var(--bg);font-weight:700;font-size:.95rem;box-shadow:0 10px 30px rgba(0,0,0,.35);transition:transform .35s cubic-bezier(.2,.8,.2,1.2)}
+.ch-toast.an{transform:translate(-50%,0)}
+@media (max-width:700px){
+  .walzen{grid-template-columns:minmax(0,1fr)}
+  .walze{min-height:auto;padding-right:3.2rem}
+  .automat .walze{min-height:5.2rem;padding-right:1rem}
+  .ch-filter{grid-template-columns:minmax(0,1fr)}
+  .statistik{grid-template-columns:repeat(2,minmax(0,1fr))}
+}

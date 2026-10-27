@@ -64,7 +64,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .menu-btn span{display:block;width:20px;height:2px;border-radius:2px;background:var(--fg);transition:transform .25s}
 .nav.open .menu-btn span:first-child{transform:translateY(4px) rotate(45deg)}
 .nav.open .menu-btn span:last-child{transform:translateY(-4px) rotate(-45deg)}
-@media (max-width:560px){
+@media (max-width:900px){
   .menu-btn{display:grid}
   .nav nav{display:none}
   .nav.open nav{display:flex;flex-direction:column;position:absolute;top:100%;left:0;right:0;gap:0;background:var(--menu-bg);box-shadow:0 30px 60px rgba(0,0,0,.6);padding-block:.25rem 1rem;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));border-bottom:1px solid var(--nav-line)}

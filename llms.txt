@@ -13,6 +13,7 @@
 
 - [Startseite](https://colorgraphy.de/): Galerie, Ausrüstung, häufige Fragen und Instagram-Feed
 - [Lernen](https://colorgraphy.de/lernen.html): Fotografieren lernen zum Ausprobieren – Blende, Belichtungszeit und ISO, Brennweite und Bildwinkel, Farbkreis und Weißabgleich, Bildgestaltung (Drittelregel, Horizont) und Licht mit Goldene-Stunde-Rechner
+- [Foto-Challenge](https://colorgraphy.de/challenge.html): Spiel mit täglich neuer Fotoaufgabe (Motiv, Technik, Extra-Regel), Würfel-Automat, 100 Spezial-Missionen, Serien und Abzeichen; Hashtag #colorgraphychallenge
 - [Tools](https://colorgraphy.de/tools.html): Übersicht kostenloser Tools für Fotos und PDFs, die komplett im Browser laufen (ohne Upload)
 - [Social-Media-Zuschneider](https://colorgraphy.de/tools/zuschneider.html): Fotos automatisch auf die richtigen Formate für Instagram, Facebook, TikTok, X, LinkedIn, Pinterest, YouTube und WhatsApp zuschneiden, mit Tabelle aller Bildgrößen
 - [Foto-Splitter](https://colorgraphy.de/tools/foto-splitter.html): ein Foto als Panorama-Karussell, Instagram-Profilraster oder Puzzle in mehrere Bilder teilen
