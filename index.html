@@ -317,6 +317,42 @@ footer a{display:inline-block;padding:.5rem 0}
 .qa:last-child:nth-child(odd){grid-column:1/-1}
 @media (max-width:640px){.faq{grid-template-columns:minmax(0,1fr)}}
 
+/* Kamera in Einzelteilen (3D, Steuerung in kamera3d.js) */
+.xray{padding-bottom:clamp(1.5rem,4vw,3rem)}
+.xray .sec-title{margin-bottom:clamp(1rem,3vw,2rem)}
+.xray-track{display:none}
+.xray.is-3d .xray-track{display:block;position:relative;height:560vh}
+.xray-stage{position:sticky;top:calc(3rem + env(safe-area-inset-top, 0px));height:calc(100vh - 3rem);height:calc(100svh - 3rem - env(safe-area-inset-top, 0px));overflow:hidden}
+.xray-stage::before{content:"";position:absolute;inset:8% 10% 22%;background:radial-gradient(closest-side,rgba(139,92,246,.20),transparent);pointer-events:none}
+.xray-canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.xray-labels{position:absolute;inset:0;pointer-events:none}
+.xl-linien{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.xl-linien line{stroke:var(--muted);stroke-width:1;transition:opacity .3s}
+.xl-dot,.xl-name{position:absolute;left:0;top:0;opacity:0;transition:opacity .3s;will-change:transform}
+.xl-dot{width:1.4rem;height:1.4rem;border-radius:50%;display:grid;place-items:center;background:var(--fg);color:var(--bg);font:700 .66rem var(--mono);box-shadow:0 0 0 3px rgba(139,92,246,.35)}
+.xl-name{white-space:nowrap;font-size:.8rem;font-weight:600;padding:.2rem .6rem;border-radius:999px;background:var(--nav-bg);border:1px solid var(--nav-line);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.xl-dot.aktiv,.xl-name.aktiv{z-index:1}
+.xl-dot.aktiv{background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;box-shadow:var(--glow)}
+.xl-name.aktiv{border-color:var(--accent)}
+.xray-caption{position:absolute;left:50%;bottom:max(1rem, env(safe-area-inset-bottom, 0px));transform:translateX(-50%);width:min(36rem,calc(100% - 32px));display:grid;gap:.25rem;padding:1rem 1.25rem;border-radius:22px;background:var(--nav-bg);border:1px solid var(--nav-line);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);opacity:0;transition:opacity .4s}
+.xray.bereit .xray-caption{opacity:1}
+.xray-caption .nr{font:600 .75rem var(--mono);color:var(--link)}
+.xray-caption strong{font-size:1.15rem;letter-spacing:-.01em}
+.xray-caption p{color:var(--muted);font-size:.95rem}
+.xray-list{list-style:none;counter-reset:teil;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}
+.xray-list li{counter-increment:teil;background:var(--surface);border-radius:var(--radius);padding:clamp(1.2rem,3vw,1.8rem);display:grid;gap:.4rem;align-content:start;min-width:0}
+.xray-list li::before{content:counter(teil, decimal-leading-zero);font:600 .75rem var(--mono);color:var(--link)}
+.xray-list strong{font-size:1.2rem;letter-spacing:-.015em}
+.xray-list span{color:var(--muted)}
+.xray.is-3d .xray-list{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}
+.xray-note{color:var(--muted);font-size:.85rem;text-align:center;margin-top:1rem}
+@media (max-width:640px){
+  .xray-list{grid-template-columns:minmax(0,1fr)}
+  .xray-caption{padding:.85rem 1rem;border-radius:18px}
+  .xray-caption strong{font-size:1.05rem}
+  .xray-caption p{font-size:.88rem}
+}
+
 footer{border-top:1px solid var(--line)}
 footer .wrap{padding-block:1.75rem;display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;color:var(--muted);font-size:.8rem}
 
@@ -449,6 +485,41 @@ footer .wrap{padding-block:1.75rem;display:flex;justify-content:space-between;ga
           <p>Jedes Bild selbst bearbeitet in Lightroom.</p>
         </div>
       </div>
+    </div>
+  </section>
+
+  <section id="innenleben" class="xray" aria-labelledby="innenleben-titel">
+    <div class="wrap">
+      <div class="sec-title center">
+        <h2 id="innenleben-titel">Was steckt drin?<br><span class="grad">Die α7 II in Einzelteilen.</span></h2>
+        <p class="sub">Scroll weiter und schau zu, wie meine Kamera in ihre Bauteile zerfällt.</p>
+      </div>
+    </div>
+    <div class="xray-track">
+      <div class="xray-stage">
+        <canvas class="xray-canvas" aria-hidden="true"></canvas>
+        <div class="xray-labels" aria-hidden="true"></div>
+        <div class="xray-caption" aria-hidden="true"></div>
+      </div>
+    </div>
+    <div class="wrap">
+      <ol class="xray-list">
+        <li data-teil="linsen"><strong>Linsen</strong><span>Mehrere Glaslinsen bündeln das Licht und zeichnen das Bild scharf auf den Sensor. Ein Zoom wie das 24–105 mm hat über ein Dutzend davon.</span></li>
+        <li data-teil="blende"><strong>Blende</strong><span>Lamellen bilden eine verstellbare Öffnung. Weit offen kommt viel Licht herein und der Hintergrund wird unscharf, weiter geschlossen ist mehr scharf.</span></li>
+        <li data-teil="tubus"><strong>Objektivtubus</strong><span>Das Gehäuse des Objektivs mit Zoom- und Fokusring. Innen verschieben kleine Motoren die Linsen zum Scharfstellen.</span></li>
+        <li data-teil="bajonett"><strong>Bajonett (E-Mount)</strong><span>Der Metallring, an dem das Objektiv einrastet. Über die goldenen Kontakte tauschen Kamera und Objektiv Daten aus.</span></li>
+        <li data-teil="verschluss"><strong>Verschluss</strong><span>Zwei Vorhänge direkt vor dem Sensor geben ihn genau für die Belichtungszeit frei, von 30 Sekunden bis 1/8000 Sekunde.</span></li>
+        <li data-teil="sensor"><strong>Bildsensor</strong><span>Der Vollformat-Sensor (35,8 × 23,9 mm) mit 24 Megapixeln wandelt Licht in elektrische Signale. Davor sitzen Filter gegen Infrarot und Moiré.</span></li>
+        <li data-teil="ibis"><strong>Bildstabilisator</strong><span>Der Sensor schwebt zwischen Magneten und Spulen und gleicht Zittern auf fünf Achsen aus. Darum ist jedes Objektiv stabilisiert.</span></li>
+        <li data-teil="platine"><strong>Hauptplatine &amp; Prozessor</strong><span>Der BIONZ-X-Prozessor rechnet aus den Sensordaten das Bild, steuert den Autofokus und schreibt die Datei auf die Karte.</span></li>
+        <li data-teil="akku"><strong>Akku &amp; Speicherkarte</strong><span>Der Akku NP-FW50 liefert den Strom, die SD-Karte speichert die RAW- und JPEG-Dateien.</span></li>
+        <li data-teil="sucher"><strong>Elektronischer Sucher</strong><span>Ein winziges OLED-Display mit 2,36 Millionen Bildpunkten. Du siehst schon vor dem Auslösen, wie das Foto wird.</span></li>
+        <li data-teil="display"><strong>Klappdisplay</strong><span>Der 3-Zoll-Bildschirm lässt sich nach oben und unten neigen, praktisch für Fotos aus Bodennähe oder über Köpfe hinweg.</span></li>
+        <li data-teil="tasten"><strong>Bedienelemente</strong><span>Auslöser, Moduswahlrad und Belichtungskorrektur sitzen oben, damit die wichtigsten Einstellungen schnell erreichbar sind.</span></li>
+        <li data-teil="rueckwand"><strong>Rückwand</strong><span>Trägt Tasten, Einstellrad und Display und schließt das Gehäuse nach hinten ab.</span></li>
+        <li data-teil="gehaeuse"><strong>Gehäuse mit Griff</strong><span>Vorder- und Oberseite sind aus einer Magnesiumlegierung: leicht, stabil und gegen Staub und Feuchtigkeit geschützt.</span></li>
+      </ol>
+      <p class="xray-note">Vereinfachtes 3D-Modell, angelehnt an die echte Sony α7 II. Nicht jedes Bauteil ist maßstabsgetreu.</p>
     </div>
   </section>
 
@@ -787,5 +858,6 @@ document.querySelectorAll(".copy").forEach(b=>{
 })();
 </script>
 
+<script type="module" src="kamera3d.js"></script>
 </body>
 </html>
