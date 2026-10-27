@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Fotografieren lernen: Blende, Belichtungszeit, ISO, Brennweite und Farbe | Colorgraphy</title>
-<meta name="description" content="Fotografieren lernen zum Ausprobieren: Blende, Belichtungszeit und ISO live an einer Szene verstellen, Brennweiten von 24 bis 105 mm vergleichen und Farbkreis und Weißabgleich verstehen.">
+<title>Fotografieren lernen: Belichtung, Brennweite, Farbe, Bildgestaltung und Licht | Colorgraphy</title>
+<meta name="description" content="Fotografieren lernen zum Ausprobieren: Blende, Zeit und ISO live verstellen, Brennweiten vergleichen, Farbkreis und Weißabgleich, Drittelregel und ein Goldene-Stunde-Rechner.">
 <meta name="robots" content="index, follow, max-image-preview:large">
 <link rel="canonical" href="https://colorgraphy.de/lernen.html">
 <meta name="theme-color" content="#000000">
@@ -16,7 +16,7 @@
 <meta property="og:locale" content="de_DE">
 <meta property="og:site_name" content="Colorgraphy">
 <meta property="og:title" content="Fotografieren lernen – zum Ausprobieren">
-<meta property="og:description" content="Blende, Zeit, ISO, Brennweite und Farbe: Verstell die Regler und sieh sofort, was mit dem Foto passiert.">
+<meta property="og:description" content="Blende, Zeit, ISO, Brennweite, Farbe, Bildgestaltung und Licht: Verstell die Regler und sieh sofort, was mit dem Foto passiert.">
 <meta property="og:url" content="https://colorgraphy.de/lernen.html">
 <meta property="og:image" content="https://colorgraphy.de/og-image.jpg">
 <meta name="twitter:card" content="summary_large_image">
@@ -28,15 +28,15 @@
       "@type": ["WebPage", "LearningResource"],
       "@id": "https://colorgraphy.de/lernen.html#seite",
       "url": "https://colorgraphy.de/lernen.html",
-      "name": "Fotografieren lernen: Blende, Belichtungszeit, ISO, Brennweite und Farbe",
-      "description": "Interaktive Einführung in die Fotografie: Belichtungsdreieck, Brennweite und Bildwinkel, Farbkreis und Weißabgleich.",
+      "name": "Fotografieren lernen: Belichtung, Brennweite, Farbe, Bildgestaltung und Licht",
+      "description": "Interaktive Einführung in die Fotografie: Belichtungsdreieck, Brennweite und Bildwinkel, Farbkreis und Weißabgleich, Drittelregel und Goldene-Stunde-Rechner.",
       "inLanguage": "de-DE",
       "isPartOf": {"@id": "https://colorgraphy.de/#website"},
       "author": {"@id": "https://colorgraphy.de/#person"},
       "learningResourceType": "Interaktive Übung",
       "educationalLevel": "Einsteiger",
       "isAccessibleForFree": true,
-      "teaches": ["Blende", "Belichtungszeit", "ISO", "Belichtungsdreieck", "Brennweite", "Bildwinkel", "Farbkreis", "Farbharmonie", "Weißabgleich", "Farbtemperatur"]
+      "teaches": ["Blende", "Belichtungszeit", "ISO", "Belichtungsdreieck", "Brennweite", "Bildwinkel", "Farbkreis", "Farbharmonie", "Weißabgleich", "Farbtemperatur", "Drittelregel", "Goldener Schnitt", "Bildgestaltung", "Goldene Stunde", "Blaue Stunde"]
     },
     {
       "@type": "BreadcrumbList",
@@ -49,7 +49,7 @@
 }
 </script>
 <link rel="stylesheet" href="style.css?v=1">
-<link rel="stylesheet" href="lernen.css?v=1">
+<link rel="stylesheet" href="lernen.css?v=2">
 </head>
 <body>
 
@@ -77,11 +77,13 @@
     <div class="wrap center">
       <span class="eyebrow">Lernen</span>
       <h1>Fotografieren <span class="grad">verstehen.</span></h1>
-      <p class="sub">Drei Dinge machen ein Foto aus: wie viel Licht auf den Sensor fällt, welchen Ausschnitt du wählst und wie du mit Farbe umgehst. Hier probierst du alles selbst aus, ganz ohne Kamera.</p>
+      <p class="sub">Wie viel Licht auf den Sensor fällt, welchen Ausschnitt du wählst, wie du mit Farbe umgehst, wo dein Motiv steht und wann du fotografierst: fünf Kapitel, alles zum Ausprobieren, ganz ohne Kamera.</p>
       <nav class="kapitel" aria-label="Kapitel">
         <a class="kap-karte" href="#belichtung"><span class="kap-nr">01</span><strong>Belichtung</strong><span>Blende, Zeit und ISO</span></a>
         <a class="kap-karte" href="#brennweite"><span class="kap-nr">02</span><strong>Brennweite</strong><span>Von 24 bis 105 mm</span></a>
         <a class="kap-karte" href="#farbe"><span class="kap-nr">03</span><strong>Farbe</strong><span>Farbkreis und Weißabgleich</span></a>
+        <a class="kap-karte" href="#gestaltung"><span class="kap-nr">04</span><strong>Bildgestaltung</strong><span>Drittelregel und Horizont</span></a>
+        <a class="kap-karte" href="#licht"><span class="kap-nr">05</span><strong>Licht</strong><span>Goldene und blaue Stunde</span></a>
       </nav>
     </div>
   </div>
@@ -266,6 +268,160 @@
     </div>
   </section>
 
+  <!-- Kapitel 4 -->
+  <section id="gestaltung" class="kap" aria-labelledby="t-gestaltung">
+    <div class="wrap">
+      <div class="sec-title center">
+        <span class="kap-nr gross">04</span>
+        <h2 id="t-gestaltung">Bildgestaltung.<br><span class="grad">Wohin mit dem Motiv?</span></h2>
+        <p class="sub">Dasselbe Motiv kann langweilig oder spannend wirken, je nachdem, wo es im Bild steht. Ein paar einfache Regeln helfen, und manchmal ist es gut, sie bewusst zu brechen.</p>
+      </div>
+      <div class="drei">
+        <article class="wissen">
+          <h3>Drittelregel</h3>
+          <p>Teil das Bild gedanklich in neun Felder. <strong>Motive auf den Linien oder Schnittpunkten</strong> wirken lebendiger als genau in der Mitte.</p>
+        </article>
+        <article class="wissen">
+          <h3>Horizont</h3>
+          <p>Ein Horizont in der Mitte teilt das Bild in zwei gleiche, eher langweilige Hälften. <strong>Oben oder unten im Drittel</strong> entscheidest du, ob Himmel oder Land wichtiger ist. Und: gerade halten!</p>
+        </article>
+        <article class="wissen">
+          <h3>Führende Linien</h3>
+          <p>Wege, Flüsse, Zäune oder Mauern <strong>leiten den Blick</strong> durchs Bild zum Motiv. Sie geben dem Foto Tiefe.</p>
+        </article>
+      </div>
+
+      <div class="labor gestalt-labor">
+        <div class="szene gestalt-szene">
+          <canvas id="g-bild" tabindex="0" role="img" aria-label="Feld mit einem Baum und einem Weg. Den Baum mit der Maus, dem Finger oder den Pfeiltasten verschieben."></canvas>
+          <canvas id="g-raster" aria-hidden="true"></canvas>
+        </div>
+        <div class="regler">
+          <p class="hinweis gross-hinweis">Zieh den Baum an eine andere Stelle.</p>
+          <div class="segmented" role="group" aria-label="Hilfslinien" id="g-raster-art">
+            <button type="button" data-r="drittel" aria-pressed="true">Drittel</button>
+            <button type="button" data-r="gold" aria-pressed="false">Goldener Schnitt</button>
+            <button type="button" data-r="mitte" aria-pressed="false">Mitte</button>
+            <button type="button" data-r="aus" aria-pressed="false">Aus</button>
+          </div>
+          <div class="regler-zeile">
+            <label for="r-horizont">Horizont <output id="o-horizont">Mitte</output></label>
+            <input type="range" id="r-horizont" min="15" max="85" step="1" value="50">
+          </div>
+          <div class="regler-zeile">
+            <label for="r-neigung">Neigung <output id="o-neigung">0°</output></label>
+            <input type="range" id="r-neigung" min="-8" max="8" step="0.5" value="4">
+          </div>
+          <ul class="bewertung" id="g-bewertung" aria-live="polite"></ul>
+          <div class="vorlagen"><button type="button" id="g-loesung">Gute Lösung zeigen</button></div>
+        </div>
+      </div>
+      <div class="merke">
+        <strong>Merke:</strong> Regeln sind Startpunkte, keine Pflicht. Symmetrische Motive wie Spiegelungen oder Türen dürfen in die Mitte. Schalte im Sucher deiner Kamera das Gitter ein (bei der α7 II unter „Gitterlinie“), dann hast du die Drittel immer im Blick.
+      </div>
+    </div>
+  </section>
+
+  <!-- Kapitel 5 -->
+  <section id="licht" class="kap" aria-labelledby="t-licht">
+    <div class="wrap">
+      <div class="sec-title center">
+        <span class="kap-nr gross">05</span>
+        <h2 id="t-licht">Licht.<br><span class="grad">Die richtige Tageszeit.</span></h2>
+        <p class="sub">Dieselbe Landschaft sieht morgens, mittags und abends völlig anders aus. Wer das Licht kennt, plant das Foto, statt auf Glück zu hoffen.</p>
+      </div>
+      <div class="drei">
+        <article class="wissen">
+          <h3>Goldene Stunde</h3>
+          <p>Kurz nach Sonnenaufgang und vor Sonnenuntergang. <strong>Warmes, weiches Licht und lange Schatten.</strong> Die Lieblingszeit für Porträts und Landschaften.</p>
+        </article>
+        <article class="wissen">
+          <h3>Blaue Stunde</h3>
+          <p>Die Sonne ist schon unter dem Horizont, der Himmel leuchtet <strong>tiefblau</strong>, und die Lichter der Stadt gehen an. Ideal für Städte, mit Stativ.</p>
+        </article>
+        <article class="wissen">
+          <h3>Mittagslicht</h3>
+          <p>Die Sonne steht hoch, <strong>Schatten sind kurz und hart,</strong> Farben wirken flach. Dann lieber Details, Schatten oder Innenräume fotografieren.</p>
+        </article>
+      </div>
+
+      <div class="labor licht-labor">
+        <div class="szene licht-szene">
+          <canvas id="l-bild" role="img" aria-label="Landschaft mit Haus und Baum zur gewählten Tageszeit"></canvas>
+          <div class="z-hud" aria-hidden="true"><span id="l-hud-phase">Goldene Stunde</span><span id="l-hud-zeit">18:00</span></div>
+        </div>
+        <div class="regler">
+          <div class="regler-zeile">
+            <label for="r-uhr">Uhrzeit <output id="o-uhr">18:00</output></label>
+            <input type="range" id="r-uhr" min="0" max="1435" step="5" value="1080">
+            <div class="zeitleiste" id="l-leiste" aria-hidden="true"></div>
+          </div>
+          <div class="vorlagen" role="group" aria-label="Zeitpunkte" id="l-sprung">
+            <button type="button" data-p="blau-m">Blaue Stunde morgens</button>
+            <button type="button" data-p="gold-m">Goldene Stunde morgens</button>
+            <button type="button" data-p="mittag">Mittag</button>
+            <button type="button" data-p="gold-a">Goldene Stunde abends</button>
+            <button type="button" data-p="blau-a">Blaue Stunde abends</button>
+          </div>
+          <dl class="fakten">
+            <div><dt>Sonnenhöhe</dt><dd id="l-hoehe">–</dd></div>
+            <div><dt>Richtung</dt><dd id="l-richtung">–</dd></div>
+            <div><dt>Schatten</dt><dd id="l-schatten">–</dd></div>
+          </dl>
+          <p class="wirkung" id="l-text"></p>
+        </div>
+      </div>
+
+      <h3 class="unter">Goldene-Stunde-Rechner</h3>
+      <div class="rechner" id="rechner">
+        <div class="rechner-eingabe">
+          <label>Ort
+            <select id="g-ort">
+              <option value="49.1427,9.2109" selected>Heilbronn</option>
+              <option value="52.5200,13.4050">Berlin</option>
+              <option value="53.5511,9.9937">Hamburg</option>
+              <option value="48.1351,11.5820">München</option>
+              <option value="50.9375,6.9603">Köln</option>
+              <option value="50.1109,8.6821">Frankfurt am Main</option>
+              <option value="48.7758,9.1829">Stuttgart</option>
+              <option value="51.0504,13.7373">Dresden</option>
+              <option value="47.9990,7.8421">Freiburg</option>
+              <option value="54.3233,10.1228">Kiel</option>
+              <option value="hier" hidden>Mein Standort</option>
+            </select>
+          </label>
+          <label>Datum <input type="date" id="g-datum"></label>
+          <button type="button" class="pill ghost" id="g-standort">Meinen Standort nutzen</button>
+        </div>
+        <p class="hinweis" id="g-standort-hinweis">Dein Standort wird nur in deinem Browser verwendet, nirgends gespeichert und an niemanden gesendet.</p>
+        <div class="zeiten">
+          <div class="zeit-block">
+            <h4>Morgens</h4>
+            <dl>
+              <div class="z-blau"><dt>Blaue Stunde</dt><dd id="t-blau-m">–</dd></div>
+              <div class="z-gold"><dt>Goldene Stunde</dt><dd id="t-gold-m">–</dd></div>
+              <div><dt>Sonnenaufgang</dt><dd id="t-auf">–</dd></div>
+            </dl>
+          </div>
+          <div class="zeit-block">
+            <h4>Abends</h4>
+            <dl>
+              <div><dt>Sonnenuntergang</dt><dd id="t-unter">–</dd></div>
+              <div class="z-gold"><dt>Goldene Stunde</dt><dd id="t-gold-a">–</dd></div>
+              <div class="z-blau"><dt>Blaue Stunde</dt><dd id="t-blau-a">–</dd></div>
+            </dl>
+          </div>
+        </div>
+        <div class="tagesbalken" id="g-balken" aria-hidden="true"></div>
+        <div class="balken-skala" aria-hidden="true"><span>0</span><span>6</span><span>12</span><span>18</span><span>24 Uhr</span></div>
+        <p class="hinweis">Goldene Stunde: Sonne zwischen 6° über und 4° unter dem Horizont. Blaue Stunde: zwischen 4° und 6° unter dem Horizont. Die Szene oben zeigt das Licht für den gewählten Ort und Tag.</p>
+      </div>
+      <div class="merke">
+        <strong>Merke:</strong> Die goldene Stunde ist im Winter länger als im Sommer, und je weiter nördlich, desto länger dauert sie. Sei rechtzeitig vor Ort: Das schönste Licht hält oft nur wenige Minuten.
+      </div>
+    </div>
+  </section>
+
   <section class="cta-section">
     <div class="wrap">
       <div class="cta-band">
@@ -290,6 +446,6 @@
   </div>
 </footer>
 
-<script src="lernen.js?v=1" defer></script>
+<script src="lernen.js?v=2" defer></script>
 </body>
 </html>

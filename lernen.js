@@ -566,6 +566,335 @@ const farbname = (h) => {
   });
 })();
 
+/* ---------- Kapitel 4: Bildgestaltung ---------- */
+(() => {
+  const bild = document.getElementById("g-bild");
+  if (!bild) return;
+  const gitter = document.getElementById("g-raster"), rH = document.getElementById("r-horizont"), rN = document.getElementById("r-neigung");
+  const W = 600, H = 400;
+  let baum = { x: 300, y: 330 }, art = "drittel";
+  const horizont = () => (Number(rH.value) / 100) * H;
+  const groesse = () => 150 * (0.45 + 0.55 * klemmen((baum.y - horizont()) / (H - horizont()), 0, 1));
+  const krone = () => [baum.x, baum.y - groesse() * 0.72];
+
+  const malen = () => {
+    const g = bild.getContext("2d"), s = bild.width / W, hy = horizont(), neig = (Number(rN.value) * Math.PI) / 180, z = rng(3);
+    g.setTransform(s, 0, 0, s, 0, 0);
+    g.clearRect(0, 0, W, H);
+    g.save();
+    g.translate(W / 2, H / 2); g.rotate(neig); g.scale(1 + Math.abs(neig) * 1.6, 1 + Math.abs(neig) * 1.6); g.translate(-W / 2, -H / 2);
+    const himmel = g.createLinearGradient(0, -60, 0, hy);
+    himmel.addColorStop(0, "#4f86d4"); himmel.addColorStop(1, "#f4dcae");
+    g.fillStyle = himmel; g.fillRect(-100, -100, W + 200, hy + 100);
+    const sonne = g.createRadialGradient(140, hy - 70, 2, 140, hy - 70, 70);
+    sonne.addColorStop(0, "rgba(255,248,220,1)"); sonne.addColorStop(0.2, "rgba(255,232,170,.8)"); sonne.addColorStop(1, "rgba(255,220,150,0)");
+    g.fillStyle = sonne; g.fillRect(-100, -100, W + 200, hy + 100);
+    for (let i = 0; i < 6; i++) {
+      const wx = z() * W, wy = 20 + z() * Math.max(10, hy - 90);
+      g.fillStyle = "rgba(255,255,255,.7)";
+      for (let k = 0; k < 4; k++) { g.beginPath(); g.ellipse(wx + k * 18, wy + Math.sin(k * 2) * 4, 24, 10, 0, 0, 7); g.fill(); }
+    }
+    g.fillStyle = "#7f9a7a"; g.beginPath(); g.moveTo(-100, hy + 2);
+    for (let x = -100; x <= W + 100; x += 10) g.lineTo(x, hy - 10 - 8 * Math.sin(x / 60) - 5 * Math.sin(x / 23));
+    g.lineTo(W + 100, hy + 2); g.fill();
+    const feld = g.createLinearGradient(0, hy, 0, H);
+    feld.addColorStop(0, "#9fbf5f"); feld.addColorStop(1, "#4e7d2c");
+    g.fillStyle = feld; g.fillRect(-100, hy, W + 200, H - hy + 100);
+    // Ackerfurchen laufen zum Fluchtpunkt
+    g.strokeStyle = "rgba(60,90,30,.25)"; g.lineWidth = 1.5;
+    for (let i = -12; i <= 12; i++) { g.beginPath(); g.moveTo(W / 2 + i * 6, hy); g.lineTo(W / 2 + i * 90, H + 60); g.stroke(); }
+    // Weg als führende Linie, endet am Baum
+    const bx = baum.x, by = baum.y;
+    g.fillStyle = "#d8bf8a";
+    g.beginPath(); g.moveTo(W / 2 - 70, H + 20);
+    g.quadraticCurveTo(W / 2 - 40, (by + H) / 2, bx - 6, by + 2); g.lineTo(bx + 6, by + 2);
+    g.quadraticCurveTo(W / 2 + 40, (by + H) / 2, W / 2 + 70, H + 20); g.fill();
+    // Baum
+    const h = groesse();
+    g.fillStyle = "rgba(0,0,0,.18)"; g.beginPath(); g.ellipse(bx + h * 0.15, by + 2, h * 0.32, h * 0.05, 0, 0, 7); g.fill();
+    g.fillStyle = "#5a3a22"; g.fillRect(bx - h * 0.045, by - h * 0.5, h * 0.09, h * 0.5);
+    [[0, 0.72, 0.36, "#3f7a2e"], [-0.2, 0.6, 0.24, "#4a8a36"], [0.22, 0.62, 0.25, "#3a7029"], [0.05, 0.9, 0.24, "#58994a"]].forEach(([dx, dy, r, f]) => {
+      g.fillStyle = f; g.beginPath(); g.arc(bx + dx * h, by - dy * h, r * h, 0, 7); g.fill();
+    });
+    g.restore();
+    malGitter();
+    bewerten();
+  };
+
+  const malGitter = () => {
+    const g = gitter.getContext("2d"), s = gitter.width / W;
+    g.setTransform(s, 0, 0, s, 0, 0); g.clearRect(0, 0, W, H);
+    const teile = art === "drittel" ? [1 / 3, 2 / 3] : art === "gold" ? [0.382, 0.618] : art === "mitte" ? [0.5] : [];
+    g.strokeStyle = "rgba(255,255,255,.75)"; g.lineWidth = 1.5; g.setLineDash(art === "gold" ? [6, 5] : []);
+    teile.forEach((t) => { g.beginPath(); g.moveTo(t * W, 0); g.lineTo(t * W, H); g.moveTo(0, t * H); g.lineTo(W, t * H); g.stroke(); });
+    if (art === "drittel" || art === "gold") {
+      g.fillStyle = "rgba(255,255,255,.9)";
+      teile.forEach((a) => teile.forEach((b) => { g.beginPath(); g.arc(a * W, b * H, 4, 0, 7); g.fill(); }));
+    }
+  };
+
+  const bewerten = () => {
+    const hp = horizont() / H, n = Number(rN.value), [cx, cy] = krone(), aus = [];
+    const nahX = Math.min(Math.abs(cx - W / 3), Math.abs(cx - (2 * W) / 3)) < 30;
+    const nahY = Math.min(Math.abs(cy - H / 3), Math.abs(cy - (2 * H) / 3)) < 30;
+    if (Math.abs(cx - W / 2) < 30) aus.push(["mittel", "Der Baum steht genau in der Mitte. Das wirkt ruhig, aber oft statisch. Schieb ihn auf eine Drittellinie."]);
+    else if (nahX && nahY) aus.push(["gut", "Der Baum sitzt auf einem Drittelpunkt. Das Auge findet ihn sofort, das Bild wirkt lebendig."]);
+    else if (nahX) aus.push(["gut", "Der Baum steht auf einer senkrechten Drittellinie. Gut so!"]);
+    else if (cx < 70 || cx > W - 70) aus.push(["schlecht", "Der Baum klebt am Rand und zieht den Blick aus dem Bild."]);
+    else aus.push(["mittel", "Der Baum steht etwas zufällig. Probier eine Drittellinie aus."]);
+    if (Math.abs(hp - 0.5) < 0.06) aus.push(["mittel", "Der Horizont teilt das Bild in zwei gleiche Hälften. Entscheide dich: mehr Himmel oder mehr Land?"]);
+    else if (Math.abs(hp - 1 / 3) < 0.05) aus.push(["gut", "Horizont im oberen Drittel: Land, Weg und Baum bekommen die Bühne."]);
+    else if (Math.abs(hp - 2 / 3) < 0.05) aus.push(["gut", "Horizont im unteren Drittel: Der Himmel wird zum Hauptdarsteller."]);
+    else aus.push(["mittel", hp < 0.3 ? "Sehr wenig Himmel: wirkt eng, passt nur bei spannendem Vordergrund." : hp > 0.7 ? "Sehr viel Himmel: lohnt sich nur bei dramatischen Wolken." : "Der Horizont liegt zwischen Mitte und Drittel. Schieb ihn noch ein Stück."]);
+    if (Math.abs(n) >= 1) aus.push(["schlecht", `Der Horizont ist um ${zahl(Math.abs(n))}° schief. Das fällt sofort auf und wirkt wie ein Versehen.`]);
+    else if (n !== 0) aus.push(["mittel", "Fast gerade. Ein halbes Grad sieht man kaum, ganz gerade ist trotzdem besser."]);
+    else aus.push(["gut", "Der Horizont ist gerade."]);
+    aus.push(["gut", "Der Weg führt als Linie direkt zum Baum. Das gibt Tiefe."]);
+    document.getElementById("g-bewertung").innerHTML = aus.map(([k, t]) => `<li class="${k}"><i aria-hidden="true">${k === "gut" ? "✓" : k === "mittel" ? "~" : "✕"}</i><span>${t}</span></li>`).join("");
+    const p = Math.round(hp * 100);
+    document.getElementById("o-horizont").textContent = Math.abs(p - 50) <= 2 ? "Mitte" : p < 50 ? "oben" : "unten";
+    document.getElementById("o-neigung").textContent = zahl(n, Number.isInteger(n) ? 0 : 1) + "°";
+    rH.setAttribute("aria-valuetext", p + " Prozent von oben");
+    rN.setAttribute("aria-valuetext", zahl(n, 1) + " Grad");
+  };
+
+  const setzen = (x, y) => {
+    baum.x = klemmen(x, 30, W - 30);
+    baum.y = klemmen(y, horizont() + 12, H - 8);
+    malen();
+  };
+  const logisch = (e) => { const r = bild.getBoundingClientRect(); return [((e.clientX - r.left) / r.width) * W, ((e.clientY - r.top) / r.height) * H]; };
+  let ziehen = false;
+  bild.addEventListener("pointerdown", (e) => { if (e.pointerType !== "mouse") return; ziehen = true; bild.setPointerCapture(e.pointerId); setzen(...logisch(e)); });
+  bild.addEventListener("pointermove", (e) => ziehen && setzen(...logisch(e)));
+  bild.addEventListener("pointerup", () => (ziehen = false));
+  bild.addEventListener("click", (e) => { if (e.pointerType !== "mouse") setzen(...logisch(e)); });
+  bild.addEventListener("keydown", (e) => {
+    const d = { ArrowLeft: [-10, 0], ArrowRight: [10, 0], ArrowUp: [0, -10], ArrowDown: [0, 10] }[e.key];
+    if (!d) return;
+    e.preventDefault(); setzen(baum.x + d[0], baum.y + d[1]);
+  });
+  [rH, rN].forEach((r) => r.addEventListener("input", () => { baum.y = klemmen(baum.y, horizont() + 12, H - 8); malen(); }));
+  document.querySelectorAll("#g-raster-art button").forEach((b) => b.addEventListener("click", () => {
+    art = b.dataset.r;
+    document.querySelectorAll("#g-raster-art button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+    malGitter();
+  }));
+  // Gute Lösung: Baum auf Drittelpunkt, Horizont im oberen Drittel, gerade
+  document.getElementById("g-loesung").addEventListener("click", () => {
+    const start = { x: baum.x, y: baum.y, h: Number(rH.value), n: Number(rN.value) }, ziel = { x: 400, y: 360, h: 33, n: 0 }, t0 = performance.now();
+    const schritt = (t) => {
+      const f = ruhig ? 1 : klemmen((t - t0) / 700, 0, 1), e = f * f * (3 - 2 * f);
+      rH.value = Math.round(start.h + (ziel.h - start.h) * e);
+      rN.value = Math.round((start.n + (ziel.n - start.n) * e) * 2) / 2;
+      baum.x = start.x + (ziel.x - start.x) * e; baum.y = start.y + (ziel.y - start.y) * e;
+      malen();
+      if (f < 1) requestAnimationFrame(schritt);
+    };
+    requestAnimationFrame(schritt);
+  });
+  beiGroesse(bild, () => {
+    const r = bild.getBoundingClientRect(), dpr = Math.min(devicePixelRatio || 1, 2);
+    [bild, gitter].forEach((c) => { c.width = Math.round(r.width * dpr); c.height = Math.round(r.height * dpr); });
+    malen();
+  });
+})();
+
+/* ---------- Kapitel 5: Licht und Goldene-Stunde-Rechner ---------- */
+// Sonnenstand nach den Formeln von SunCalc (Vladimir Agafonkin, BSD-Lizenz), stark gekürzt
+const sonne = (datum, lat, lon) => {
+  const rad = Math.PI / 180, e = rad * 23.4397;
+  const d = datum.valueOf() / 864e5 - 0.5 + 2440588 - 2451545;
+  const M = rad * (357.5291 + 0.98560028 * d);
+  const L = M + rad * (1.9148 * Math.sin(M) + 0.02 * Math.sin(2 * M) + 0.0003 * Math.sin(3 * M)) + rad * 102.9372 + Math.PI;
+  const dec = Math.asin(Math.sin(e) * Math.sin(L)), ra = Math.atan2(Math.sin(L) * Math.cos(e), Math.cos(L));
+  const Hw = rad * (280.16 + 360.9856235 * d) - rad * -lon - ra, phi = rad * lat;
+  const hoehe = Math.asin(Math.sin(phi) * Math.sin(dec) + Math.cos(phi) * Math.cos(dec) * Math.cos(Hw)) / rad;
+  const azimut = (Math.atan2(Math.sin(Hw), Math.cos(Hw) * Math.sin(phi) - Math.tan(dec) * Math.cos(phi)) / rad + 180 + 360) % 360;
+  return { hoehe, azimut };
+};
+(() => {
+  const bild = document.getElementById("l-bild");
+  if (!bild) return;
+  const rUhr = document.getElementById("r-uhr"), ort = document.getElementById("g-ort"), datum = document.getElementById("g-datum");
+  const W = 600, H = 400, HOR = 268;
+  const heute = new Date();
+  datum.value = `${heute.getFullYear()}-${String(heute.getMonth() + 1).padStart(2, "0")}-${String(heute.getDate()).padStart(2, "0")}`;
+  let lat = 49.1427, lon = 9.2109, tag = null, zeiten = null;
+
+  const uhr = (t) => (t ? t.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }) : "–");
+  const spanne = ([a, b]) => (a && b ? `${uhr(a)} – ${uhr(b)}` : "–");
+  const minuten = (t) => t.getHours() * 60 + t.getMinutes();
+  const mitte = ([a, b]) => (a && b ? new Date((a.getTime() + b.getTime()) / 2) : null);
+  const phase = (h) => h < -6 ? ["nacht", "Nacht"] : h < -4 ? ["blau", "Blaue Stunde"] : h < 6 ? ["gold", "Goldene Stunde"] : h < 35 ? ["tag", "Tag"] : ["mittag", "Mittagslicht"];
+  const FARBE = { nacht: "#0b1030", blau: "#3557b8", gold: "#f2a54a", tag: "#9cc8ef", mittag: "#e2f0fb" };
+
+  // Zeiten des Tages: Schwellen der Sonnenhöhe suchen (alle 2 Minuten, dann genau interpolieren)
+  const berechnen = () => {
+    const [j, m, t] = datum.value.split("-").map(Number);
+    tag = new Date(j, m - 1, t);
+    const proben = [];
+    for (let i = 0; i <= 720; i++) { const z = new Date(j, m - 1, t, 0, i * 2); proben.push([z, sonne(z, lat, lon).hoehe]); }
+    const kreuz = (grad, hoch) => {
+      for (let i = 1; i < proben.length; i++) {
+        const [t0, h0] = proben[i - 1], [t1, h1] = proben[i];
+        if (hoch ? h0 < grad && h1 >= grad : h0 >= grad && h1 < grad) return new Date(t0.getTime() + ((grad - h0) / (h1 - h0)) * (t1 - t0));
+      }
+      return null;
+    };
+    const hoechst = proben.reduce((a, b) => (b[1] > a[1] ? b : a));
+    zeiten = {
+      "blau-m": [kreuz(-6, true), kreuz(-4, true)], "gold-m": [kreuz(-4, true), kreuz(6, true)], auf: kreuz(-0.833, true),
+      unter: kreuz(-0.833, false), "gold-a": [kreuz(6, false), kreuz(-4, false)], "blau-a": [kreuz(-4, false), kreuz(-6, false)], mittag: hoechst[0],
+    };
+    document.getElementById("t-blau-m").textContent = spanne(zeiten["blau-m"]);
+    document.getElementById("t-gold-m").textContent = spanne(zeiten["gold-m"]);
+    document.getElementById("t-auf").textContent = uhr(zeiten.auf);
+    document.getElementById("t-unter").textContent = uhr(zeiten.unter);
+    document.getElementById("t-gold-a").textContent = spanne(zeiten["gold-a"]);
+    document.getElementById("t-blau-a").textContent = spanne(zeiten["blau-a"]);
+    // Farbiger Tagesbalken: Nacht, blaue und goldene Stunde, Tag
+    const stopps = [];
+    for (let i = 0; i <= 144; i++) { const z = new Date(j, m - 1, t, 0, i * 10); stopps.push(`${FARBE[phase(sonne(z, lat, lon).hoehe)[0]]} ${((i / 144) * 100).toFixed(2)}%`); }
+    const verlauf = `linear-gradient(90deg, ${stopps.join(", ")})`;
+    document.getElementById("g-balken").style.background = verlauf;
+    document.getElementById("l-leiste").style.background = verlauf;
+    document.querySelectorAll("#l-sprung button").forEach((b) => (b.disabled = !(b.dataset.p === "mittag" ? zeiten.mittag : mitte(zeiten[b.dataset.p]))));
+  };
+
+  // Farben von Himmel und Licht je nach Sonnenhöhe
+  const STUFEN = [
+    [-18, "#02030a", "#050818", "#0a0f26", "#151a33"], [-8, "#060a20", "#101a44", "#24336c", "#232d5c"],
+    [-5, "#0d1a4e", "#26408c", "#5d74bd", "#46549a"], [-2, "#26306e", "#7d5590", "#ff9a62", "#b98a92"],
+    [3, "#34508f", "#c47c75", "#ffbd6e", "#ffc48a"], [8, "#4777c0", "#a3c2e2", "#f6d7a2", "#ffe2b8"],
+    [20, "#3d7ccd", "#8cc0ee", "#dcecf8", "#fff6ea"], [60, "#2f72ce", "#7fb6ec", "#d2e8f8", "#ffffff"],
+  ];
+  const hex = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+  const mix = (a, b, f) => "#" + hex(a).map((v, i) => Math.round(v + (hex(b)[i] - v) * f).toString(16).padStart(2, "0")).join("");
+  const farben = (h) => {
+    if (h <= STUFEN[0][0]) return STUFEN[0].slice(1);
+    for (let i = 1; i < STUFEN.length; i++) if (h <= STUFEN[i][0]) {
+      const f = (h - STUFEN[i - 1][0]) / (STUFEN[i][0] - STUFEN[i - 1][0]);
+      return [1, 2, 3, 4].map((k) => mix(STUFEN[i - 1][k], STUFEN[i][k], f));
+    }
+    return STUFEN[STUFEN.length - 1].slice(1);
+  };
+
+  const malen = () => {
+    if (!tag) return;
+    const min = Number(rUhr.value), jetzt = new Date(tag.getFullYear(), tag.getMonth(), tag.getDate(), 0, min);
+    const { hoehe, azimut } = sonne(jetzt, lat, lon), [oben, mittig, unten, licht] = farben(hoehe), z = rng(7);
+    const g = bild.getContext("2d"), s = bild.width / W;
+    g.setTransform(s, 0, 0, s, 0, 0);
+    const himmel = g.createLinearGradient(0, 0, 0, HOR);
+    himmel.addColorStop(0, oben); himmel.addColorStop(0.6, mittig); himmel.addColorStop(1, unten);
+    g.fillStyle = himmel; g.fillRect(0, 0, W, HOR + 2);
+    const sterne = klemmen((-hoehe - 6) / 6, 0, 1);
+    if (sterne) for (let i = 0; i < 80; i++) { g.fillStyle = `rgba(255,255,255,${sterne * (0.3 + z() * 0.7)})`; g.fillRect(z() * W, z() * HOR * 0.8, 1.3, 1.3); }
+    // Sonne: links Osten, Mitte Süden, rechts Westen
+    const sx = W / 2 + (azimut - 180) * 3.1, sy = HOR - Math.min(hoehe, 40) * 6;
+    if (hoehe > -3) {
+      const warm = mix("#ff6a2a", "#fff8e2", klemmen(hoehe / 20, 0, 1));
+      const glanz = g.createRadialGradient(sx, sy, 2, sx, sy, 130);
+      glanz.addColorStop(0, warm + "cc"); glanz.addColorStop(1, warm + "00");
+      g.fillStyle = glanz; g.fillRect(0, 0, W, HOR);
+      g.fillStyle = warm; g.beginPath(); g.arc(sx, sy, 14, 0, 7); g.fill();
+    }
+    // Hügel und Wiese, eingefärbt mit der Lichtfarbe
+    const tint = (f) => { const b = hex(licht); return "#" + hex(f).map((v, i) => Math.round((v * b[i]) / 255).toString(16).padStart(2, "0")).join(""); };
+    const dunkel = klemmen((hoehe + 8) / 10, 0.12, 1);
+    const dim = (f) => mix("#000000", f, dunkel);
+    g.fillStyle = dim(tint("#7d93b5")); g.beginPath(); g.moveTo(0, HOR + 2);
+    for (let x = 0; x <= W; x += 10) g.lineTo(x, HOR - 22 - 14 * Math.sin(x / 70) - 6 * Math.sin(x / 21));
+    g.lineTo(W, HOR + 2); g.fill();
+    g.fillStyle = dim(tint("#79a64a")); g.fillRect(0, HOR, W, H - HOR);
+    g.fillStyle = dim(tint("#5e8f38")); g.beginPath(); g.moveTo(0, H); g.quadraticCurveTo(300, 330, W, H); g.fill();
+    // Schatten (nur wenn die Sonne über dem Horizont steht)
+    const objekte = [[140, 318, 70], [440, 330, 120]];
+    if (hoehe > 0.5) {
+      objekte.forEach(([ox, oy, oh]) => {
+        const lang = klemmen(oh / Math.tan((hoehe * Math.PI) / 180), 0, 420) * 0.8, richtung = ox >= sx ? 1 : -1;
+        g.fillStyle = `rgba(10,20,40,${0.15 + 0.25 * klemmen(hoehe / 35, 0, 1)})`;
+        g.beginPath(); g.moveTo(ox - 14, oy); g.lineTo(ox + 14, oy);
+        g.lineTo(ox + richtung * lang + 10, oy + lang * 0.08 + 6); g.lineTo(ox + richtung * lang - 10, oy + lang * 0.08 + 2); g.fill();
+      });
+    }
+    // Haus
+    const [hx, hyy] = objekte[0];
+    g.fillStyle = dim(tint("#e9dcc6")); g.fillRect(hx - 40, hyy - 48, 80, 48);
+    g.fillStyle = dim(tint("#9c3f2c")); g.beginPath(); g.moveTo(hx - 48, hyy - 46); g.lineTo(hx, hyy - 78); g.lineTo(hx + 48, hyy - 46); g.fill();
+    const fenster = klemmen((-hoehe + 1) / 4, 0, 1);
+    [[hx - 26, hyy - 36], [hx + 12, hyy - 36]].forEach(([fx, fy]) => {
+      g.fillStyle = fenster ? mix(dim(tint("#5a7aa0")), "#ffd27a", fenster) : dim(tint("#5a7aa0"));
+      g.fillRect(fx, fy, 14, 14);
+      if (fenster > 0.3) { const l = g.createRadialGradient(fx + 7, fy + 7, 1, fx + 7, fy + 7, 30); l.addColorStop(0, `rgba(255,210,120,${fenster * 0.5})`); l.addColorStop(1, "rgba(255,210,120,0)"); g.fillStyle = l; g.fillRect(fx - 30, fy - 30, 74, 74); }
+    });
+    g.fillStyle = dim(tint("#6b4a30")); g.fillRect(hx - 6, hyy - 24, 12, 24);
+    // Baum
+    const [bx, by, bh] = objekte[1];
+    g.fillStyle = dim(tint("#5a3a22")); g.fillRect(bx - 5, by - bh * 0.5, 10, bh * 0.5);
+    [[0, 0.72, 0.36, "#3f7a2e"], [-0.2, 0.6, 0.24, "#4a8a36"], [0.22, 0.62, 0.25, "#3a7029"], [0.05, 0.9, 0.24, "#58994a"]].forEach(([dx, dy, r, f]) => {
+      g.fillStyle = dim(tint(f)); g.beginPath(); g.arc(bx + dx * bh, by - dy * bh, r * bh, 0, 7); g.fill();
+    });
+    // Streiflicht der tiefen Sonne
+    if (hoehe > -2 && hoehe < 12) {
+      const k = 1 - Math.abs(hoehe - 4) / 8, glow = g.createRadialGradient(sx, sy, 10, sx, sy, 520);
+      glow.addColorStop(0, `rgba(255,170,80,${0.35 * k})`); glow.addColorStop(1, "rgba(255,170,80,0)");
+      g.globalCompositeOperation = "lighter"; g.fillStyle = glow; g.fillRect(0, 0, W, H); g.globalCompositeOperation = "source-over";
+    }
+    // Werte und Erklärung
+    const [p, name] = phase(hoehe), zeit = uhr(jetzt);
+    document.getElementById("o-uhr").textContent = zeit;
+    document.getElementById("l-hud-zeit").textContent = zeit;
+    document.getElementById("l-hud-phase").textContent = name;
+    rUhr.setAttribute("aria-valuetext", `${zeit} Uhr, ${name}`);
+    document.getElementById("l-hoehe").textContent = zahl(hoehe) + "°";
+    document.getElementById("l-richtung").textContent = ["Nord", "Nordost", "Ost", "Südost", "Süd", "Südwest", "West", "Nordwest"][Math.round(azimut / 45) % 8];
+    document.getElementById("l-schatten").textContent = hoehe > 0.5 ? (hoehe > 60 ? "sehr kurz" : zahl(1 / Math.tan((hoehe * Math.PI) / 180)) + "× Höhe") : "keine";
+    document.getElementById("l-text").textContent = {
+      nacht: "Nacht: Nur noch Kunstlicht und Sterne. Jetzt brauchst du ein Stativ, lange Zeiten oder eine hohe ISO.",
+      blau: "Blaue Stunde: Der Himmel leuchtet tiefblau, in den Häusern gehen die Lichter an. Perfekt für Städte und Architektur, am besten mit Stativ.",
+      gold: hoehe < 0 ? "Goldene Stunde, die Sonne ist gerade unter dem Horizont: Der Himmel glüht warm, das Licht ist ganz weich und schattenlos." : "Goldene Stunde: Die Sonne steht tief, das Licht ist warm und weich, die Schatten werden lang. Die beliebteste Zeit für Porträts und Landschaften.",
+      tag: "Tageslicht: hell und neutral. Gut für alles, was klar und bunt sein soll. Die Schatten werden kürzer und härter, je höher die Sonne steigt.",
+      mittag: "Mittagslicht: Die Sonne steht hoch, Schatten sind kurz und hart, Farben wirken flach. Such dir Schatten oder fotografiere Details.",
+    }[p];
+  };
+
+  const aktualisieren = (uhrNeu) => {
+    berechnen();
+    if (uhrNeu) { const z = mitte(zeiten["gold-a"]) || zeiten.mittag; rUhr.value = Math.round(minuten(z) / 5) * 5; }
+    malen();
+    const balken = document.getElementById("g-balken");
+    balken.querySelector("i")?.remove();
+    const jetzt = new Date();
+    if (jetzt.toDateString() === tag.toDateString()) { const i = document.createElement("i"); i.style.left = (minuten(jetzt) / 1440) * 100 + "%"; i.title = "Jetzt"; balken.append(i); }
+  };
+  rUhr.addEventListener("input", malen);
+  document.querySelectorAll("#l-sprung button").forEach((b) => b.addEventListener("click", () => {
+    const z = b.dataset.p === "mittag" ? zeiten.mittag : mitte(zeiten[b.dataset.p]);
+    if (z) { rUhr.value = Math.round(minuten(z) / 5) * 5; malen(); }
+  }));
+  ort.addEventListener("change", () => { if (ort.value !== "hier") [lat, lon] = ort.value.split(",").map(Number); aktualisieren(false); });
+  datum.addEventListener("change", () => datum.value && aktualisieren(false));
+  document.getElementById("g-standort").addEventListener("click", () => {
+    const hinweis = document.getElementById("g-standort-hinweis");
+    if (!navigator.geolocation) { hinweis.textContent = "Dein Browser kann den Standort nicht bestimmen."; return; }
+    hinweis.textContent = "Standort wird bestimmt …";
+    navigator.geolocation.getCurrentPosition((pos) => {
+      lat = pos.coords.latitude; lon = pos.coords.longitude;
+      const opt = ort.querySelector('option[value="hier"]');
+      opt.hidden = false; opt.textContent = `Mein Standort (${zahl(lat, 2)}°, ${zahl(lon, 2)}°)`; ort.value = "hier";
+      hinweis.textContent = "Dein Standort wird nur in deinem Browser verwendet, nirgends gespeichert und an niemanden gesendet.";
+      aktualisieren(false);
+    }, () => { hinweis.textContent = "Standort nicht verfügbar. Wähl einfach einen Ort aus der Liste."; }, { maximumAge: 600000, timeout: 10000 });
+  });
+  beiGroesse(bild, () => {
+    const r = bild.getBoundingClientRect(), dpr = Math.min(devicePixelRatio || 1, 2);
+    bild.width = Math.round(r.width * dpr); bild.height = Math.round(r.height * dpr);
+    if (!tag) aktualisieren(true); else malen();
+  });
+})();
+
 /* ---------- Hell/Dunkel und Menü (wie auf der Startseite) ---------- */
 (() => {
   const btn = document.querySelector(".theme-btn"), meta = document.querySelector('meta[name="theme-color"]');
