@@ -93,3 +93,31 @@
   .formate{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
   .groessen th,.groessen td{padding:.55rem .6rem}
 }
+
+/* Übersicht: Karten je Tool */
+.tool-uebersicht{padding-top:0}
+.tool-karten{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:1.2rem}
+.tool-karte{display:grid;grid-template-rows:auto 1fr;background:var(--surface);border-radius:var(--radius);overflow:hidden;text-decoration:none;border:1px solid transparent;transition:border-color .2s,transform .2s,box-shadow .2s}
+@media (hover:hover){.tool-karte:hover{border-color:var(--accent);transform:translateY(-3px);box-shadow:var(--glow)}}
+.tool-bild{display:grid;place-items:center;padding:1.6rem 1.2rem;background:var(--surface-2);color:var(--link)}
+.tool-bild svg{width:min(100%,260px);height:auto}
+.tool-text{display:grid;gap:.55rem;padding:1.3rem 1.4rem 1.5rem;align-content:start}
+.tool-titel{font-size:clamp(1.4rem,3vw,1.8rem);letter-spacing:-.02em;line-height:1.1}
+.tool-beschr{color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:.4rem}
+.chips span{font-size:.78rem;font-weight:600;padding:.3rem .65rem;border-radius:999px;background:var(--surface-2);color:var(--fg)}
+.tool-karte .more,.weiter-karte .more{color:var(--link);font-weight:600}
+.tool-karte .more::after,.weiter-karte .more::after{content:" ›"}
+.bald{text-align:center;color:var(--muted);margin-top:1.5rem}
+.bald a{color:var(--link)}
+
+/* Unterseiten: Brotkrumen und Hinweis auf das andere Tool */
+.tool-seite{padding-bottom:clamp(1rem,3vw,2rem)}
+.pfad{display:flex;gap:.5rem;align-items:center;font-size:.9rem;color:var(--muted)}
+.pfad a{color:var(--link);text-decoration:none;font-weight:600}
+.pfad a::before{content:"‹ "}
+.weitere-tools{padding-block:clamp(1rem,3vw,2rem) 0}
+.weiter-karte{display:grid;gap:.3rem;background:var(--surface);border-radius:var(--radius);padding:1.3rem 1.5rem;text-decoration:none;border:1px solid transparent;transition:border-color .2s}
+.weiter-karte:hover{border-color:var(--accent)}
+.weiter-karte strong{font-size:1.3rem}
+.weiter-karte span:not(.eyebrow):not(.more){color:var(--muted)}

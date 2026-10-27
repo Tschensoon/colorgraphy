@@ -13,4 +13,6 @@
 
 - [Startseite](https://colorgraphy.de/): Galerie, Ausrüstung, häufige Fragen und Instagram-Feed
 - [Lernen](https://colorgraphy.de/lernen.html): Fotografieren lernen zum Ausprobieren – Blende, Belichtungszeit und ISO, Brennweite und Bildwinkel, Farbkreis und Weißabgleich, Bildgestaltung (Drittelregel, Horizont) und Licht mit Goldene-Stunde-Rechner
-- [Tools](https://colorgraphy.de/tools.html): Kostenloser Social-Media-Zuschneider – schneidet Fotos im Browser auf die richtigen Formate für Instagram, Facebook, TikTok, X, LinkedIn, Pinterest, YouTube und WhatsApp zu, ohne Upload; dazu ein Foto-Splitter für Panorama-Karussells, Instagram-Profilraster und Puzzle-Aufteilungen
+- [Tools](https://colorgraphy.de/tools.html): Übersicht kostenloser Foto-Tools, die komplett im Browser laufen (ohne Upload)
+- [Social-Media-Zuschneider](https://colorgraphy.de/tools/zuschneider.html): Fotos automatisch auf die richtigen Formate für Instagram, Facebook, TikTok, X, LinkedIn, Pinterest, YouTube und WhatsApp zuschneiden, mit Tabelle aller Bildgrößen
+- [Foto-Splitter](https://colorgraphy.de/tools/foto-splitter.html): ein Foto als Panorama-Karussell, Instagram-Profilraster oder Puzzle in mehrere Bilder teilen
