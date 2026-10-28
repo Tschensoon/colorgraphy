@@ -271,3 +271,8 @@ body.spiel-offen { overflow: hidden; }
 /* Kombo: Anzeige hüpft und leuchtet kurz, wenn der Faktor steigt */
 .lauf-hud.kombo { animation: hud-kombo .5s ease-out; }
 @keyframes hud-kombo { 40% { transform: scale(1.2); background: #ffcc33; } }
+
+/* nur noch ein Spiel: eine Auswahlkarte mittig, Rennspiel direkt oben im Bereich */
+.wahl-raster { grid-template-columns: minmax(0, 560px); justify-content: center; }
+.spiel-bereich .lauf-bereich { margin-top: 0; }
+.spiel-teilen { margin-top: 1.4rem; }

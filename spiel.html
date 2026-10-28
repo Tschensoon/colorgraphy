@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Fröbelinchen spielt: zwei kleine Browserspiele | Colorgraphy</title>
-<meta name="description" content="Zwei kostenlose Spiele mit Fröbelinchen, der kleinen orangen Plüschgiraffe: über Bälle springen oder in 3D durch die Kita-Welt rennen. Für Browser und Handy.">
+<title>Fröbelinchen rennt: kostenloses 3D-Spiel im Browser | Colorgraphy</title>
+<meta name="description" content="Kostenloses 3D-Spiel mit Fröbelinchen, der kleinen orangen Plüschgiraffe: durch fünf Welten rennen, durch die Luftwelt fliegen und neue Figuren freischalten. Für Browser und Handy.">
 <meta name="robots" content="index, follow, max-image-preview:large">
 <link rel="canonical" href="https://colorgraphy.de/spiel.html">
 <meta name="theme-color" content="#000000">
@@ -15,8 +15,8 @@
 <meta property="og:type" content="website">
 <meta property="og:locale" content="de_DE">
 <meta property="og:site_name" content="Colorgraphy">
-<meta property="og:title" content="Fröbelinchen spielt">
-<meta property="og:description" content="Zwei kleine Spiele mit der Plüschgiraffe Fröbelinchen. Kostenlos im Browser.">
+<meta property="og:title" content="Fröbelinchen rennt">
+<meta property="og:description" content="3D-Spiel mit der Plüschgiraffe Fröbelinchen. Kostenlos im Browser.">
 <meta property="og:url" content="https://colorgraphy.de/spiel.html">
 <meta property="og:image" content="https://colorgraphy.de/og-image.jpg">
 <meta name="twitter:card" content="summary_large_image">
@@ -26,7 +26,7 @@
   "@graph": [
     {
       "@type": "WebApplication",
-      "name": "Fröbelinchen springt",
+      "name": "Fröbelinchen rennt",
       "url": "https://colorgraphy.de/spiel.html",
       "applicationCategory": "GameApplication",
       "operatingSystem": "Alle (läuft im Browser)",
@@ -37,7 +37,7 @@
         "price": "0",
         "priceCurrency": "EUR"
       },
-      "description": "Endlos-Spiel, in dem die Plüschgiraffe Fröbelinchen über Bälle springt.",
+      "description": "3D-Laufspiel, in dem die Plüschgiraffe Fröbelinchen durch wechselnde Welten rennt und fliegt.",
       "isPartOf": {
         "@id": "https://colorgraphy.de/#website"
       }
@@ -54,7 +54,7 @@
         {
           "@type": "ListItem",
           "position": 2,
-          "name": "Fröbelinchen springt",
+          "name": "Fröbelinchen rennt",
           "item": "https://colorgraphy.de/spiel.html"
         }
       ]
@@ -64,7 +64,7 @@
 </script>
 <link rel="stylesheet" href="style.css?v=3">
 <link rel="stylesheet" href="tools.css?v=8">
-<link rel="stylesheet" href="spiel.css?v=15">
+<link rel="stylesheet" href="spiel.css?v=16">
 </head>
 <body>
 
@@ -94,21 +94,16 @@
     <div class="wrap center">
       <span class="eyebrow">Fröbel-Spiel</span>
       <h1>Fröbelinchen <span class="grad">spielt.</span></h1>
-      <p class="sub">Zwei kleine Spiele mit der Plüschgiraffe Fröbelinchen. Such dir eins aus.</p>
+      <p class="sub">Ein 3D-Spiel mit der Plüschgiraffe Fröbelinchen und ihren Freunden: renn durch fünf Welten, flieg durch die Luft und schalte neue Figuren frei.</p>
     </div>
   </div>
 
   <section class="spiel-wahl" aria-label="Spiel auswählen">
     <div class="wrap">
       <div class="wahl-raster">
-        <button type="button" class="wahl-karte" data-spiel="springen">
-          <img src="spiel/vorschau-springen.jpg" alt="" width="640" height="360">
-          <span class="wahl-text"><strong>Fröbelinchen springt</strong><span>Spring über die Bälle und lauf Anja davon. Schnell erklärt, schnell gespielt.</span></span>
-          <span class="pill small">Spielen</span>
-        </button>
         <button type="button" class="wahl-karte" data-spiel="rennen">
           <img src="spiel/vorschau-rennen.jpg" alt="" width="640" height="360">
-          <span class="wahl-text"><strong>Fröbelinchen rennt <em>3D</em></strong><span>Renn durch die Kita-Welt, bieg ab, spring und duck dich unter Stangen.</span></span>
+          <span class="wahl-text"><strong>Fröbelinchen rennt <em>3D</em></strong><span>Renn durch die Kita-Welt, sammle Törtchen, flieg durch die Luftwelt und lauf Anja davon.</span></span>
           <span class="pill small">Spielen</span>
         </button>
       </div>
@@ -117,28 +112,8 @@
 
   <section class="spiel-bereich">
     <div class="wrap">
-      <div class="spiel-rahmen">
-        <canvas id="spiel-canvas" width="900" height="300" aria-label="Spiel: Fröbelinchen springt über Bälle"></canvas>
-        <button type="button" class="spiel-zu" aria-label="Vollbild beenden">✕</button>
-        <form class="spiel-eintragen" id="spiel-eintragen" hidden>
-          <p class="se-titel"><strong id="se-punkte">0</strong> Punkte!</p>
-          <label for="se-name">Name für die Bestenliste</label>
-          <input id="se-name" name="name" maxlength="16" autocomplete="nickname" enterkeyhint="done" spellcheck="false" required>
-          <div class="se-knoepfe">
-            <button type="submit" class="pill small">Eintragen</button>
-            <button type="button" class="pill small ghost" id="se-nein">Nein danke</button>
-          </div>
-          <p class="se-meldung" id="se-meldung" role="status"></p>
-        </form>
-      </div>
-      <p class="spiel-hilfe">Leertaste, Pfeil nach oben oder aufs Spielfeld tippen zum Springen. Gedrückt halten springt höher. Auf dem Handy läuft das Spiel im Vollbild quer.</p>
-      <div class="spiel-teilen">
-        <button type="button" class="pill" id="spiel-teilen">Spiel teilen</button>
-        <a class="pill ghost" id="spiel-whatsapp" href="https://wa.me/?text=Schaffst%20du%20mehr%20Punkte%20als%20ich%3F%20Fr%C3%B6belinchen%20springt%3A%20https%3A%2F%2Fcolorgraphy.de%2Fspiel.html" target="_blank" rel="noopener">Per WhatsApp schicken</a>
-        <span class="spiel-kopiert" id="spiel-kopiert" role="status"></span>
-      </div>
       <div class="lauf-bereich">
-        <span class="eyebrow">Neu</span>
+        <span class="eyebrow">3D-Spiel</span>
         <h2>Fröbelinchen <span class="grad">rennt.</span></h2>
         <p class="lauf-sub">Renn mit Fröbelinchen durch die Kita-Welt, sammle Sterne und Booster, entdecke immer neue Welten, weich Bauklötzen aus und duck dich unter Kletterstangen. Stolperst du, holt Anja auf.</p>
         <div class="lauf-rahmen" id="lauf-rahmen">
@@ -230,10 +205,10 @@
         <ol class="lauf-top-seite" aria-live="polite"></ol>
         <p class="bl-hinweis">Nach jeder Runde kannst du dich mit einem Spitznamen eintragen. Gespeichert werden nur Name und Punkte.</p>
       </div>
-      <div class="bestenliste" id="bestenliste-bereich" hidden>
-        <h2>Bestenliste</h2>
-        <ol id="bestenliste" aria-live="polite"></ol>
-        <p class="bl-hinweis">Nach jeder Runde kannst du dich mit einem Namen eintragen. Gespeichert werden nur Name und Punkte.</p>
+      <div class="spiel-teilen">
+        <button type="button" class="pill" id="spiel-teilen">Spiel teilen</button>
+        <a class="pill ghost" id="spiel-whatsapp" href="https://wa.me/?text=Schaffst%20du%20mehr%20Punkte%20als%20ich%3F%20Fr%C3%B6belinchen%20rennt%3A%20https%3A%2F%2Fcolorgraphy.de%2Fspiel.html" target="_blank" rel="noopener">Per WhatsApp schicken</a>
+        <span class="spiel-kopiert" id="spiel-kopiert" role="status"></span>
       </div>
     </div>
   </section>
@@ -247,8 +222,8 @@
   </div>
 </footer>
 
-<script src="spiel.js?v=9" defer></script>
-<script type="module" src="lauf.js?v=31"></script>
+<script src="spiel.js?v=10" defer></script>
+<script type="module" src="lauf.js?v=32"></script>
 <script src="seite.js?v=11" defer></script>
 <script src="ziehen.js?v=2" defer></script>
 <script data-goatcounter="https://colorgraphy.goatcounter.com/count" async src="vendor/goatcounter/count.js"></script>

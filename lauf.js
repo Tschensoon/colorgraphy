@@ -1006,7 +1006,7 @@ if (rahmen) {
     if (leerlauf) {
       const t = performance.now() / 1000;
       spieler.beine.forEach((b, i) => { b.oben.rotation.x = 0; b.unten.rotation.x = 0; });
-      spieler.beine[1].oben.rotation.x = -1.25 + Math.sin(t * 7) * .3; spieler.beine[1].unten.rotation.x = -.6;
+      spieler.beine[1].oben.rotation.x = 1.05 + Math.sin(t * 7) * .3; spieler.beine[1].unten.rotation.x = -1.1;   // Vorderbein nach vorn heben, damit man das Winken sieht
       spieler.hals.rotation.x = Math.sin(t * 1.3) * .08; spieler.koerper.position.y = 0; spieler.koerper.rotation.z = 0;
       spieler.schwanz.rotation.z = Math.sin(t * 6) * .45;
       g.scale.set(1, 1, 1);
