@@ -64,7 +64,7 @@
 </script>
 <link rel="stylesheet" href="style.css?v=3">
 <link rel="stylesheet" href="tools.css?v=8">
-<link rel="stylesheet" href="spiel.css?v=3">
+<link rel="stylesheet" href="spiel.css?v=4">
 </head>
 <body>
 
@@ -103,12 +103,27 @@
       <div class="spiel-rahmen">
         <canvas id="spiel-canvas" width="900" height="300" aria-label="Spiel: Fröbelinchen springt über Bälle"></canvas>
         <button type="button" class="spiel-zu" aria-label="Vollbild beenden">✕</button>
+        <form class="spiel-eintragen" id="spiel-eintragen" hidden>
+          <p class="se-titel"><strong id="se-punkte">0</strong> Punkte!</p>
+          <label for="se-name">Name für die Bestenliste</label>
+          <input id="se-name" name="name" maxlength="16" autocomplete="nickname" enterkeyhint="done" spellcheck="false" required>
+          <div class="se-knoepfe">
+            <button type="submit" class="pill small">Eintragen</button>
+            <button type="button" class="pill small ghost" id="se-nein">Nein danke</button>
+          </div>
+          <p class="se-meldung" id="se-meldung" role="status"></p>
+        </form>
       </div>
       <p class="spiel-hilfe">Leertaste, Pfeil nach oben oder aufs Spielfeld tippen zum Springen. Gedrückt halten springt höher. Auf dem Handy läuft das Spiel im Vollbild quer.</p>
       <div class="spiel-teilen">
         <button type="button" class="pill" id="spiel-teilen">Spiel teilen</button>
         <a class="pill ghost" id="spiel-whatsapp" href="https://wa.me/?text=Schaffst%20du%20mehr%20Punkte%20als%20ich%3F%20Fr%C3%B6belinchen%20springt%3A%20https%3A%2F%2Fcolorgraphy.de%2Fspiel.html" target="_blank" rel="noopener">Per WhatsApp schicken</a>
         <span class="spiel-kopiert" id="spiel-kopiert" role="status"></span>
+      </div>
+      <div class="bestenliste" id="bestenliste-bereich" hidden>
+        <h2>Bestenliste</h2>
+        <ol id="bestenliste" aria-live="polite"></ol>
+        <p class="bl-hinweis">Nach jeder Runde kannst du dich mit einem Namen eintragen. Gespeichert werden nur Name und Punkte.</p>
       </div>
     </div>
   </section>
@@ -122,7 +137,7 @@
   </div>
 </footer>
 
-<script src="spiel.js?v=3" defer></script>
+<script src="spiel.js?v=5" defer></script>
 <script src="seite.js?v=11" defer></script>
 <script src="ziehen.js?v=1" defer></script>
 <script data-goatcounter="https://colorgraphy.goatcounter.com/count" async src="vendor/goatcounter/count.js"></script>

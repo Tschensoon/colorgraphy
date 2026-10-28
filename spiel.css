@@ -16,3 +16,37 @@
 body.spiel-offen { overflow: hidden; }
 .spiel-teilen { display: flex; flex-wrap: wrap; gap: .75rem; justify-content: center; align-items: center; margin-top: 1.4rem; }
 .spiel-kopiert { flex-basis: 100%; text-align: center; font-size: .9rem; opacity: .8; min-height: 1.2em; }
+
+/* Name eintragen: Karte über dem Spielfeld (auch im Vollbild) */
+.spiel-eintragen { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 3;
+  width: min(92%, 340px); padding: .9rem 1rem; border-radius: 16px; background: rgba(255, 255, 255, .97); color: #24332f;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, .25); text-align: center; font-size: .95rem; }
+.spiel-eintragen[hidden] { display: none; }
+.se-titel { margin: 0 0 .35rem; font-size: 1.1rem; color: #034a3e; }
+.spiel-eintragen label { display: block; font-size: .85rem; margin-bottom: .3rem; color: #4b5b56; }
+.spiel-eintragen input { width: 100%; padding: .55rem .7rem; border: 1px solid #c9d3cf; border-radius: 10px; font: inherit;
+  font-size: 16px; color: #24332f; background: #fff; }
+.se-knoepfe { display: flex; gap: .5rem; justify-content: center; margin-top: .6rem; }
+.spiel-eintragen .pill.ghost { color: #24332f; border-color: #c9d3cf; }
+.se-meldung { margin: .4rem 0 0; font-size: .85rem; color: #b3261e; }
+.se-meldung:empty { display: none; }
+
+/* Bestenliste unter dem Spiel */
+.bestenliste { max-width: 520px; margin: 2.5rem auto 0; padding: 1.2rem 1.4rem; border: 1px solid var(--line); border-radius: 18px; background: var(--surface); }
+.bestenliste[hidden] { display: none; }
+.bestenliste h2 { margin: 0 0 .8rem; font-size: 1.3rem; text-align: center; }
+.bestenliste ol { list-style: none; margin: 0; padding: 0; }
+.bestenliste li { display: flex; gap: .8rem; align-items: baseline; padding: .5rem .2rem; border-top: 1px solid var(--line); }
+.bestenliste li:first-child { border-top: 0; }
+.bestenliste li.eigen { color: var(--accent); font-weight: 700; }
+.bl-rang { width: 2.2rem; flex: none; opacity: .7; font-variant-numeric: tabular-nums; }
+.bl-name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.bl-punkte { font-weight: 700; font-variant-numeric: tabular-nums; }
+.bl-hinweis { margin: .8rem 0 0; font-size: .85rem; opacity: .7; text-align: center; }
+/* Kleines Spielfeld am Handy (außerhalb des Vollbilds): Karte kompakter, damit sie ins Feld passt */
+@media (max-width: 600px) {
+  .spiel-rahmen:not(.vollbild) .spiel-eintragen { padding: .5rem .7rem; }
+  .spiel-rahmen:not(.vollbild) .spiel-eintragen label { display: none; }
+  .spiel-rahmen:not(.vollbild) .se-titel { margin-bottom: .3rem; font-size: 1rem; }
+  .spiel-rahmen:not(.vollbild) .se-knoepfe { margin-top: .4rem; }
+}
