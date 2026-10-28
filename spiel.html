@@ -64,7 +64,7 @@
 </script>
 <link rel="stylesheet" href="style.css?v=3">
 <link rel="stylesheet" href="tools.css?v=8">
-<link rel="stylesheet" href="spiel.css?v=13">
+<link rel="stylesheet" href="spiel.css?v=14">
 </head>
 <body>
 
@@ -155,6 +155,8 @@
             <button type="button" class="pill lauf-weiter">Weiter</button>
           </div>
           <div class="lauf-overlay">
+           <div class="lauf-karte">
+           <div class="lauf-info">
             <p class="lauf-titel">Fröbelinchen rennt</p>
             <p class="lauf-text"></p>
             <div class="lauf-ergebnis" hidden>
@@ -187,16 +189,20 @@
                 <span><strong>Sterne</strong> sammeln. Booster: <strong>⚡ Turbo</strong>, <strong>🛡 Schutzschild</strong> (5 s unverwundbar), <strong>💥 Schubs</strong> (Anja fliegt raus, 10 s Ruhe), <strong>🧲 Magnet</strong>, <strong>×2 Punkte</strong>. Hohe Sterne gibt es nur im Sprung.</span></li>
             </ul>
             <div class="lauf-aufgaben"></div>
-            <div class="lauf-figur" role="group" aria-label="Wer läuft?">
-              <span>Wer läuft?</span>
-              <button type="button" data-figur="giraffe" aria-pressed="true">🦒 Fröbelinchen</button>
-              <button type="button" data-figur="leo" aria-pressed="false">🐢 Schildkröte Leo</button>
+           </div>
+           <div class="lauf-wahl">
+            <p class="lauf-abschnitt" id="lauf-figur-titel">Wer läuft?</p>
+            <div class="lauf-figur" role="group" aria-labelledby="lauf-figur-titel">
+              <button type="button" data-figur="giraffe" aria-pressed="true"><span class="lf-bild" aria-hidden="true">🦒</span><span>Fröbelinchen</span></button>
+              <button type="button" data-figur="leo" aria-pressed="false"><span class="lf-bild" aria-hidden="true">🐢</span><span>Schildkröte Leo</span></button>
             </div>
             <div class="lauf-knoepfe">
               <button type="button" class="pill lauf-los">Los geht’s</button>
               <button type="button" class="pill ghost lauf-shop-knopf">★ Ausstattung</button>
               <button type="button" class="pill ghost lauf-top-knopf">🏆 Bestenliste</button>
             </div>
+           </div>
+           </div>
             <div class="lauf-shop lauf-top" hidden>
               <p class="ls-bank">Bestenliste</p>
               <ol class="lauf-top-liste"></ol>
@@ -240,7 +246,7 @@
 </footer>
 
 <script src="spiel.js?v=9" defer></script>
-<script type="module" src="lauf.js?v=28"></script>
+<script type="module" src="lauf.js?v=29"></script>
 <script src="seite.js?v=11" defer></script>
 <script src="ziehen.js?v=2" defer></script>
 <script data-goatcounter="https://colorgraphy.goatcounter.com/count" async src="vendor/goatcounter/count.js"></script>

@@ -875,6 +875,7 @@ if (rahmen) {
 
   // ---------- Bild ----------
   let kamYaw = 0, kamPos = null;
+  const bildVersatz = { x: 0, y: 0 };
   const winkel = (a, b, k) => a + (((b - a + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI) * k;
   function bild() {
     const echt = uhr.getDelta(), dt = Math.min(.05, echt);
@@ -1011,6 +1012,13 @@ if (rahmen) {
     kamera.position.copy(kamPos);
     if (wackeln > 0) { wackeln = Math.max(0, wackeln - dt); kamera.position.x += (Math.random() - .5) * wackeln * .6; kamera.position.y += (Math.random() - .5) * wackeln * .4; }
     if (leerlauf) kamera.lookAt(px, spieler.blick, pz);
+    // Karte rechts (breit) bzw. unten (hochkant): Bildausschnitt so verschieben, dass die Figur daneben bzw. darüber steht
+    const karteDa = leerlauf && !ueber.hidden, breit = kamera.aspect > 1.25;
+    bildVersatz.x += ((karteDa && breit ? 23 : 0) - bildVersatz.x) * Math.min(1, dt * 5);
+    bildVersatz.y += ((karteDa && hoch ? 30 : 0) - bildVersatz.y) * Math.min(1, dt * 5);
+    const bw = huelle.clientWidth || 1, bh = huelle.clientHeight || 1;   // volle Bildgröße angeben, sonst verstellt three.js das Seitenverhältnis
+    if (Math.abs(bildVersatz.x) + Math.abs(bildVersatz.y) > .05) kamera.setViewOffset(bw, bh, bildVersatz.x * bw / 100, bildVersatz.y * bh / 100, bw, bh);
+    else if (kamera.view && kamera.view.enabled) kamera.clearViewOffset();
     else kamera.lookAt(px - sin * (hoch ? 5 : 7), hoch ? -.6 : .6, pz - cos * (hoch ? 5 : 7));
     himmelKugel.position.copy(kamera.position); wolkenGruppe.position.set(kamera.position.x, 0, kamera.position.z);
     ferneGruppe.position.set(kamera.position.x, 0, kamera.position.z);
