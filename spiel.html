@@ -64,7 +64,7 @@
 </script>
 <link rel="stylesheet" href="style.css?v=3">
 <link rel="stylesheet" href="tools.css?v=8">
-<link rel="stylesheet" href="spiel.css?v=4">
+<link rel="stylesheet" href="spiel.css?v=5">
 </head>
 <body>
 
@@ -120,6 +120,22 @@
         <a class="pill ghost" id="spiel-whatsapp" href="https://wa.me/?text=Schaffst%20du%20mehr%20Punkte%20als%20ich%3F%20Fr%C3%B6belinchen%20springt%3A%20https%3A%2F%2Fcolorgraphy.de%2Fspiel.html" target="_blank" rel="noopener">Per WhatsApp schicken</a>
         <span class="spiel-kopiert" id="spiel-kopiert" role="status"></span>
       </div>
+      <div class="lauf-bereich">
+        <span class="eyebrow">Neu</span>
+        <h2>Fröbelinchen <span class="grad">rennt.</span></h2>
+        <p class="lauf-sub">Renn mit Fröbelinchen durch die Kita-Welt, weich Bauklötzen aus, spring über Bälle und duck dich unter Kletterstangen. Stolperst du, holt Anja auf.</p>
+        <div class="lauf-rahmen" id="lauf-rahmen">
+          <div class="lauf-buehne"></div>
+          <div class="lauf-hud" aria-live="off"></div>
+          <div class="lauf-warnung" aria-hidden="true"><strong>Achtung, Anja kommt!</strong><span>Lauf schneller!</span></div>
+          <button type="button" class="spiel-zu lauf-zu" aria-label="Vollbild beenden">✕</button>
+          <div class="lauf-overlay">
+            <p class="lauf-titel">Fröbelinchen rennt</p>
+            <p class="lauf-text">Wischen oder Pfeiltasten: links und rechts wechseln die Spur und biegen an Ecken ab, hoch springt, runter duckt.</p>
+            <button type="button" class="pill lauf-los">Los geht’s</button>
+          </div>
+        </div>
+      </div>
       <div class="bestenliste" id="bestenliste-bereich" hidden>
         <h2>Bestenliste</h2>
         <ol id="bestenliste" aria-live="polite"></ol>
@@ -137,9 +153,10 @@
   </div>
 </footer>
 
-<script src="spiel.js?v=6" defer></script>
+<script src="spiel.js?v=7" defer></script>
+<script type="module" src="lauf.js?v=1"></script>
 <script src="seite.js?v=11" defer></script>
-<script src="ziehen.js?v=1" defer></script>
+<script src="ziehen.js?v=2" defer></script>
 <script data-goatcounter="https://colorgraphy.goatcounter.com/count" async src="vendor/goatcounter/count.js"></script>
 </body>
 </html>

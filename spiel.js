@@ -75,6 +75,7 @@
   addEventListener("keydown", e => {
     if (!["Space", "ArrowUp", "KeyW"].includes(e.code) || !imBild()) return;
     if (e.target.closest && e.target.closest("a, button, input, textarea, select")) return;
+    if (window.froebelAktiv === "lauf") return; // das Lauf-Spiel hat gerade die Tasten
     e.preventDefault(); if (!e.repeat) druck(true);
   });
   addEventListener("keyup", e => { if (["Space", "ArrowUp", "KeyW"].includes(e.code)) halten = false; });

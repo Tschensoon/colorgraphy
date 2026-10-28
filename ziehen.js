@@ -28,7 +28,7 @@
     start = null;
     if (scrollY > 0 || e.touches.length !== 1) return;
     // Im Spiel wird getippt und gehalten, dort nicht aktualisieren
-    if (document.body.classList.contains("spiel-offen") || e.target.closest(".spiel-rahmen")) return;
+    if (document.body.classList.contains("spiel-offen") || e.target.closest(".spiel-rahmen, .lauf-rahmen")) return;
     start = e.touches[0].clientY; weg = 0; zeichen.classList.remove("zurueck");
   }, { passive: true });
   addEventListener("touchmove", (e) => {

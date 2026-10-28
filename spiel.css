@@ -50,3 +50,35 @@ body.spiel-offen { overflow: hidden; }
   .spiel-rahmen:not(.vollbild) .se-titel { margin-bottom: .3rem; font-size: 1rem; }
   .spiel-rahmen:not(.vollbild) .se-knoepfe { margin-top: .4rem; }
 }
+
+/* Zweites Spiel: Fröbelinchen rennt (3D) */
+.lauf-bereich { margin-top: 3.5rem; text-align: center; }
+.lauf-bereich h2 { margin: .3rem 0 .4rem; font-size: clamp(1.8rem, 5vw, 2.6rem); }
+.lauf-sub { max-width: 640px; margin: 0 auto 1.2rem; opacity: .8; }
+.lauf-rahmen { position: relative; max-width: 900px; margin: 0 auto; aspect-ratio: 16 / 10; border-radius: 18px; overflow: hidden;
+  background: #bfe6fb; box-shadow: 0 10px 40px rgba(0, 0, 0, .35); touch-action: none; user-select: none; -webkit-user-select: none; }
+@media (max-width: 600px) { .lauf-rahmen { aspect-ratio: 4 / 5; } }
+.lauf-buehne, .lauf-buehne canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.lauf-hud { position: absolute; top: 10px; right: 14px; z-index: 2; padding: .3rem .7rem; border-radius: 999px;
+  background: rgba(255, 255, 255, .85); color: #034a3e; font-weight: 700; font-size: .95rem; font-variant-numeric: tabular-nums; }
+.lauf-hud:empty { display: none; }
+.lauf-overlay { position: absolute; inset: 0; z-index: 3; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: .6rem; padding: 1.2rem; background: rgba(255, 255, 255, .55); color: #24332f; text-align: center; }
+.lauf-overlay[hidden] { display: none; }
+.lauf-titel { margin: 0; font-size: 1.6rem; font-weight: 800; color: #034a3e; }
+.lauf-text { margin: 0; max-width: 460px; font-size: .95rem; }
+.lauf-warnung { position: absolute; left: 50%; top: 16%; z-index: 2; display: flex; flex-direction: column; align-items: center;
+  transform: translate(-50%, 0) scale(0); opacity: 0; pointer-events: none; text-align: center; line-height: 1.15;
+  font-weight: 800; -webkit-text-stroke: 1px #fff; paint-order: stroke fill; text-shadow: 0 0 6px #fff, 0 0 2px #fff; }
+.lauf-warnung strong { font-size: clamp(1.4rem, 5vw, 2.2rem); color: #e8577a; }
+.lauf-warnung span { font-size: clamp(1.1rem, 4vw, 1.6rem); color: #034a3e; }
+.lauf-warnung.an { animation: lauf-warnung 3s ease-out forwards; }
+@keyframes lauf-warnung {
+  0% { transform: translate(-50%, 0) scale(0); opacity: 1; }
+  8% { transform: translate(-50%, 0) scale(1.15); }
+  13%, 80% { transform: translate(-50%, 0) scale(1); opacity: 1; }
+  100% { transform: translate(-50%, 0) scale(1); opacity: 0; }
+}
+.lauf-rahmen.vollbild { position: fixed; inset: 0; z-index: 1000; max-width: none; aspect-ratio: auto; border-radius: 0; margin: 0; }
+.lauf-rahmen.vollbild .lauf-zu { display: block; }
+.lauf-rahmen .lauf-zu { z-index: 4; top: calc(env(safe-area-inset-top) + 10px); }
