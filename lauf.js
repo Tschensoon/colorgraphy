@@ -31,7 +31,7 @@ if (rahmen) {
   function laden() {
     if (!bereit) {
       const text = losKnopf.textContent; losKnopf.disabled = true; losKnopf.textContent = "Lädt die 3D-Welt …";
-      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=26"), import("./lauf-ton.js?v=2"), import("./lauf-flug.js?v=2"), import("./lauf-effekte.js?v=3")])
+      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=27"), import("./lauf-ton.js?v=2"), import("./lauf-flug.js?v=2"), import("./lauf-effekte.js?v=3")])
         .then(([m, w, t, f, e]) => { THREE = m; T = t.ton(); aufbauen(w, f, e); losKnopf.disabled = false; losKnopf.textContent = text; });
     }
     return bereit;
@@ -49,7 +49,7 @@ if (rahmen) {
   const FIGUR_LISTE = [
     { id: "giraffe", emoji: "🦒", name: "Fröbelinchen", stufe: 1 }, { id: "leo", emoji: "🐢", name: "Leo", stufe: 1 },
     { id: "hase", emoji: "🐰", name: "Rambo Rabbit", stufe: 5 }, { id: "baer", emoji: "🐻", name: "Bäralf", stufe: 10 },
-    { id: "elefant", emoji: "🐘", name: "Dumbo", stufe: 20 },
+    { id: "elefant", emoji: "🐘", name: "Jensfant", stufe: 20 },
   ];
   const EP_JE_STUFE = 5000;
   let erfahrung = +lies("froebelinchen-rennt-erfahrung", 0) || 0;

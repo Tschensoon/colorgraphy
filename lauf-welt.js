@@ -435,7 +435,7 @@ export function welt(T, handy) {
       fotoGanz: [[0, .85, -.1], [2.3, 1.6, -3.2]], fotoRuecken: [[0, 1.1, .1], [1.6, 2.1, 2.0]] },
     baer: { name: "Bäralf", blick: 1.05, rueckenY: -.43, blaseY: .85, blaseS: 1.15, cockpit: [-.05, .35, .48], kopfSkala: 1.5, halsSkala: 1.35,
       fotoGanz: [[0, .95, -.1], [2.7, 1.8, -3.7]], fotoRuecken: [[0, 1.25, .1], [1.9, 2.4, 2.3]] },
-    elefant: { name: "Dumbo", blick: 1.3, rueckenY: -.07, blaseY: 1.05, blaseS: 1.4, cockpit: [-.15, .35, .38], kopfSkala: 2, halsSkala: 1.8,
+    elefant: { name: "Jensfant", blick: 1.3, rueckenY: -.07, blaseY: 1.05, blaseS: 1.4, cockpit: [-.15, .35, .38], kopfSkala: 2, halsSkala: 1.8,
       fotoGanz: [[0, 1.2, -.2], [3.4, 2.2, -4.6]], fotoRuecken: [[0, 1.55, .1], [2.4, 3, 2.8]] },
   };
   let leoFormen = null;
@@ -492,7 +492,7 @@ export function welt(T, handy) {
     return { gruppe: g, koerper, hals, kopf, beine, schwanz, augen, ohren, ...FIGUR_INFO.leo };
   }
 
-  // ---------- Weitere Figuren zum Freischalten: Rambo Rabbit, Bäralf, Dumbo ----------
+  // ---------- Weitere Figuren zum Freischalten: Rambo Rabbit, Bäralf, Jensfant ----------
   // Zwei Farben über das Attribut „hell“ (Bauch, Schnauze), ohne Muster
   function zweiFarbenMat(name, haupt, hell, sheen) {
     const m = new T.MeshPhysicalMaterial({ color: "#ffffff", roughness: 1, sheen: 1, sheenRoughness: .5, sheenColor: new T.Color(sheen) });
@@ -600,7 +600,7 @@ export function welt(T, handy) {
     return { gruppe: g, koerper, hals, kopf, beine, schwanz, augen, ohren, ...FIGUR_INFO.baer };
   }
 
-  // --- Dumbo: Plüschelefant mit großen Schlappohren und Rüssel ---
+  // --- Jensfant: Plüschelefant mit großen Schlappohren und Rüssel ---
   const elefantHaut = zweiFarbenMat("elefant", "#9aa8ba", "#cdd5e0", "#e6eef8"), elefantBein = pluesch("#9aa8ba", "#e6eef8"),
     elefantHell = pluesch("#ece6da", "#ffffff"), elefantRosa = std({ color: "#f2b3c4", roughness: .7 });
   let elefantFormen = null;
@@ -643,7 +643,7 @@ export function welt(T, handy) {
   }
   const FIGUREN = {
     giraffe: { bauen: () => giraffeBauen(), name: "Fröbelinchen" }, leo: { bauen: () => leoBauen(), name: "Leo" },
-    hase: { bauen: haseBauen, name: "Rambo Rabbit" }, baer: { bauen: baerBauen, name: "Bäralf" }, elefant: { bauen: elefantBauen, name: "Dumbo" },
+    hase: { bauen: haseBauen, name: "Rambo Rabbit" }, baer: { bauen: baerBauen, name: "Bäralf" }, elefant: { bauen: elefantBauen, name: "Jensfant" },
   };
   const figurBauen = (id) => (FIGUREN[id] || FIGUREN.giraffe).bauen();
 
