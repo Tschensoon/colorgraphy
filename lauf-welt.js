@@ -161,6 +161,7 @@ export function welt(T, handy) {
     rinde: std({ map: rinde, roughness: 1, bumpMap: rinde, bumpScale: 3 }),
     laub: std({ map: laub, roughness: .95, bumpMap: laub, bumpScale: 3 }),
     dach: std({ map: dach, roughness: .8 }),
+    sand: std({ color: "#e9d29a", roughness: 1 }),
     pfuetze: std({ color: "#6f9fc4", roughness: .04, metalness: .2, transparent: true, opacity: .82 }),
     metall: std({ color: "#2f7fd0", roughness: .3, metalness: .6 }),
     metallRot: std({ color: "#d84a3a", roughness: .35, metalness: .5 }),
@@ -194,15 +195,29 @@ export function welt(T, handy) {
     return geo;
   };
   const kugel = new T.SphereGeometry(1, 28, 20);
+  // Gemeinsam genutzte Formen werden markiert und beim Aufräumen nicht freigegeben
+  const geteilt = (g) => { g.userData.geteilt = true; return g; };
+  const einzel = (m) => { m.userData.einzel = true; return m; };
+  geteilt(kugel);
+  const formCache = new Map();
+  // Maße auf Stufen runden (große Maße auf 0,25 m, kleine auf 0,05 m), damit zufällige Größen sich Formen teilen
+  const stufe = (a) => typeof a !== "number" || Number.isInteger(a) ? a : Math.abs(a) >= 1 ? Math.round(a * 4) / 4 : Math.max(.01, Math.round(a * 20) / 20);
+  const zwischen = (art, Klasse, roh) => {
+    const args = roh.map((a, i) => i < 3 ? stufe(a) : a);   // nur die Maße, nicht Winkel oder Unterteilungen
+    const key = art + args.map(a => typeof a === "number" ? a.toFixed(2) : String(a)).join(",");
+    if (!formCache.has(key)) formCache.set(key, geteilt(new Klasse(...args)));
+    return formCache.get(key);
+  };
+  const zyl = (...a) => zwischen("z", T.CylinderGeometry, a), kegel = (...a) => zwischen("k", T.ConeGeometry, a), kiste = (...a) => zwischen("b", T.BoxGeometry, a);
   const geo = {
-    ball: new T.SphereGeometry(.45, 32, 20),
-    klotz: new T.BoxGeometry(.82, .5, .82),
+    ball: geteilt(new T.SphereGeometry(.45, 32, 20)),
+    klotz: kiste(.82, .5, .82),
     stern: (() => {
       const f = new T.Shape();
       for (let i = 0; i < 10; i++) { const r = i % 2 ? .13 : .3, w = i / 10 * Math.PI * 2; f[i ? "lineTo" : "moveTo"](Math.sin(w) * r, Math.cos(w) * r); }
-      const g = new T.ExtrudeGeometry(f, { depth: .06, bevelEnabled: true, bevelThickness: .03, bevelSize: .03, bevelSegments: 2 }); g.center(); return g;
+      const g = new T.ExtrudeGeometry(f, { depth: .06, bevelEnabled: true, bevelThickness: .03, bevelSize: .03, bevelSegments: 2 }); g.center(); return geteilt(g);
     })(),
-    blatt: new T.IcosahedronGeometry(1, 2),
+    blatt: geteilt(new T.IcosahedronGeometry(1, 2)),
   };
 
   // Körper und Glieder als Mesh mit Schatten
@@ -222,15 +237,15 @@ export function welt(T, handy) {
 
     // Hals mit Mähne, Kopf am Ende; der Hals kippt beim Ducken nach vorn
     const hals = gelenk(koerper, 0, 1.42, -.48);
-    const halsM = teil(new T.CylinderGeometry(.1, .19, 1.05, 20, 4), mat.giraffe, hals, 0, .48, -.12); halsM.rotation.x = -.26;
-    const maehne = teil(new T.BoxGeometry(.05, .95, .07), mat.giraffeDunkel, hals, 0, .5, .02); maehne.rotation.x = -.26;
+    const halsM = teil(zyl(.1, .19, 1.05, 20, 4), mat.giraffe, hals, 0, .48, -.12); halsM.rotation.x = -.26;
+    const maehne = teil(kiste(.05, .95, .07), mat.giraffeDunkel, hals, 0, .5, .02); maehne.rotation.x = -.26;
     const kopf = gelenk(hals, 0, 1.02, -.27);
     teil(kugel, mat.giraffe, kopf).scale.set(.16, .165, .2);
     const maul = teil(new T.CapsuleGeometry(.085, .07, 8, 16), mat.giraffeHell, kopf, 0, -.07, -.17); maul.rotation.x = Math.PI / 2 + .55;
     for (const s of [-1, 1]) {
-      const horn = teil(new T.CylinderGeometry(.022, .03, .17, 10), mat.giraffe, kopf, s * .06, .18, .04); horn.rotation.z = -s * .15;
+      const horn = teil(zyl(.022, .03, .17, 10), mat.giraffe, kopf, s * .06, .18, .04); horn.rotation.z = -s * .15;
       teil(kugel, mat.giraffeDunkel, kopf, s * .073, .27, .04).scale.setScalar(.042);
-      const ohr = teil(new T.ConeGeometry(.05, .19, 12), mat.giraffeHell, kopf, s * .19, .1, .07);
+      const ohr = teil(kegel(.05, .19, 12), mat.giraffeHell, kopf, s * .19, .1, .07);
       ohr.rotation.z = -s * 1.2; ohr.scale.z = .5;
       teil(kugel, mat.auge, kopf, s * .1, .05, -.12).scale.setScalar(.03);
       teil(kugel, mat.glanz, kopf, s * .108, .062, -.145).scale.setScalar(.009);
@@ -240,17 +255,17 @@ export function welt(T, handy) {
     const beine = [];
     for (const [x, z] of [[-.17, -.38], [.17, -.38], [-.17, .4], [.17, .4]]) {
       const oben = gelenk(koerper, x, 1.12, z);
-      teil(new T.CylinderGeometry(.085, .065, .56, 14), mat.giraffe, oben, 0, -.28, 0);
+      teil(zyl(.085, .065, .56, 14), mat.giraffe, oben, 0, -.28, 0);
       const unten = gelenk(oben, 0, -.56, 0);
       teil(kugel, mat.giraffe, unten).scale.setScalar(.068);
-      teil(new T.CylinderGeometry(.06, .05, .46, 14), mat.giraffeHell, unten, 0, -.23, 0);
-      teil(new T.CylinderGeometry(.062, .07, .08, 14), mat.giraffeDunkel, unten, 0, -.5, 0);
+      teil(zyl(.06, .05, .46, 14), mat.giraffeHell, unten, 0, -.23, 0);
+      teil(zyl(.062, .07, .08, 14), mat.giraffeDunkel, unten, 0, -.5, 0);
       beine.push({ oben, unten });
     }
     const schwanz = gelenk(koerper, 0, 1.3, .75);
-    const sm = teil(new T.CylinderGeometry(.018, .026, .5, 8), mat.giraffe, schwanz, 0, -.24, .05); sm.rotation.x = .2;
+    const sm = teil(zyl(.018, .026, .5, 8), mat.giraffe, schwanz, 0, -.24, .05); sm.rotation.x = .2;
     teil(kugel, mat.giraffeDunkel, schwanz, 0, -.5, .1).scale.set(.04, .08, .04);
-    return { gruppe: g, koerper, hals, beine, schwanz };
+    return { gruppe: g, koerper, hals, kopf, beine, schwanz };
   }
 
   // ---------- Anja: Läuferin mit blondem Pferdeschwanz ----------
@@ -259,8 +274,8 @@ export function welt(T, handy) {
     // Oberkörper als gedrehte Kontur: Taille, Brust, Schultern
     const kontur = [[0, 0], [.15, 0], [.14, .12], [.165, .3], [.18, .42], [.16, .5], [.07, .55], [0, .55]].map(([x, y]) => new T.Vector2(x, y));
     const rumpf = teil(new T.LatheGeometry(kontur, 24), mat.shirt, k, 0, .96, 0); rumpf.scale.z = .72;
-    teil(new T.CylinderGeometry(.155, .16, .18, 20), mat.jeans, k, 0, .95, 0).scale.z = .75;   // Hüfte
-    teil(new T.CylinderGeometry(.045, .05, .1, 12), mat.haut, k, 0, 1.55, 0);                  // Hals
+    teil(zyl(.155, .16, .18, 20), mat.jeans, k, 0, .95, 0).scale.z = .75;   // Hüfte
+    teil(zyl(.045, .05, .1, 12), mat.haut, k, 0, 1.55, 0);                  // Hals
     const kopf = gelenk(k, 0, 1.68, -.01);
     teil(kugel, mat.haut, kopf).scale.set(.1, .122, .11);
     const haarKappe = teil(new T.SphereGeometry(1, 28, 20, 0, Math.PI * 2, 0, Math.PI * .62), mat.haar, kopf, 0, .015, .01);
@@ -276,22 +291,22 @@ export function welt(T, handy) {
     teil(new T.CapsuleGeometry(.045, .16, 6, 12), mat.haar, zopf, 0, -.1, .07).rotation.x = .5;
     const glied = (x, y, dickO, dickU, langO, langU, mO, mU, ende) => {
       const oben = gelenk(k, x, y, 0);
-      teil(new T.CylinderGeometry(dickO, dickO * .85, langO, 12), mO, oben, 0, -langO / 2, 0);
+      teil(zyl(dickO, dickO * .85, langO, 12), mO, oben, 0, -langO / 2, 0);
       const unten = gelenk(oben, 0, -langO, 0);
       teil(kugel, mO, unten).scale.setScalar(dickO * .85);
-      teil(new T.CylinderGeometry(dickU, dickU * .8, langU, 12), mU, unten, 0, -langU / 2, 0);
+      teil(zyl(dickU, dickU * .8, langU, 12), mU, unten, 0, -langU / 2, 0);
       ende(unten, langU);
       return { oben, unten };
     };
     const beine = [-1, 1].map(s => glied(s * .085, .9, .075, .058, .44, .42, mat.jeans, mat.jeans, (u, l) => {
       teil(new T.CapsuleGeometry(.05, .12, 6, 12), mat.schuh, u, 0, -l - .02, -.05).rotation.x = Math.PI / 2;
-      teil(new T.BoxGeometry(.1, .025, .22), mat.sohle, u, 0, -l - .065, -.05);
+      teil(kiste(.1, .025, .22), mat.sohle, u, 0, -l - .065, -.05);
     }));
     const arme = [-1, 1].map(s => glied(s * .2, 1.45, .045, .036, .28, .26, mat.shirt, mat.haut, (u, l) => {
       teil(kugel, mat.haut, u, 0, -l - .03, 0).scale.set(.04, .05, .03);
     }));
     // kurze Ärmel: oberes Stück Shirt, darunter Haut
-    for (const a of arme) teil(new T.CylinderGeometry(.04, .036, .14, 12), mat.haut, a.oben, 0, -.21, 0);
+    for (const a of arme) teil(zyl(.04, .036, .14, 12), mat.haut, a.oben, 0, -.21, 0);
     return { gruppe: g, k, beine, arme, zopf };
   }
 
@@ -309,7 +324,7 @@ export function welt(T, handy) {
     return g;
   }
   // Blumenstreifen am Fuß der Hecke (eine Zeichnung für viele Blüten)
-  const bluetenGeo = new T.IcosahedronGeometry(.07, 1), blattGeo = new T.SphereGeometry(.09, 8, 6);
+  const bluetenGeo = geteilt(new T.IcosahedronGeometry(.07, 1)), blattGeo = geteilt(new T.SphereGeometry(.09, 8, 6));
   const bluetenMat = std({ roughness: .6 }), blattMat = std({ color: "#3f8a32", roughness: .9 });
   const bluetenFarben = ["#ffffff", "#ffd23f", "#ff6b9a", "#b06cff", "#ff8a3d", "#6ec6ff"].map(c => new T.Color(c));
   function blumen(laenge) {
@@ -325,11 +340,11 @@ export function welt(T, handy) {
     bl.castShadow = false; g.add(gr, bl); return g;
   }
   function kante(laenge) {
-    const k = new T.Mesh(new T.BoxGeometry(.18, .1, laenge), mat.kante); k.receiveShadow = true; return k;
+    const k = new T.Mesh(kiste(.18, .1, laenge), mat.kante); k.receiveShadow = true; return k;
   }
   function baum() {
     const g = new T.Group(), h = zufall(2.2, 3.2);
-    teil(new T.CylinderGeometry(.13, .24, h, 10), mat.rinde, g, 0, h / 2, 0);
+    teil(zyl(.13, .24, h, 10), mat.rinde, g, 0, h / 2, 0);
     for (let i = 0; i < 7; i++) {
       const b = teil(geo.blatt, mat.laub, g, zufall(-.9, .9), h + zufall(-.2, 1.2), zufall(-.9, .9));
       b.scale.setScalar(zufall(.75, 1.25)); b.rotation.set(Math.random() * 3, Math.random() * 3, 0);
@@ -338,25 +353,25 @@ export function welt(T, handy) {
   }
   function haus() {
     const g = new T.Group(), b = zufall(4, 5.5), t = zufall(3.5, 4.5), h = 2.8;
-    const w = teil(new T.BoxGeometry(b, h, t), wahl(mat.haus), g, 0, h / 2, 0);
+    const w = teil(kiste(b, h, t), wahl(mat.haus), g, 0, h / 2, 0);
     const dreieck = new T.Shape([new T.Vector2(-b / 2 - .3, 0), new T.Vector2(b / 2 + .3, 0), new T.Vector2(0, 1.7)]);
     const d = teil(new T.ExtrudeGeometry(dreieck, { depth: t + .5, bevelEnabled: false }), mat.dach, g, 0, h, -(t + .5) / 2);
     uvSkala(d.geometry, .25, .25);
-    teil(new T.BoxGeometry(.45, 1, .45), mat.dach, g, b / 4, h + 1.1, 0);  // Schornstein
+    teil(kiste(.45, 1, .45), mat.dach, g, b / 4, h + 1.1, 0);  // Schornstein
     return g;
   }
   function rutsche() {
     const g = new T.Group();
-    for (const [x, z] of [[-.5, -.5], [.5, -.5], [-.5, .5], [.5, .5]]) teil(new T.CylinderGeometry(.06, .06, 2, 10), mat.metallRot, g, x, 1, z);
-    teil(new T.BoxGeometry(1.2, .1, 1.2), mat.holz, g, 0, 1.6, 0);
-    teil(new T.ConeGeometry(.95, .9, 4), mat.plastikRot, g, 0, 2.5, 0).rotation.y = Math.PI / 4;
-    const bahn = teil(new T.BoxGeometry(.7, .06, 3), mat.plastikGelb, g, 0, .95, 1.75); bahn.rotation.x = .52;
+    for (const [x, z] of [[-.5, -.5], [.5, -.5], [-.5, .5], [.5, .5]]) teil(zyl(.06, .06, 2, 10), mat.metallRot, g, x, 1, z);
+    teil(kiste(1.2, .1, 1.2), mat.holz, g, 0, 1.6, 0);
+    teil(kegel(.95, .9, 4), mat.plastikRot, g, 0, 2.5, 0).rotation.y = Math.PI / 4;
+    const bahn = teil(kiste(.7, .06, 3), mat.plastikGelb, g, 0, .95, 1.75); bahn.rotation.x = .52;
     return g;
   }
   function sandkasten() {
     const g = new T.Group();
-    for (const [x, z, sx, sz] of [[0, -1, 2.4, .2], [0, 1, 2.4, .2], [-1.1, 0, .2, 2], [1.1, 0, .2, 2]]) teil(new T.BoxGeometry(sx, .3, sz), mat.holz, g, x, .15, z);
-    const sand = teil(new T.BoxGeometry(2, .2, 1.8), std({ color: "#e9d29a", roughness: 1 }), g, 0, .1, 0); sand.castShadow = false;
+    for (const [x, z, sx, sz] of [[0, -1, 2.4, .2], [0, 1, 2.4, .2], [-1.1, 0, .2, 2], [1.1, 0, .2, 2]]) teil(kiste(sx, .3, sz), mat.holz, g, x, .15, z);
+    const sand = teil(kiste(2, .2, 1.8), mat.sand, g, 0, .1, 0); sand.castShadow = false;
     teil(geo.ball, mat.ball, g, .5, .45, .2).scale.setScalar(.5);
     return g;
   }
@@ -373,14 +388,14 @@ export function welt(T, handy) {
     } else if (typ === "ball") {
       teil(geo.ball, mat.ball, g, 0, .45, 0).rotation.set(Math.random(), Math.random() * 6, .4);
     } else if (typ === "balken") {
-      const s = teil(new T.CylinderGeometry(.22, .22, breite, 16), mat.rinde, g, 0, .24, 0); s.rotation.z = Math.PI / 2;
-      for (const x of [-breite / 2 + .4, breite / 2 - .4]) teil(new T.BoxGeometry(.3, .16, .5), mat.holz, g, x, .08, 0);
+      const s = teil(zyl(.22, .22, breite, 16), mat.rinde, g, 0, .24, 0); s.rotation.z = Math.PI / 2;
+      for (const x of [-breite / 2 + .4, breite / 2 - .4]) teil(kiste(.3, .16, .5), mat.holz, g, x, .08, 0);
     } else if (typ === "pfuetze") {
       const p = new T.Mesh(new T.CircleGeometry(1, 28), mat.pfuetze); p.rotation.x = -Math.PI / 2; p.scale.set(breite / 2 - .1, .9, 1); p.position.y = .025;
       p.receiveShadow = true; g.add(p);
     } else if (typ === "stange") {
-      const s = teil(new T.CylinderGeometry(.09, .09, breite + .2, 16), mat.metall, g, 0, 1.45, 0); s.rotation.z = Math.PI / 2;
-      for (const x of [-breite / 2, breite / 2]) teil(new T.CylinderGeometry(.08, .1, 1.55, 12), mat.metallRot, g, x, .78, 0);
+      const s = teil(zyl(.09, .09, breite + .2, 16), mat.metall, g, 0, 1.45, 0); s.rotation.z = Math.PI / 2;
+      for (const x of [-breite / 2, breite / 2]) teil(zyl(.08, .1, 1.55, 12), mat.metallRot, g, x, .78, 0);
       for (let i = 0; i < 7; i++) {      // bunte Ringe zum Turnen
         const r = teil(new T.TorusGeometry(.13, .025, 8, 20), wahl(mat.klotz), g, -breite / 2 + .6 + i * (breite - 1.2) / 6, 1.2, 0);
         r.rotation.y = Math.PI / 2;
@@ -408,7 +423,7 @@ export function welt(T, handy) {
   });
   const panzerMat = std({ map: panzerMuster, roughness: .45, metalness: .05, bumpMap: panzerMuster, bumpScale: 2 });
   const panzerRand = std({ color: "#e6d29a", roughness: .6 });
-  const panzerGeo = new T.SphereGeometry(.3, 28, 12, 0, Math.PI * 2, 0, Math.PI / 2), randGeo = new T.TorusGeometry(.3, .045, 10, 32);
+  const panzerGeo = geteilt(new T.SphereGeometry(.3, 28, 12, 0, Math.PI * 2, 0, Math.PI / 2)), randGeo = geteilt(new T.TorusGeometry(.3, .045, 10, 32));
   function panzer() {
     const g = new T.Group(), innen = new T.Group(); g.add(innen);
     const d = teil(panzerGeo, panzerMat, innen); d.scale.y = .68;
@@ -443,7 +458,7 @@ export function welt(T, handy) {
     }, false);
     glimmMat[typ] = new T.SpriteMaterial({ map: glimm, transparent: true, opacity: .55, depthWrite: false, blending: T.AdditiveBlending });
   }
-  const muenzGeo = new T.CylinderGeometry(.36, .36, .1, 36);
+  const muenzGeo = zyl(.36, .36, .1, 36);
   function booster(typ) {
     const g = new T.Group(), innen = new T.Group(); g.add(innen);
     const m = teil(muenzGeo, boosterMat[typ], innen); m.rotation.x = Math.PI / 2;
@@ -517,6 +532,78 @@ export function welt(T, handy) {
     return g;
   }
 
+
+  // ---------- Aufräumen entfernter Wegabschnitte (sonst wächst der Grafikspeicher mit jeder Ecke) ----------
+  function entsorgen(obj) {
+    obj.traverse(k => {
+      if (k.isInstancedMesh) k.dispose();
+      if (k.geometry && !k.geometry.userData.geteilt) k.geometry.dispose();
+      const m = k.material; if (m && !Array.isArray(m) && m.userData.einzel) m.dispose();
+    });
+  }
+
+  // ---------- Abbiege-Hinweise: Schild auf der Hecke am Ende, leuchtende Pfeile auf dem Weg ----------
+  const pfeilBild = leinwand(256, 128, (g, w, h) => {
+    g.fillStyle = "#ffcc1f"; g.beginPath(); g.roundRect(4, 4, w - 8, h - 8, 22); g.fill();
+    g.strokeStyle = "#ffffff"; g.lineWidth = 8; g.beginPath(); g.roundRect(10, 10, w - 20, h - 20, 18); g.stroke();
+    g.fillStyle = "#1f3b2a"; g.beginPath();
+    [[40, 50], [150, 50], [150, 22], [222, 64], [150, 106], [150, 78], [40, 78]].forEach(([x, y], i) => g[i ? "lineTo" : "moveTo"](x, y));
+    g.closePath(); g.fill();
+  }, false);
+  const bodenPfeilBild = leinwand(128, 128, (g) => {       // Pfeil geradeaus und dann nach rechts gebogen
+    g.strokeStyle = "rgba(255,214,51,.95)"; g.lineWidth = 16; g.lineCap = "round";
+    g.beginPath(); g.moveTo(40, 120); g.lineTo(40, 70); g.quadraticCurveTo(40, 40, 72, 40); g.lineTo(88, 40); g.stroke();
+    g.fillStyle = "rgba(255,214,51,.95)"; g.beginPath(); g.moveTo(84, 14); g.lineTo(122, 40); g.lineTo(84, 66); g.closePath(); g.fill();
+  }, false);
+  const schildMat = std({ map: pfeilBild, roughness: .5, emissive: "#ffcc1f", emissiveIntensity: .35 });
+  const schildGeo = geteilt(new T.PlaneGeometry(3, 1.5)), bodenPfeilGeo = geteilt(new T.PlaneGeometry(2.3, 2.3).rotateX(-Math.PI / 2));
+  const bodenPfeilMat = new T.MeshBasicMaterial({ map: bodenPfeilBild, transparent: true, depthWrite: false });
+  function pfeilSchild(dreh) {
+    const g = new T.Group();
+    for (const x of [-1, 1]) teil(zyl(.07, .07, 3.2, 8), mat.holz, g, x, 1.6, .05);
+    const b = teil(schildGeo, schildMat, g, 0, 2.85, .14); b.scale.x = dreh;   // gespiegelt = nach links
+    return g;
+  }
+  function bodenPfeil(dreh) {
+    const k = new T.Mesh(bodenPfeilGeo, bodenPfeilMat); k.position.y = .03; k.scale.x = dreh; return k;
+  }
+
+  // ---------- Ausstattung für Fröbelinchen (im Sterne-Shop freischaltbar) ----------
+  const streifen = leinwand(64, 16, (g, w, h) => { for (let i = 0; i < 8; i++) { g.fillStyle = i % 2 ? "#ffffff" : "#e53935"; g.fillRect(i * 8, 0, 8, h); } });
+  streifen.repeat.set(4, 1);
+  const A_MAT = {
+    muetze: std({ color: "#e53935", roughness: .8 }), weiss: std({ color: "#ffffff", roughness: .9 }), gold: std({ color: "#ffcc33", metalness: .5, roughness: .3, emissive: "#8a6200", emissiveIntensity: .45 }),
+    glas: std({ color: "#111820", metalness: .3, roughness: .1 }), schal: std({ map: streifen, roughness: .9 }), bluete: std({ color: "#ff6b9a", roughness: .6 }), mitte: std({ color: "#ffd23f", roughness: .6 }),
+  };
+  const AUSSTATTUNG = {
+    muetze: { name: "Bommelmütze", preis: 30, platz: "kopf", bauen: () => {
+      const g = new T.Group(); teil(kegel(.17, .3, 20), A_MAT.muetze, g, 0, .27, .02); teil(new T.TorusGeometry(.15, .04, 10, 24), A_MAT.weiss, g, 0, .14, .02).rotation.x = Math.PI / 2;
+      teil(kugel, A_MAT.weiss, g, 0, .44, .02).scale.setScalar(.06); return g; } },
+    brille: { name: "Sonnenbrille", preis: 40, platz: "gesicht", bauen: () => {
+      const g = new T.Group();
+      for (const sx of [-1, 1]) { const l = teil(zyl(.055, .055, .02, 20), A_MAT.glas, g, sx * .1, .055, -.15); l.rotation.x = Math.PI / 2; l.rotation.z = sx * .35; }
+      teil(kiste(.08, .015, .015), A_MAT.glas, g, 0, .07, -.17); return g; } },
+    schal: { name: "Ringelschal", preis: 50, platz: "hals", bauen: () => {
+      const g = new T.Group(); const t = teil(new T.TorusGeometry(.19, .06, 12, 28), A_MAT.schal, g, 0, .12, -.1); t.rotation.x = Math.PI / 2 + .25;
+      teil(kiste(.1, .3, .04), A_MAT.schal, g, .08, -.02, -.28).rotation.z = .2; return g; } },
+    blume: { name: "Blume am Ohr", preis: 25, platz: "ohr", bauen: () => {
+      const g = new T.Group();
+      for (let i = 0; i < 5; i++) { const w = i / 5 * Math.PI * 2; teil(kugel, A_MAT.bluete, g, .2 + Math.cos(w) * .05, .17 + Math.sin(w) * .05, .02).scale.setScalar(.035); }
+      teil(kugel, A_MAT.mitte, g, .2, .17, .03).scale.setScalar(.028); return g; } },
+    krone: { name: "Goldkrone", preis: 150, platz: "kopf", bauen: () => {
+      const g = new T.Group(); teil(zyl(.14, .14, .08, 20, 1, true), A_MAT.gold, g, 0, .2, .02);
+      for (let i = 0; i < 6; i++) { const w = i / 6 * Math.PI * 2; teil(kegel(.035, .1, 8), A_MAT.gold, g, Math.cos(w) * .14, .29, .02 + Math.sin(w) * .14); }
+      return g; } },
+  };
+  function ausstattungSetzen(sp, ids) {
+    for (const ort of [sp.kopf, sp.hals]) for (const k of [...ort.children]) if (k.userData.ausstattung) ort.remove(k);
+    for (const id of ids) {
+      const a = AUSSTATTUNG[id]; if (!a) continue;
+      const teilG = a.bauen(); teilG.userData.ausstattung = true;
+      (a.platz === "hals" ? sp.hals : sp.kopf).add(teilG);
+    }
+  }
+
   // ================= Welten =================
   // Alle drei Wegabschnitte wechselt die Landschaft. Jede Welt hat eigenen Boden, eigene Deko, eigenes Wetter.
 
@@ -573,6 +660,7 @@ export function welt(T, handy) {
     scheune: std({ map: holzRot, roughness: .85 }), dachGrau: mStd("#5b5f66", .7), weiss: mStd("#f4f4f2", .7),
     heu: std({ map: heu, roughness: 1 }), kuh: std({ map: kuhFell, roughness: .8 }), rosa: mStd("#f2a7a8", .7), schwarz: mStd("#222", .6),
     sonnenblume: mStd("#ffcc1f", .7), blumenMitte: mStd("#5a3a1a", .9), stiel: mStd("#4a8a2e", .9),
+    uferRand: mStd("#d9c89a", 1),
     wasser: std({ color: "#3d8fc4", roughness: .05, metalness: .25, transparent: true, opacity: .9 }),
     boot: mStd("#e2574c", .5), segel: mStd("#ffffff", .6, { side: T.DoubleSide }), steg: std({ map: holz, roughness: .85 }), schilf: mStd("#7a8f3a", .9),
     pilzKappe: std({ map: pilzKappe, roughness: .6 }), pilzStiel: mStd("#f2ead8", .8), kuerbis: mStd("#f08a1c", .55), kuerbisStiel: mStd("#4f6b2a", .8),
@@ -597,7 +685,7 @@ export function welt(T, handy) {
   function scheune() {
     const g = new T.Group(), b = 5, t = 6, h = 3.4;
     g.userData.abstand = 5;
-    teil(new T.BoxGeometry(b, h, t), M.scheune, g, 0, h / 2, 0);
+    teil(kiste(b, h, t), M.scheune, g, 0, h / 2, 0);
     const dreieck = new T.Shape([new T.Vector2(-b / 2 - .3, 0), new T.Vector2(b / 2 + .3, 0), new T.Vector2(0, 2.2)]);
     teil(new T.ExtrudeGeometry(dreieck, { depth: t + .4, bevelEnabled: false }), M.dachGrau, g, 0, h, -(t + .4) / 2);
     return g;
@@ -605,37 +693,37 @@ export function welt(T, handy) {
   function heuballen() {
     const g = new T.Group();
     for (let i = 0; i < 1 + Math.floor(Math.random() * 3); i++) {
-      const k = teil(new T.CylinderGeometry(.75, .75, 1.2, 20), M.heu, g, i * 1.6 - 1.6, .75, zufall(-.5, .5)); k.rotation.z = Math.PI / 2;
+      const k = teil(zyl(.75, .75, 1.2, 20), M.heu, g, i * 1.6 - 1.6, .75, zufall(-.5, .5)); k.rotation.z = Math.PI / 2;
     }
     return g;
   }
   function kuh() {
     const g = new T.Group();
-    const k = teil(new T.BoxGeometry(.8, .75, 1.6), M.kuh, g, 0, 1.05, 0); k.geometry.translate(0, 0, 0);
+    const k = teil(kiste(.8, .75, 1.6), M.kuh, g, 0, 1.05, 0); k.geometry.translate(0, 0, 0);
     const kopf = gelenk(g, 0, 1.3, -.95);
-    teil(new T.BoxGeometry(.5, .5, .55), M.kuh, kopf);
-    teil(new T.BoxGeometry(.42, .25, .2), M.rosa, kopf, 0, -.13, -.32);
+    teil(kiste(.5, .5, .55), M.kuh, kopf);
+    teil(kiste(.42, .25, .2), M.rosa, kopf, 0, -.13, -.32);
     for (const s of [-1, 1]) {
-      teil(new T.ConeGeometry(.05, .2, 8), M.weiss, kopf, s * .18, .32, .05);
+      teil(kegel(.05, .2, 8), M.weiss, kopf, s * .18, .32, .05);
       teil(kugel, M.schwarz, kopf, s * .16, .08, -.28).scale.setScalar(.04);
     }
-    for (const [x, z] of [[-.28, -.6], [.28, -.6], [-.28, .6], [.28, .6]]) teil(new T.CylinderGeometry(.09, .08, .7, 8), M.kuh, g, x, .35, z);
+    for (const [x, z] of [[-.28, -.6], [.28, -.6], [-.28, .6], [.28, .6]]) teil(zyl(.09, .08, .7, 8), M.kuh, g, x, .35, z);
     return bewege(g, (o, t) => { kopf.rotation.x = .25 + Math.sin(t * 1.3) * .25; });   // grast
   }
   function windrad() {
     const g = new T.Group();
-    teil(new T.CylinderGeometry(.18, .35, 9, 12), M.windrad, g, 0, 4.5, 0);
+    teil(zyl(.18, .35, 9, 12), M.windrad, g, 0, 4.5, 0);
     const nabe = gelenk(g, 0, 9, -.4);
     teil(kugel, M.windrad, nabe).scale.setScalar(.3);
-    for (let i = 0; i < 3; i++) { const f = gelenk(nabe, 0, 0, 0); f.rotation.z = i * Math.PI * 2 / 3; teil(new T.BoxGeometry(.3, 3.6, .08), M.windrad, f, 0, 1.9, 0); }
+    for (let i = 0; i < 3; i++) { const f = gelenk(nabe, 0, 0, 0); f.rotation.z = i * Math.PI * 2 / 3; teil(kiste(.3, 3.6, .08), M.windrad, f, 0, 1.9, 0); }
     return bewege(g, (o, t) => { nabe.rotation.z = t * 1.4; });
   }
   function sonnenblumen() {
     const g = new T.Group(), n = 26;
     g.userData.abstand = 4;
-    const kopf = new T.InstancedMesh(new T.CylinderGeometry(.28, .28, .08, 14), M.sonnenblume, n);
-    const mitte = new T.InstancedMesh(new T.CylinderGeometry(.15, .15, .1, 12), M.blumenMitte, n);
-    const stiel = new T.InstancedMesh(new T.CylinderGeometry(.03, .04, 1.6, 6), M.stiel, n);
+    const kopf = new T.InstancedMesh(zyl(.28, .28, .08, 14), M.sonnenblume, n);
+    const mitte = new T.InstancedMesh(zyl(.15, .15, .1, 12), M.blumenMitte, n);
+    const stiel = new T.InstancedMesh(zyl(.03, .04, 1.6, 6), M.stiel, n);
     const m = new T.Matrix4(), q = new T.Quaternion().setFromEuler(new T.Euler(Math.PI / 2 - .3, 0, 0)), q0 = new T.Quaternion(), e = new T.Vector3(1, 1, 1);
     for (let i = 0; i < n; i++) {
       const x = (i % 6) * .9 - 2.3 + zufall(-.2, .2), z = Math.floor(i / 6) * .9 - 2 + zufall(-.2, .2), h = zufall(1.4, 1.9);
@@ -648,24 +736,24 @@ export function welt(T, handy) {
   function zaun() {
     const g = new T.Group(), l = zufall(6, 10);
     g.userData.abstand = l / 2 + 1.5;
-    for (let x = -l / 2; x <= l / 2; x += 1.2) teil(new T.BoxGeometry(.12, 1.1, .12), M.weiss, g, x, .55, 0);
-    for (const y of [.4, .85]) teil(new T.BoxGeometry(l, .1, .06), M.weiss, g, 0, y, 0);
+    for (let x = -l / 2; x <= l / 2; x += 1.2) teil(kiste(.12, 1.1, .12), M.weiss, g, x, .55, 0);
+    for (const y of [.4, .85]) teil(kiste(l, .1, .06), M.weiss, g, 0, y, 0);
     return g;
   }
   function see() {
     const g = new T.Group(), r = zufall(5, 7);
     g.userData.abstand = r + 2;
     const w = new T.Mesh(new T.CircleGeometry(r, 40), M.wasser); w.rotation.x = -Math.PI / 2; w.position.y = .03; w.receiveShadow = true; g.add(w);
-    const ufer = new T.Mesh(new T.RingGeometry(r, r + .6, 40), mStd("#d9c89a", 1)); ufer.rotation.x = -Math.PI / 2; ufer.position.y = .025; g.add(ufer);
+    const ufer = new T.Mesh(new T.RingGeometry(r, r + .6, 40), M.uferRand); ufer.rotation.x = -Math.PI / 2; ufer.position.y = .025; g.add(ufer);
     // Boot schaukelt auf dem Wasser
     const boot = gelenk(g, zufall(-2, 2), .1, zufall(-3, 3));
-    const rumpf = teil(new T.CylinderGeometry(.6, .6, 2.4, 16, 1, false, 0, Math.PI), M.boot, boot, 0, .25, 0); rumpf.rotation.set(Math.PI / 2, 0, Math.PI);
-    teil(new T.CylinderGeometry(.04, .04, 2.2, 6), M.weiss, boot, 0, 1.3, 0);
+    const rumpf = teil(zyl(.6, .6, 2.4, 16, 1, false, 0, Math.PI), M.boot, boot, 0, .25, 0); rumpf.rotation.set(Math.PI / 2, 0, Math.PI);
+    teil(zyl(.04, .04, 2.2, 6), M.weiss, boot, 0, 1.3, 0);
     const segel = new T.Mesh(new T.ShapeGeometry(new T.Shape([new T.Vector2(0, 0), new T.Vector2(0, 1.9), new T.Vector2(1.1, 0)])), M.segel);
     segel.position.set(.03, .4, 0); segel.rotation.y = Math.PI / 2; boot.add(segel);
     bewege(boot, (o, t) => { o.rotation.z = Math.sin(t * 1.5) * .12; o.rotation.x = Math.sin(t * 1.1) * .06; o.position.y = .1 + Math.sin(t * 2) * .05; });
     // Schilf am Rand
-    const n = 40, schilf = new T.InstancedMesh(new T.CylinderGeometry(.02, .03, 1.4, 5), M.schilf, n), m = new T.Matrix4(), q = new T.Quaternion();
+    const n = 40, schilf = new T.InstancedMesh(zyl(.02, .03, 1.4, 5), M.schilf, n), m = new T.Matrix4(), q = new T.Quaternion();
     for (let i = 0; i < n; i++) {
       const a = Math.random() * Math.PI * 2, rr = r + zufall(-.4, .4);
       m.compose(new T.Vector3(Math.cos(a) * rr, .7, Math.sin(a) * rr), q.setFromEuler(new T.Euler(zufall(-.15, .15), 0, zufall(-.15, .15))), new T.Vector3(1, zufall(.7, 1.3), 1));
@@ -676,13 +764,13 @@ export function welt(T, handy) {
   }
   function steg() {
     const g = new T.Group();
-    teil(new T.BoxGeometry(1.4, .12, 6), M.steg, g, 0, .35, 0);
-    for (const [x, z] of [[-.6, -2.8], [.6, -2.8], [-.6, 2.8], [.6, 2.8]]) teil(new T.CylinderGeometry(.08, .08, .8, 8), M.steg, g, x, .1, z);
+    teil(kiste(1.4, .12, 6), M.steg, g, 0, .35, 0);
+    for (const [x, z] of [[-.6, -2.8], [.6, -2.8], [-.6, 2.8], [.6, 2.8]]) teil(zyl(.08, .08, .8, 8), M.steg, g, x, .1, z);
     return g;
   }
   function herbstbaum() {
     const g = new T.Group(), h = zufall(2.4, 3.4);
-    teil(new T.CylinderGeometry(.14, .26, h, 10), mat.rinde, g, 0, h / 2, 0);
+    teil(zyl(.14, .26, h, 10), mat.rinde, g, 0, h / 2, 0);
     for (let i = 0; i < 7; i++) {
       const b = teil(geo.blatt, herbstLaub, g, zufall(-1, 1), h + zufall(-.2, 1.2), zufall(-1, 1));
       b.scale.setScalar(zufall(.75, 1.3)); b.rotation.set(Math.random() * 3, Math.random() * 3, 0);
@@ -693,7 +781,7 @@ export function welt(T, handy) {
     const g = new T.Group();
     for (let i = 0; i < 2 + Math.floor(Math.random() * 3); i++) {
       const s = zufall(.5, 1.1), x = zufall(-1.2, 1.2), z = zufall(-1.2, 1.2);
-      teil(new T.CylinderGeometry(.12 * s, .16 * s, .5 * s, 10), M.pilzStiel, g, x, .25 * s, z);
+      teil(zyl(.12 * s, .16 * s, .5 * s, 10), M.pilzStiel, g, x, .25 * s, z);
       teil(new T.SphereGeometry(.38 * s, 18, 10, 0, Math.PI * 2, 0, Math.PI / 2), M.pilzKappe, g, x, .45 * s, z);
     }
     return g;
@@ -705,17 +793,17 @@ export function welt(T, handy) {
       for (let r = 0; r < 6; r++) {            // gerippt aus mehreren Kugeln
         const k = teil(kugel, M.kuerbis, g, x + Math.cos(r) * s * .3, s * .75, z + Math.sin(r) * s * .3); k.scale.set(s * .55, s * .75, s * .55);
       }
-      teil(new T.CylinderGeometry(.04, .05, .2, 6), M.kuerbisStiel, g, x, s * 1.5, z);
+      teil(zyl(.04, .05, .2, 6), M.kuerbisStiel, g, x, s * 1.5, z);
     }
     return g;
   }
   function tanne() {
     const g = new T.Group(), h = zufall(3, 4.5);
-    teil(new T.CylinderGeometry(.15, .2, 1, 8), mat.rinde, g, 0, .5, 0);
+    teil(zyl(.15, .2, 1, 8), mat.rinde, g, 0, .5, 0);
     for (let i = 0; i < 3; i++) {
       const r = (1.5 - i * .38) * h / 4, y = 1 + i * h * .22;
-      teil(new T.ConeGeometry(r, h * .4, 12), M.tanne, g, 0, y + h * .2, 0);
-      teil(new T.ConeGeometry(r * .55, h * .14, 12), M.schneeKappe, g, 0, y + h * .35, 0);
+      teil(kegel(r, h * .4, 12), M.tanne, g, 0, y + h * .2, 0);
+      teil(kegel(r * .55, h * .14, 12), M.schneeKappe, g, 0, y + h * .35, 0);
     }
     return g;
   }
@@ -725,10 +813,10 @@ export function welt(T, handy) {
     teil(kugel, M.schneeKappe, g, 0, 1.35, 0).scale.setScalar(.42);
     const kopf = gelenk(g, 0, 1.98, 0);
     teil(kugel, M.schneeKappe, kopf).scale.setScalar(.3);
-    teil(new T.ConeGeometry(.05, .3, 8), M.karotte, kopf, 0, 0, -.38).rotation.x = -Math.PI / 2;
+    teil(kegel(.05, .3, 8), M.karotte, kopf, 0, 0, -.38).rotation.x = -Math.PI / 2;
     for (const s of [-1, 1]) teil(kugel, M.schwarz, kopf, s * .1, .08, -.26).scale.setScalar(.035);
-    teil(new T.CylinderGeometry(.2, .2, .32, 16), M.hut, kopf, 0, .36, 0);
-    teil(new T.CylinderGeometry(.32, .32, .04, 16), M.hut, kopf, 0, .2, 0);
+    teil(zyl(.2, .2, .32, 16), M.hut, kopf, 0, .36, 0);
+    teil(zyl(.32, .32, .04, 16), M.hut, kopf, 0, .2, 0);
     return bewege(g, (o, t) => { kopf.rotation.z = Math.sin(t * .8) * .08; });
   }
   function ballons() {
@@ -739,7 +827,7 @@ export function welt(T, handy) {
       const linie = new T.Line(new T.BufferGeometry().setFromPoints([new T.Vector3(0, -.4, 0), new T.Vector3(0, -3 - i * .4, 0)]), M.faden); b.add(linie);
       bewege(b, (o, t) => { o.position.x += Math.sin(t * 1.3 + i) * .002; o.rotation.z = Math.sin(t + i) * .1; o.position.y = 3 + i * .4 + Math.sin(t * 1.7 + i) * .15; });
     }
-    teil(new T.BoxGeometry(.3, .2, .3), mat.holz, g, 0, .1, 0);
+    teil(kiste(.3, .2, .3), mat.holz, g, 0, .1, 0);
     return g;
   }
 
@@ -862,6 +950,6 @@ export function welt(T, handy) {
   }
   const luft = new T.Group(); luft.add(wetter, voegel);
 
-  return { zonen: ZONEN, zoneFuer, dekoFuer, heckeFuer, blumenFuer, bodenFlaeche, bodenFolgen, verbinden, zoneWechsel, zoneSchritt,
+  return { entsorgen, pfeilSchild, bodenPfeil, AUSSTATTUNG, ausstattungSetzen, zonen: ZONEN, zoneFuer, dekoFuer, heckeFuer, blumenFuer, bodenFlaeche, bodenFolgen, verbinden, zoneWechsel, zoneSchritt,
     animieren, wetterSchritt, voegelSchritt, luft, mat, geo, giraffeBauen, anjaBauen, boden, heckenStueck, blumen, ferne, sonnenScheibe, funke, staub, kante, dekoNeu, hindernis, stern, panzer, booster, blase, himmel, wolken, gras };
 }

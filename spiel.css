@@ -129,3 +129,46 @@ body.spiel-offen { overflow: hidden; }
 /* leichte Vignette über dem 3D-Bild */
 .lauf-buehne::after { content: ""; position: absolute; inset: 0; pointer-events: none;
   background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, .28) 100%); }
+
+/* Lauf-Spiel: Pause, Ton, Ergebnis, Aufgaben, Shop */
+.lauf-steuer { position: absolute; top: 10px; left: 10px; z-index: 4; display: flex; gap: .4rem; }
+.lauf-rahmen.vollbild .lauf-steuer { left: 58px; top: calc(env(safe-area-inset-top) + 10px); }
+.lauf-rund { width: 40px; height: 40px; border: 0; border-radius: 50%; background: rgba(255, 255, 255, .85); color: #034a3e;
+  font-size: 17px; line-height: 40px; cursor: pointer; box-shadow: 0 2px 8px rgba(0, 0, 0, .15); }
+.lauf-pause { position: absolute; inset: 0; z-index: 5; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .8rem;
+  background: rgba(255, 255, 255, .6); backdrop-filter: blur(3px); }
+.lauf-pause[hidden] { display: none; }
+.lauf-overlay.ergebnis .lauf-anleitung { display: none; }
+.lauf-ergebnis { text-align: center; }
+.lauf-ergebnis[hidden] { display: none; }
+.le-punkte { margin: 0; font-size: 1rem; color: #24332f; }
+.le-punkte b { display: block; font-size: 2.6rem; line-height: 1; color: #034a3e; font-variant-numeric: tabular-nums; }
+.le-rekord { margin: .3rem 0 0; display: inline-block; padding: .2rem .8rem; border-radius: 999px; background: #ffcc1f; color: #5a3d00; font-weight: 800;
+  animation: le-hupf .6s ease-out 3; }
+.le-rekord[hidden] { display: none; }
+@keyframes le-hupf { 50% { transform: scale(1.15) rotate(-3deg); } }
+.le-werte { list-style: none; margin: .6rem 0 0; padding: 0; display: flex; gap: .5rem; justify-content: center; flex-wrap: wrap; }
+.le-werte li { min-width: 82px; padding: .4rem .6rem; border-radius: 12px; background: rgba(255, 255, 255, .85); display: flex; flex-direction: column; }
+.le-werte b { font-size: 1.05rem; color: #034a3e; }
+.le-werte span { font-size: .75rem; color: #4b5b56; }
+.lauf-aufgaben { width: 100%; max-width: 430px; text-align: left; font-size: .85rem; }
+.lauf-aufgaben:empty { display: none; }
+.lauf-aufgaben p { margin: 0 0 .25rem; font-weight: 800; color: #034a3e; font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; }
+.lauf-aufgaben li { list-style: none; display: flex; justify-content: space-between; gap: .6rem; padding: .3rem .6rem; margin-bottom: .25rem; border-radius: 10px; background: rgba(255, 255, 255, .8); }
+.lauf-aufgaben ul { margin: 0; padding: 0; }
+.lauf-aufgaben li.geschafft { background: #d9f5d0; }
+.lauf-aufgaben li em { font-style: normal; font-weight: 700; color: #b07a00; white-space: nowrap; }
+.lauf-knoepfe { display: flex; gap: .6rem; flex-wrap: wrap; justify-content: center; }
+.lauf-overlay .pill.ghost { color: #034a3e; border-color: rgba(3, 74, 62, .35); background: rgba(255, 255, 255, .7); }
+.lauf-shop { position: absolute; inset: 0; z-index: 2; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .6rem;
+  padding: 1rem; background: rgba(255, 255, 255, .95); overflow-y: auto; }
+.lauf-shop[hidden] { display: none; }
+.ls-bank { margin: 0; font-weight: 700; color: #034a3e; }
+.ls-liste { list-style: none; margin: 0; padding: 0; display: grid; gap: .4rem; width: 100%; max-width: 380px; }
+.ls-liste li { display: flex; align-items: center; justify-content: space-between; gap: .6rem; padding: .45rem .7rem; border-radius: 12px; background: #f1f6f2; }
+.ls-liste button { border: 0; border-radius: 999px; padding: .35rem .9rem; font: inherit; font-weight: 700; cursor: pointer; background: #034a3e; color: #fff; }
+.ls-liste button.an { background: #3b8f3c; }
+.ls-liste button:disabled { background: #c9d3cf; color: #6b7b76; cursor: default; }
+.lauf-hud.hupf { animation: hud-hupf .25s ease-out; }
+@keyframes hud-hupf { 50% { transform: scale(1.12); } }
+@media (max-width: 600px) { .le-punkte b { font-size: 2rem; } .lauf-knoepfe .pill { padding: .6rem 1rem; } }

@@ -64,7 +64,7 @@
 </script>
 <link rel="stylesheet" href="style.css?v=3">
 <link rel="stylesheet" href="tools.css?v=8">
-<link rel="stylesheet" href="spiel.css?v=8">
+<link rel="stylesheet" href="spiel.css?v=9">
 </head>
 <body>
 
@@ -146,9 +146,26 @@
           <div class="lauf-hud" aria-live="off"></div>
           <div class="lauf-warnung" aria-hidden="true"><strong>Achtung, Anja kommt!</strong><span>Lauf schneller!</span></div>
           <button type="button" class="spiel-zu lauf-zu" aria-label="Vollbild beenden">✕</button>
+          <div class="lauf-steuer">
+            <button type="button" class="lauf-rund lauf-pause-knopf" aria-label="Pause">⏸</button>
+            <button type="button" class="lauf-rund lauf-ton-knopf" aria-label="Ton aus">🔊</button>
+          </div>
+          <div class="lauf-pause" hidden>
+            <p class="lauf-titel">Pause</p>
+            <button type="button" class="pill lauf-weiter">Weiter</button>
+          </div>
           <div class="lauf-overlay">
             <p class="lauf-titel">Fröbelinchen rennt</p>
             <p class="lauf-text"></p>
+            <div class="lauf-ergebnis" hidden>
+              <p class="le-punkte"><b>0</b> Punkte</p>
+              <p class="le-rekord" hidden>Neuer Rekord!</p>
+              <ul class="le-werte">
+                <li><b class="le-sterne">0</b><span>Sterne</span></li>
+                <li><b class="le-meter">0</b><span>Meter</span></li>
+                <li><b class="le-welt">Kita-Garten</b><span>erreicht</span></li>
+              </ul>
+            </div>
             <ul class="lauf-anleitung">
               <li><span class="la-taste"><b class="nur-tasten"><kbd>←</kbd><kbd>→</kbd></b><b class="nur-touch">⇠ ⇢</b></span>
                 <span><strong>Spur wechseln</strong> und an Ecken <strong>abbiegen</strong><em class="nur-touch">nach links oder rechts wischen</em></span></li>
@@ -161,7 +178,16 @@
               <li><span class="la-taste">★</span>
                 <span><strong>Sterne</strong> sammeln. Booster: <strong>⚡ Turbo</strong>, <strong>🛡 Schutzschild</strong> (5 s unverwundbar), <strong>💥 Schubs</strong> (Anja fliegt raus, 10 s Ruhe)</span></li>
             </ul>
-            <button type="button" class="pill lauf-los">Los geht’s</button>
+            <div class="lauf-aufgaben"></div>
+            <div class="lauf-knoepfe">
+              <button type="button" class="pill lauf-los">Los geht’s</button>
+              <button type="button" class="pill ghost lauf-shop-knopf">★ Ausstattung</button>
+            </div>
+            <div class="lauf-shop" hidden>
+              <p class="ls-bank">Deine Sterne: <b>0</b></p>
+              <ul class="ls-liste"></ul>
+              <button type="button" class="pill small ghost ls-zu">Fertig</button>
+            </div>
           </div>
         </div>
       </div>
@@ -183,7 +209,7 @@
 </footer>
 
 <script src="spiel.js?v=8" defer></script>
-<script type="module" src="lauf.js?v=7"></script>
+<script type="module" src="lauf.js?v=8"></script>
 <script src="seite.js?v=11" defer></script>
 <script src="ziehen.js?v=2" defer></script>
 <script data-goatcounter="https://colorgraphy.goatcounter.com/count" async src="vendor/goatcounter/count.js"></script>
