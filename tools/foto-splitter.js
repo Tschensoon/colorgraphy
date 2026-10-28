@@ -1,4 +1,4 @@
-// Foto-Splitter: ein Foto als Panorama-Karussell, Instagram-Profilraster oder Puzzle in mehrere Bilder teilen.
+// Foto-Splitter: ein Foto als Panorama-Karussell, Instagram-Profilraster, Puzzle oder Druck in A1–A6 in mehrere Bilder teilen.
 // Alles passiert im Browser, das Foto wird nirgends hochgeladen.
 "use strict";
 
@@ -23,10 +23,30 @@ const klemmen = (x, a, b) => Math.min(b, Math.max(a, x));
       hinweis: "„Original“ teilt das ganze Foto ohne Zuschnitt in gleich große Stücke.",
       anleitung: () => "Die Teile sind von links oben nach rechts unten nummeriert.",
     },
+    // Papierformate in mm (Hochformat); die Pixelgröße ergibt sich aus der Auflösung, siehe papier()
+    druck: {
+      formate: [["A1", 594, 841], ["A2", 420, 594], ["A3", 297, 420], ["A4", 210, 297], ["A5", 148, 210], ["A6", 105, 148]],
+      papier: true,
+      hinweis: "Jedes Teil wird ein Blatt in echter Papiergröße. Mit mehr Spalten oder Reihen entsteht ein Poster aus einzelnen Blättern.",
+      anleitung: (n) => (n === 1
+        ? "So druckst du: PDF öffnen und mit „Tatsächliche Größe“ bzw. 100 % drucken, nicht „An Seite anpassen“."
+        : `So druckst du: PDF öffnen und alle ${n} Seiten mit „Tatsächliche Größe“ bzw. 100 % drucken. Die Blätter sind von links oben nach rechts unten nummeriert und ergeben aneinandergelegt das Poster.`)
+        + " Viele Drucker bedrucken die äußersten Millimeter nicht, dort bleibt ein schmaler weißer Rand. Randlos geht es nur, wenn dein Drucker das kann.",
+    },
   };
-  const VORGABE = { karussell: [3, 1], raster: [3, 2], frei: [3, 3] };
+  const VORGABE = { karussell: [3, 1], raster: [3, 2], frei: [3, 3], druck: [1, 1] };
   let foto = null, fw0 = 0, fh0 = 0, basis = "foto", stufenP = [];
-  let art = "karussell", fmt = 0, spalten = 3, reihen = 1, zoomP = 1, mx = 0, my = 0;
+  let art = "karussell", fmt = 0, spalten = 3, reihen = 1, zoomP = 1, mx = 0, my = 0, quer = false;
+
+  // Druck: Blattgröße in Pixeln. Ziel 300 dpi, aber nicht mehr als das Foto hergibt (mindestens 150 dpi)
+  // und höchstens 16 Megapixel pro Blatt, damit auch Handys die Bilder berechnen können.
+  const papier = () => {
+    const [name, a, b] = ARTEN.druck.formate[fmt], mmW = quer ? b : a, mmH = quer ? a : b, inW = mmW / 25.4, inH = mmH / 25.4;
+    const quelle = foto ? Math.min(fw0 / (spalten * inW), fh0 / (reihen * inH)) / zoomP : 300;
+    const dpi = Math.round(Math.min(300, Math.max(150, quelle), Math.sqrt(16e6 / (inW * inH))));
+    return { name, mmW, mmH, dpi, w: Math.round(inW * dpi), h: Math.round(inH * dpi) };
+  };
+  const cm = (mm) => String(Math.round(mm) / 10).replace(".", ",");
 
   /* Foto laden (eigene Ablage oder aus dem Zuschneider) */
   const pAblage = $("p-ablage"), pDatei = $("p-datei");
@@ -35,10 +55,11 @@ const klemmen = (x, a, b) => Math.min(b, Math.max(a, x));
     foto = img; fw0 = img.naturalWidth; fh0 = img.naturalHeight; stufenP = [];
     basis = (dateiname.replace(/\.[^.]+$/, "").normalize("NFKD").replace(/[^\w-]+/g, "-").replace(/^-+|-+$/g, "").toLowerCase() || "foto").slice(0, 40);
     mx = fw0 / 2; my = fh0 / 2;
+    if (art === "druck") { quer = fw0 > fh0; ausrichtungZeigen(); formatKnoepfeP(); }
     pAblage.classList.add("geladen");
     pMelden("✓ " + dateiname, `${fw0} × ${fh0} px · Tippen, um ein anderes Foto zu wählen`);
     $("p-leer").hidden = true; $("p-vorschau").hidden = false;
-    $("p-zip").disabled = false; $("p-teilen").disabled = false;
+    $("p-zip").disabled = false; $("p-teilen").disabled = false; $("p-pdf").disabled = false;
     pAktualisieren();
   };
   const pLaden = (datei) => {
@@ -56,7 +77,8 @@ const klemmen = (x, a, b) => Math.min(b, Math.max(a, x));
 
   /* Geometrie: Gesamtgröße, Teilgröße und welcher Bereich des Fotos genutzt wird */
   const geo = () => {
-    const [, w, h] = ARTEN[art].formate[fmt];
+    let [, w, h] = ARTEN[art].formate[fmt];
+    if (ARTEN[art].papier) ({ w, h } = papier());
     if (!w) {
       const k = Math.min(1, 2160 / Math.max(fw0 / spalten, fh0 / reihen));
       const tw = Math.max(1, Math.floor((fw0 * k) / spalten)), th = Math.max(1, Math.floor((fh0 * k) / reihen));
@@ -122,7 +144,7 @@ const klemmen = (x, a, b) => Math.min(b, Math.max(a, x));
       const cv = document.createElement("canvas"); cv.width = G.tw; cv.height = G.th;
       bereich(cv.getContext("2d"), G, c * G.tw, r * G.th, G.tw, G.th, G.tw, G.th);
       const blob = await new Promise((f) => cv.toBlob(f, "image/jpeg", 0.92));
-      liste.push({ n: nummer(r, c), name: teilDateiname(nummer(r, c), G), blob });
+      liste.push({ n: nummer(r, c), name: teilDateiname(nummer(r, c), G), blob, w: G.tw, h: G.th });
     }
     return liste.sort((a, b) => a.n - b.n);
   };
@@ -149,6 +171,31 @@ const klemmen = (x, a, b) => Math.min(b, Math.max(a, x));
     e.setUint32(0, 0x06054b50, true); e.setUint16(8, dateien.length, true); e.setUint16(10, dateien.length, true); e.setUint32(12, groesse, true); e.setUint32(16, pos, true);
     return new Blob([...teile, ...zentral, e], { type: "application/zip" });
   };
+  /* Minimales PDF: jede Seite in echter Papiergröße, darauf das JPG randfüllend */
+  const pdfBauen = async (teile, mmW, mmH) => {
+    const enc = new TextEncoder(), stuecke = [], xref = [];
+    let pos = 0;
+    const add = (x) => { const u = typeof x === "string" ? enc.encode(x) : x; stuecke.push(u); pos += u.length; };
+    const obj = (nr, kopf, strom) => {
+      xref[nr] = pos; add(`${nr} 0 obj\n${kopf}\n`);
+      if (strom) { add("stream\n"); add(strom); add("\nendstream\n"); }
+      add("endobj\n");
+    };
+    const W = ((mmW * 72) / 25.4).toFixed(2), H = ((mmH * 72) / 25.4).toFixed(2), anzahl = 3 + teile.length * 3;
+    add("%PDF-1.4\n"); add(new Uint8Array([37, 226, 227, 207, 211, 10]));
+    obj(1, "<< /Type /Catalog /Pages 2 0 R >>");
+    obj(2, `<< /Type /Pages /Count ${teile.length} /Kids [${teile.map((_, i) => `${3 + i * 3} 0 R`).join(" ")}] >>`);
+    for (let i = 0; i < teile.length; i++) {
+      const t = teile[i], bild = new Uint8Array(await t.blob.arrayBuffer()), s = 3 + i * 3, inhalt = `q ${W} 0 0 ${H} 0 0 cm /Im0 Do Q`;
+      obj(s, `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${W} ${H}] /Resources << /XObject << /Im0 ${s + 2} 0 R >> >> /Contents ${s + 1} 0 R >>`);
+      obj(s + 1, `<< /Length ${inhalt.length} >>`, inhalt);
+      obj(s + 2, `<< /Type /XObject /Subtype /Image /Width ${t.w} /Height ${t.h} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${bild.length} >>`, bild);
+    }
+    const start = pos;
+    add(`xref\n0 ${anzahl}\n0000000000 65535 f \n` + xref.slice(1).map((o) => String(o).padStart(10, "0") + " 00000 n \n").join(""));
+    add(`trailer\n<< /Size ${anzahl} /Root 1 0 R >>\nstartxref\n${start}\n%%EOF\n`);
+    return new Blob(stuecke, { type: "application/pdf" });
+  };
   const speichern = (blob, name) => {
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob); a.download = name;
@@ -162,13 +209,16 @@ const klemmen = (x, a, b) => Math.min(b, Math.max(a, x));
     ARTEN[art].formate.forEach(([name, w, h], i) => {
       const b = document.createElement("button");
       b.type = "button"; b.setAttribute("aria-pressed", String(i === fmt));
-      b.textContent = w ? `${name} · ${w} × ${h}` : name;
+      b.textContent = ARTEN[art].papier ? `${name} · ${cm(quer ? h : w)} × ${cm(quer ? w : h)} cm` : w ? `${name} · ${w} × ${h}` : name;
       b.addEventListener("click", () => { fmt = i; formatKnoepfeP(); pAktualisieren(); });
       $("p-formate").append(b);
     });
   };
+  const ausrichtungZeigen = () => document.querySelectorAll("#p-ausrichtung button").forEach((b) => b.setAttribute("aria-pressed", String((b.dataset.o === "quer") === quer)));
   const pAktualisieren = () => {
-    const istRaster = art === "raster", istFrei = art === "frei", original = !ARTEN[art].formate[fmt][1];
+    const istRaster = art === "raster", istDruck = art === "druck", istFrei = art === "frei" || istDruck, original = !ARTEN[art].formate[fmt][1];
+    $("p-ausrichtung-zeile").hidden = !istDruck; $("p-pdf").hidden = !istDruck;
+    $("p-format-zeile").querySelector(".klein-titel").textContent = istDruck ? "Papierformat jedes Blatts" : "Format jedes Bildes";
     $("p-spalten-name").textContent = art === "karussell" ? "Anzahl Bilder" : "Spalten";
     $("p-zeile-spalten").hidden = istRaster;
     $("p-zeile-reihen").hidden = art === "karussell";
@@ -181,10 +231,16 @@ const klemmen = (x, a, b) => Math.min(b, Math.max(a, x));
     $("p-anleitung").textContent = ARTEN[art].anleitung(n);
     if (!foto) return;
     const G = geo();
-    $("p-ergebnis").innerHTML = `${n} Bilder à ${G.tw} × ${G.th} px<small>zusammen ${G.W} × ${G.H} px · JPG ohne Metadaten und Standortdaten</small>`;
     const faktor = Math.max(G.sx, G.sy), warn = $("p-warnung");
     warn.hidden = faktor <= 1.02;
-    if (!warn.hidden) warn.textContent = `Für ${n} Bilder in dieser Größe hat dein Foto zu wenige Pixel und wird um das ${faktor.toFixed(1).replace(".", ",")}-Fache vergrößert. Weniger Teile, weniger Zoom oder ein größeres Foto helfen.`;
+    if (istDruck) {
+      const P = papier();
+      $("p-ergebnis").innerHTML = `${n} ${n === 1 ? "Blatt" : "Blätter"} ${P.name} ${quer ? "quer" : "hoch"}${n > 1 ? ` · Poster ${cm(P.mmW * spalten)} × ${cm(P.mmH * reihen)} cm` : ""}<small>${G.tw} × ${G.th} px pro Blatt (${P.dpi} dpi) · PDF oder JPG ohne Metadaten</small>`;
+      if (!warn.hidden) warn.textContent = `Dein Foto hat für diese Größe nur etwa ${Math.round(P.dpi / faktor)} dpi und kann ausgedruckt etwas weich wirken. Ab 150 dpi sieht es gut aus, 300 dpi ist ideal. Kleineres Papier, weniger Blätter oder weniger Zoom helfen.`;
+    } else {
+      $("p-ergebnis").innerHTML = `${n} Bilder à ${G.tw} × ${G.th} px<small>zusammen ${G.W} × ${G.H} px · JPG ohne Metadaten und Standortdaten</small>`;
+      if (!warn.hidden) warn.textContent = `Für ${n} Bilder in dieser Größe hat dein Foto zu wenige Pixel und wird um das ${faktor.toFixed(1).replace(".", ",")}-Fache vergrößert. Weniger Teile, weniger Zoom oder ein größeres Foto helfen.`;
+    }
     $("p-teile").innerHTML = "";
     for (let i = 1; i <= n; i++) {
       const b = document.createElement("button");
@@ -195,11 +251,22 @@ const klemmen = (x, a, b) => Math.min(b, Math.max(a, x));
     pZeigen();
   };
   document.querySelectorAll("#p-arten button").forEach((b) => b.addEventListener("click", () => {
-    art = b.dataset.a; fmt = 0; [spalten, reihen] = VORGABE[art]; zoomP = 1; $("p-zoom").value = 1; $("o-pzoom").textContent = "100 %";
+    art = b.dataset.a; fmt = art === "druck" ? 3 : 0; [spalten, reihen] = VORGABE[art];
+    if (art === "druck") { quer = foto ? fw0 > fh0 : false; ausrichtungZeigen(); } zoomP = 1; $("p-zoom").value = 1; $("o-pzoom").textContent = "100 %";
     if (foto) { mx = fw0 / 2; my = fh0 / 2; }
     document.querySelectorAll("#p-arten button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
     formatKnoepfeP(); pAktualisieren();
   }));
+  document.querySelectorAll("#p-ausrichtung button").forEach((b) => b.addEventListener("click", () => {
+    quer = b.dataset.o === "quer"; ausrichtungZeigen(); formatKnoepfeP(); pAktualisieren();
+  }));
+  $("p-pdf").addEventListener("click", async () => {
+    if (!foto) return;
+    const knopf = $("p-pdf"), text = knopf.textContent, P = papier();
+    knopf.textContent = "Wird erstellt …"; knopf.disabled = true;
+    try { speichern(await pdfBauen(await alleTeile(), P.mmW, P.mmH), `${basis}-${P.name}-${quer ? "quer" : "hoch"}-${spalten}x${reihen}.pdf`); }
+    finally { knopf.textContent = text; knopf.disabled = false; }
+  });
   $("p-spalten").addEventListener("input", () => { spalten = Number($("p-spalten").value); pAktualisieren(); });
   $("p-reihen").addEventListener("input", () => { reihen = Number($("p-reihen").value); pAktualisieren(); });
   $("p-zoom").addEventListener("input", () => { zoomP = Number($("p-zoom").value); $("o-pzoom").textContent = Math.round(zoomP * 100) + " %"; pAktualisieren(); });

@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Foto teilen für Instagram: Panorama-Karussell, Profilraster, Puzzle – Foto-Splitter | Colorgraphy</title>
-<meta name="description" content="Kostenloser Foto-Splitter: ein Foto in mehrere Bilder teilen, als nahtloses Instagram-Panorama-Karussell, als großes Bild im Profilraster (3:4) oder frei als Puzzle. Download als ZIP, ohne Upload.">
+<title>Foto teilen: Instagram-Panorama, Profilraster, Puzzle, Poster in A4 – Foto-Splitter | Colorgraphy</title>
+<meta name="description" content="Kostenloser Foto-Splitter: ein Foto in mehrere Bilder teilen, als nahtloses Instagram-Panorama-Karussell, als großes Bild im Profilraster (3:4), frei als Puzzle oder als druckfertiges PDF in A1 bis A6, auch als Poster aus mehreren Blättern. Ohne Upload.">
 <meta name="robots" content="index, follow, max-image-preview:large">
 <link rel="canonical" href="https://colorgraphy.de/tools/foto-splitter.html">
 <meta name="theme-color" content="#000000">
@@ -16,7 +16,7 @@
 <meta property="og:locale" content="de_DE">
 <meta property="og:site_name" content="Colorgraphy">
 <meta property="og:title" content="Foto-Splitter">
-<meta property="og:description" content="Ein Foto als Panorama-Karussell, Profilraster oder Puzzle teilen. Kostenlos und ohne Upload.">
+<meta property="og:description" content="Ein Foto als Panorama-Karussell, Profilraster, Puzzle oder A4-Poster teilen. Kostenlos und ohne Upload.">
 <meta property="og:url" content="https://colorgraphy.de/tools/foto-splitter.html">
 <meta property="og:image" content="https://colorgraphy.de/og-image.jpg">
 <meta name="twitter:card" content="summary_large_image">
@@ -98,7 +98,7 @@
     <div class="wrap center">
       <nav class="pfad" aria-label="Brotkrumen"><a href="../tools.html">Tools</a><span aria-hidden="true">›</span><span aria-current="page">Foto-Splitter</span></nav>
       <h1>Foto-<span class="grad">Splitter.</span></h1>
-      <p class="sub">Teil ein Foto in mehrere Bilder: als Panorama zum Durchwischen, als großes Bild im Instagram-Profil oder frei als Puzzle.</p>
+      <p class="sub">Teil ein Foto in mehrere Bilder: als Panorama zum Durchwischen, als großes Bild im Instagram-Profil, frei als Puzzle oder druckfertig in A1 bis A6.</p>
       <ul class="vorteile">
         <li>Kostenlos</li>
         <li>Ohne Anmeldung</li>
@@ -127,6 +127,7 @@
             <button type="button" data-a="karussell" aria-pressed="true"><b>Panorama-Karussell</b><small>Nebeneinander, zum Durchwischen in einem Beitrag</small></button>
             <button type="button" data-a="raster" aria-pressed="false"><b>Profil-Raster</b><small>3 Spalten, ergibt ein großes Bild im Profil</small></button>
             <button type="button" data-a="frei" aria-pressed="false"><b>Frei / Puzzle</b><small>Beliebig viele Reihen und Spalten</small></button>
+            <button type="button" data-a="druck" aria-pressed="false"><b>Drucken in A1 bis A6</b><small>Auf ein Blatt oder als Poster aus mehreren Blättern</small></button>
           </div>
           <div class="regler-zeile" id="p-zeile-spalten">
             <label for="p-spalten"><span id="p-spalten-name">Anzahl Bilder</span> <output id="o-spalten">3</output></label>
@@ -139,6 +140,13 @@
           <div id="p-format-zeile">
             <span class="klein-titel">Format jedes Bildes</span>
             <div class="rand-wahl" id="p-formate" role="group" aria-label="Format jedes Teilbildes"></div>
+          </div>
+          <div id="p-ausrichtung-zeile" hidden>
+            <span class="klein-titel">Ausrichtung des Papiers</span>
+            <div class="rand-wahl" id="p-ausrichtung" role="group" aria-label="Ausrichtung des Papiers">
+              <button type="button" data-o="hoch" aria-pressed="true">Hochformat</button>
+              <button type="button" data-o="quer" aria-pressed="false">Querformat</button>
+            </div>
           </div>
           <p class="format-hinweis" id="p-hinweis"></p>
         </div>
@@ -163,6 +171,7 @@
           <p class="ergebnis" id="p-ergebnis">Noch kein Foto ausgewählt.</p>
           <p class="warnung" id="p-warnung" hidden></p>
           <div class="knopf-zeile">
+            <button type="button" class="pill" id="p-pdf" hidden disabled>PDF zum Drucken laden</button>
             <button type="button" class="pill" id="p-zip" disabled>Alle als ZIP laden</button>
             <button type="button" class="pill ghost" id="p-teilen" hidden disabled>Alle teilen / in Fotos sichern</button>
           </div>
@@ -202,8 +211,8 @@
   </div>
 </footer>
 
-<script src="foto-splitter.js?v=10" defer></script>
-<script src="../seite.js?v=10" defer></script>
+<script src="foto-splitter.js?v=11" defer></script>
+<script src="../seite.js?v=11" defer></script>
 <script data-goatcounter="https://colorgraphy.goatcounter.com/count" async src="../vendor/goatcounter/count.js"></script>
 </body>
 </html>
