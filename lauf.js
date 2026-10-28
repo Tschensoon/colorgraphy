@@ -51,6 +51,7 @@ if (rahmen) {
   const START_TEMPO = 9, MAX_TEMPO = 21, BESCHL = .1;
   const SPRUNG = 7.2, G = 22, DUCKEN = .75, PUFFER = .15;
   let renderer, szene, kamera, uhr, boden, spieler, anja;
+  let startNr = 0;                                 // Nummer des ersten Abschnitts (nach der Landung geht es weiter)
   let abschnitte = [], hindernisse = [], sterne = [], booster = [];
   // Booster-Zeiten in Sekunden; schubs = laufende Szene, in der Fröbelinchen Anja wegschubst
   const B = { turbo: 0, schild: 0, ruhe: 0, magnet: 0, doppelt: 0, schubs: null };
@@ -141,11 +142,11 @@ if (rahmen) {
   // ---------- Weg erzeugen ----------
   function abschnittNeu() {
     const vor = abschnitte[abschnitte.length - 1];
-    let ax = 0, az = 0, h = 0, nr = 0;
+    let ax = 0, az = 0, h = 0, nr = startNr;
     if (vor) { [ax, az] = punkt(vor, vor.L, 0); h = vor.h + vor.dreh; nr = vor.nr + 1; }
-    const L = nr === 0 ? 55 : Math.round(zufall(34, 58));
+    const erster = !vor, L = erster ? 55 : Math.round(zufall(34, 58));
     const dreh = h === 0 ? (Math.random() < .5 ? -1 : 1) : -h;   // nie nach Süden
-    const ab = { nr, ax, az, h, L, dreh, zone: W.zoneFuer(nr), gruppe: new THREE.Group() };
+    const ab = { nr, erster, ax, az, h, L, dreh, zone: W.zoneFuer(nr), gruppe: new THREE.Group() };
     abschnitte.push(ab); szene.add(ab.gruppe);
     const yaw = -h * Math.PI / 2;
     // Objekt an Wegposition s (entlang) / x (quer) setzen und in Laufrichtung drehen
@@ -154,15 +155,15 @@ if (rahmen) {
     };
 
     // Pflasterweg inkl. Eckfeld, Randsteine
-    const von = nr === 0 ? -6 : H;   // das Eckfeld gehört schon zum vorigen Abschnitt, sonst liegen zwei Böden übereinander und flimmern
+    const von = erster ? -6 : H;   // das Eckfeld gehört schon zum vorigen Abschnitt, sonst liegen zwei Böden übereinander und flimmern
     setze(W.boden(L + H - von, 2 * H), (von + L + H) / 2, 0);
     for (const seite of [-1, 1]) {       // Randsteine wie die Hecken: an der Abbiege-Seite offen
-      const bis = seite === ab.dreh ? L - H : L + H, anf = nr === 0 ? -6 : H;
+      const bis = seite === ab.dreh ? L - H : L + H, anf = erster ? -6 : H;
       setze(W.kante(bis - anf), (anf + bis) / 2, seite * (H - .09), .05);
     }
     // Hecken links und rechts; auf der Abbiege-Seite endet die Hecke vor der Ecke
     for (const seite of [-1, 1]) {
-      const bis = seite === ab.dreh ? L - H : L + H, anf = nr === 0 ? -6 : H;
+      const bis = seite === ab.dreh ? L - H : L + H, anf = erster ? -6 : H;
       setze(W.heckeFuer(bis - anf, ab.zone), (anf + bis) / 2, seite * (H + .55), 0);
       setze(W.blumenFuer(bis - anf - .6, ab.zone), (anf + bis) / 2, seite * (H + .07), 0);
     }
@@ -170,12 +171,12 @@ if (rahmen) {
     setze(W.heckeFuer(2 * H + 2, ab.zone, 1.5, .9), L + H + .55, 0, 0, Math.PI / 2);   // etwas dicker und höher als die Seitenhecken: keine deckungsgleichen Flächen
     setze(W.pfeilSchild(ab.dreh), L + H - .1, 0);
     for (const d of [11, 7.5, 4]) setze(W.bodenPfeil(ab.dreh), L - d, 0);
-    if (nr === 0) setze(W.heckeFuer(2 * H + 2, ab.zone, 1.5, .9), -6.55, 0, 0, Math.PI / 2);
+    if (erster) setze(W.heckeFuer(2 * H + 2, ab.zone, 1.5, .9), -6.55, 0, 0, Math.PI / 2);
 
     hindernisseVerteilen(ab, setze);
 
     // Ab und zu ein Booster an einer freien Stelle
-    if (nr > 0 && Math.random() < .5) {
+    if (!erster && Math.random() < .5) {
       const bs = zufall(14, L - 14);
       if (!hindernisse.some(o => o.nr === nr && Math.abs(o.s - bs) < 4)) {
         const r = Math.random(), typ = r < .24 ? "turbo" : r < .48 ? "schild" : r < .66 ? "schubs" : r < .83 ? "magnet" : "doppelt";
@@ -199,7 +200,7 @@ if (rahmen) {
     const schwer = Math.min(1, ab.nr / 30);
     const tempoDort = Math.min(MAX_TEMPO, START_TEMPO + ab.nr * .45);
     const mindest = tempoDort * .95 + 3;              // gut eine Sekunde Reaktionszeit
-    let s = ab.nr === 0 ? 24 : 14;
+    let s = ab.erster ? 24 : 14;
     while (s < ab.L - 11) {
       const typ = hindernisNeu(ab, s, setze, schwer, null);
       // Kombination: kurz danach ein zweites Hindernis, das man mit einer Bewegung schafft
@@ -280,7 +281,8 @@ if (rahmen) {
     for (const ab of abschnitte) { szene.remove(ab.gruppe); W.entsorgen(ab.gruppe); }
     for (const p of teilchen) { szene.remove(p.k); p.k.material.dispose(); }
     teilchen = [];
-    abschnitte = []; hindernisse = []; sterne = []; booster = [];
+    abschnitte = []; hindernisse = []; sterne = []; booster = []; startNr = 0;
+    FL.ab = FLUG_AB; FL.rueck = 0;
     aktZone = 0; W.zoneWechsel(0, true);
     Object.assign(B, { turbo: 0, schild: 0, ruhe: 0, magnet: 0, doppelt: 0, schubs: null });
     Object.assign(R, { booster: 0, schubs: 0, welt: 0, zeit: 0, flug: 0, ringe: 0 });
@@ -405,7 +407,7 @@ if (rahmen) {
     ergebnis.querySelector(".le-punkte b").textContent = p;
     ergebnis.querySelector(".le-sterne").textContent = sternZahl;
     ergebnis.querySelector(".le-meter").textContent = Math.round(strecke);
-    ergebnis.querySelector(".le-welt").textContent = R.flug ? "Luftwelt" : W.zonen[Math.min(R.welt, W.zonen.length - 1)].name;
+    ergebnis.querySelector(".le-welt").textContent = FL.an ? "Luftwelt" : W.zonen[Math.min(R.welt, W.zonen.length - 1)].name;
     ergebnis.querySelector(".le-rekord").hidden = !neuerRekord;
     if (neuerRekord) T.rekord(); else T.ende();
     if (!tutorialFertig) { tutorialFertig = true; schreib("froebelinchen-rennt-tutorial", true); }
@@ -590,6 +592,7 @@ if (rahmen) {
 
   function hudZeigen() {
     let t = `${Math.floor(punkte)} Punkte · ★ ${sternZahl}`;
+    if (FL.an) t += ` · ✈ ${Math.max(0, Math.ceil(FLUG_ZEIT - FL.zeit))} s`;
     if (B.turbo > 0) t += ` · ⚡ ${Math.ceil(B.turbo)}`;
     if (B.magnet > 0) t += ` · 🧲 ${Math.ceil(B.magnet)}`;
     if (B.doppelt > 0) t += ` · ×2 ${Math.ceil(B.doppelt)}`;
@@ -632,15 +635,16 @@ if (rahmen) {
     const v = tempo * (S.stolper > 0 ? .6 : 1) * (B.turbo > 0 ? 1.35 : 1);
     for (const k of ["turbo", "schild", "ruhe", "magnet", "doppelt"]) B[k] = Math.max(0, B[k] - dt);
     const faktor = B.doppelt > 0 ? 2 : 1;
-    const unverwundbar = B.schild > 0 || !!B.schubs || FL.abflug > 0;
+    const unverwundbar = B.schild > 0 || !!B.schubs || FL.abflug > 0 || FL.rueck > 0;
     S.s += v * dt; strecke += v * dt; punkte += v * dt * faktor;
     S.stolper = Math.max(0, S.stolper - dt);
     // 3000 Punkte: weiß überblenden, dann geht es im Flugzeug weiter (Level 2)
-    if (!FL.abflug && punkte >= FLUG_AB) { FL.abflug = .001; T.abflug(); meldung(`${FLUG_AB} Punkte!`, "Fröbelinchen steigt ins Flugzeug …"); }
+    if (!FL.abflug && punkte >= FL.ab) { FL.abflug = .001; T.abflug(); meldung(`${FL.ab} Punkte!`, "Fröbelinchen steigt ins Flugzeug …"); }
     if (FL.abflug) {
       FL.abflug += dt; blende.style.opacity = Math.min(1, FL.abflug / .9);
       if (FL.abflug >= .9) { flugStart(); return; }
     }
+    if (FL.rueck) { FL.rueck += dt; blende.style.opacity = Math.max(0, 1 - FL.rueck / .8); if (FL.rueck > .8) FL.rueck = 0; }
 
     let ab = abschnitte.find(a => a.nr === S.idx);
     if (FL.abflug && !S.abbiegen && ab.L - S.s < ECKE) S.abbiegen = ab.dreh;   // während der Blende biegt sie von selbst ab
@@ -880,12 +884,12 @@ if (rahmen) {
   }
 
   // ---------- Level 2: Luftwelt ----------
-  // Ab 3000 Punkten fliegt Fröbelinchen in ihrem Spielzeug-Flugzeug nach Norden (-z). Finger ziehen bzw. Pfeiltasten lenken
+  // Ab 3000 Punkten fliegt Fröbelinchen eine Minute lang in ihrem Spielzeug-Flugzeug nach Norden (-z). Finger ziehen bzw. Pfeiltasten lenken
   // frei nach links, rechts, oben und unten. Durch Ringe fliegen gibt Punkte; Ballons, Gewitterwolken und Vögel bringen sie
   // ins Trudeln, dann holt Anja in ihrem eigenen Flieger auf (wie das Stolpern am Boden).
-  const FLUG_AB = 3000, FX = 7, FY0 = 3, FY1 = 13;
+  const FLUG_AB = 3000, FLUG_ZEIT = 60, FX = 7, FY0 = 3, FY1 = 13;
   const FL = { an: false, abflug: 0, x: 0, y: 7, z: 0, zx: 0, zy: 7, v: 18, neig: 0, nick: 0, naechst: 0, strecke: 0, trudeln: 0,
-    regenbogen: 0, objekte: [], tasten: { x: 0, y: 0 }, ax: 0, ay: 7 };
+    regenbogen: 0, objekte: [], tasten: { x: 0, y: 0 }, ax: 0, ay: 7, ab: 3000, zeit: 0, landung: 0, rueck: 0, gewarnt: false };
   let FW, flieger, anjaFlieger, meer, flugGruppe, blende;
   function flugAufbauen(modul) {
     FW = modul.flugWelt(THREE, W);
@@ -901,7 +905,7 @@ if (rahmen) {
     for (const ab of abschnitte) ab.gruppe.visible = false;
     for (const o of [boden, ferneGruppe, W.luft]) o.visible = false;
     for (const o of [flieger.gruppe, anjaFlieger.gruppe, meer, flugGruppe]) o.visible = true;
-    Object.assign(FL, { x: 0, y: 7, z: 0, zx: 0, zy: 7, v: Math.max(18, tempo), neig: 0, nick: 0, naechst: -45, strecke: 0, trudeln: 0, regenbogen: 250, ax: 0, ay: 7 });
+    Object.assign(FL, { x: 0, y: 7, z: 0, zx: 0, zy: 7, v: Math.max(18, tempo), neig: 0, nick: 0, naechst: -45, strecke: 0, trudeln: 0, regenbogen: 250, ax: 0, ay: 7, zeit: 0, landung: 0, gewarnt: false });
     // Fröbelinchen sitzt im Cockpit (Beine im Rumpf versteckt), Anja genauso in ihrem rosa Flieger
     flieger.sitz.add(spieler.gruppe); spieler.gruppe.position.set(0, -.85, .3); spieler.gruppe.rotation.set(0, 0, 0); spieler.gruppe.scale.setScalar(1);
     spieler.koerper.position.y = 0; spieler.beine.forEach(b => { b.oben.visible = false; });
@@ -930,7 +934,23 @@ if (rahmen) {
     }
     for (const o of FL.objekte) { flugGruppe.remove(o.mesh); W.entsorgen(o.mesh); }
     for (const o of [flieger.gruppe, anjaFlieger.gruppe, meer, flugGruppe]) o.visible = false;
-    FL.objekte = []; FL.an = false; FL.abflug = 0; blende.style.opacity = 0;
+    FL.objekte = []; FL.an = false; FL.abflug = 0; FL.landung = 0; blende.style.opacity = 0;
+  }
+  // Nach einer Minute: weiß überblenden und in der Laufwelt auf einem neuen Wegstück weiterrennen
+  function flugLanden() {
+    flugAus();
+    for (const ab of abschnitte) { szene.remove(ab.gruppe); W.entsorgen(ab.gruppe); }
+    abschnitte = []; hindernisse = []; sterne = []; booster = [];
+    startNr = S.idx + 1;
+    Object.assign(S, { idx: startNr, s: 0, spur: 0, x: 0, y: 0, vy: 0, duck: 0, abbiegen: 0, stolper: 0, sprungPuffer: 0, eis: 0, lande: 0 });
+    while (abschnitte.length < 4) abschnittNeu();
+    aktZone = abschnitte[0].zone; W.zoneWechsel(aktZone, true);
+    Object.assign(A, { nah: false, zeit: 0, abstand: 18, bis: 8 });
+    kamYaw = 0; kamPos = null;
+    FL.ab = Math.floor(punkte) + FLUG_AB;          // in weiteren 3000 Punkten geht es wieder in die Luft
+    FL.rueck = .001; blende.style.opacity = 1;
+    T.welt(); T.musik(aktZone);
+    meldung("Gelandet!", `${W.zonen[aktZone].name} · nächster Flug bei ${FL.ab} Punkten`);
   }
 
   // Eine „Reihe“ im Himmel: Ring mit Sternenspur, Sternenbogen oder Hindernisse; dazu Inseln und Wolken am Rand
@@ -989,10 +1009,16 @@ if (rahmen) {
     anjaKommt(6);
   }
   function flugSchritt(dt) {
-    R.zeit += dt;
+    R.zeit += dt; FL.zeit += dt;
+    if (!FL.gewarnt && FL.zeit >= FLUG_ZEIT - 4) { FL.gewarnt = true; meldung("Gleich wird gelandet!", "Noch ein paar Ringe mitnehmen"); }
+    if (FL.zeit >= FLUG_ZEIT && !FL.landung) { FL.landung = .001; T.abflug(); }
+    if (FL.landung) {
+      FL.landung += dt; blende.style.opacity = Math.min(1, FL.landung / .9);
+      if (FL.landung >= .9) { flugLanden(); return; }
+    }
     FL.v = Math.min(30, FL.v + .15 * dt);
     for (const k of ["turbo", "schild", "ruhe", "magnet", "doppelt"]) B[k] = Math.max(0, B[k] - dt);
-    const faktor = B.doppelt > 0 ? 2 : 1, unverwundbar = B.schild > 0 || FL.abflug > 0;
+    const faktor = B.doppelt > 0 ? 2 : 1, unverwundbar = B.schild > 0 || FL.abflug > 0 || FL.landung > 0;
     const v = FL.v * (B.turbo > 0 ? 1.3 : 1) * (FL.trudeln > 0 ? .75 : 1);
     const zAlt = FL.z;
     FL.z -= v * dt; strecke += v * dt; FL.strecke += v * dt; punkte += v * dt * faktor;
