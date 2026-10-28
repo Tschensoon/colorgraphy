@@ -31,7 +31,7 @@ if (rahmen) {
   function laden() {
     if (!bereit) {
       const text = losKnopf.textContent; losKnopf.disabled = true; losKnopf.textContent = "Lädt die 3D-Welt …";
-      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=15"), import("./lauf-ton.js?v=2"), import("./lauf-flug.js?v=2"), import("./lauf-effekte.js?v=1")])
+      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=16"), import("./lauf-ton.js?v=2"), import("./lauf-flug.js?v=2"), import("./lauf-effekte.js?v=3")])
         .then(([m, w, t, f, e]) => { THREE = m; T = t.ton(); aufbauen(w, f, e); losKnopf.disabled = false; losKnopf.textContent = text; });
     }
     return bereit;
@@ -79,7 +79,7 @@ if (rahmen) {
     renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
-    renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.shadowMap.enabled = true; renderer.shadowMap.type = handy ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap;
     huelle.prepend(renderer.domElement);
     W = weltModul.welt(THREE, handy);
     szene = new THREE.Scene();
@@ -118,6 +118,7 @@ if (rahmen) {
     qualitaetSetzen(qualitaet);
     neu();
     groesse(); new ResizeObserver(groesse).observe(huelle);
+    vorwaermen();
     renderer.setAnimationLoop(bild);
   }
 
@@ -132,7 +133,7 @@ if (rahmen) {
   // Automatische Qualität: ruckelt es, werden nacheinander Schatten, Auflösung und Wetter reduziert
   function qualitaetSetzen(stufe) {
     qualitaet = stufe;
-    renderer.setPixelRatio(Math.min(devicePixelRatio || 1, stufe >= 2 ? 1 : (handy ? 1.5 : 2)));
+    renderer.setPixelRatio(Math.min(devicePixelRatio || 1, stufe >= 2 ? 1 : (handy ? (stufe ? 1.15 : 1.3) : 2)));
     sonne.castShadow = stufe < 1;
     W.luft.visible = stufe < 3 && !FL.an;
     if (kamera) groesse();
@@ -143,7 +144,7 @@ if (rahmen) {
     messZeit += echt; messBilder++;
     if (messZeit < 3) return;
     const fps = messBilder / messZeit; messZeit = 0; messBilder = 0;
-    if (fps < 40) { qualitaetSetzen(qualitaet + 1); schreib("froebelinchen-rennt-qualitaet", qualitaet); }
+    if (fps < (handy ? 50 : 40)) { qualitaetSetzen(qualitaet + 1); schreib("froebelinchen-rennt-qualitaet", qualitaet); }
   }
 
   // ---------- Weg erzeugen ----------
@@ -302,7 +303,7 @@ if (rahmen) {
   function neu() {
     flugAus();
     for (const ab of abschnitte) { szene.remove(ab.gruppe); W.entsorgen(ab.gruppe); }
-    for (const p of teilchen) { szene.remove(p.k); p.k.material.dispose(); }
+    for (const p of teilchen) { szene.remove(p.k); teilchenLager[p.k.userData.art].push(p.k); }
     teilchen = [];
     abschnitte = []; hindernisse = []; sterne = []; booster = []; startNr = 0;
     FL.ab = FLUG_AB; FL.rueck = 0;
@@ -652,7 +653,7 @@ if (rahmen) {
 
   function funkeln(wo, farbe, n) {
     for (let i = 0; i < n; i++) {
-      const f = W.funke(farbe); f.position.copy(wo); f.scale.setScalar(zufall(.15, .3)); szene.add(f);
+      const f = teilchenHolen("funke", farbe); f.position.copy(wo); f.scale.setScalar(zufall(.15, .3)); szene.add(f);
       const w = Math.random() * Math.PI * 2, h = zufall(1.5, 4);
       teilchen.push({ k: f, v: new THREE.Vector3(Math.cos(w) * zufall(1, 3), h, Math.sin(w) * zufall(1, 3)), t: 0, dauer: zufall(.4, .7), schwer: 8 });
     }
@@ -957,12 +958,42 @@ if (rahmen) {
     // Staubwölkchen unter den Hufen beim Laufen (nicht bei niedrigster Qualität)
     if (lauft && S.y === 0 && qualitaet < 3 && (staubTakt -= dt) <= 0) {
       staubTakt = B.turbo > 0 ? .05 : .11;
-      const st = W.staub(); st.position.set(g.position.x + (Math.random() - .5) * .4, .12, g.position.z + (Math.random() - .5) * .4);
+      const st = teilchenHolen("staub"); st.position.set(g.position.x + (Math.random() - .5) * .4, .12, g.position.z + (Math.random() - .5) * .4);
       st.scale.setScalar(.25); szene.add(st); teilchen.push({ k: st, v: new THREE.Vector3(0, .25, 0), t: 0, dauer: .7, wachsen: 1.1 });
       if (B.turbo > 0) funkeln(new THREE.Vector3(g.position.x, .25, g.position.z), "#ffd54a", 2);   // Funken unter den Hufen
     }
     teilchenSchritt(dt);
     zeichnen();
+  }
+  // Einmal alles zeigen, was später vorkommt (Deko aller Welten, Hindernisse, Booster, Tafeln, Luftwelt):
+  // so werden Shader und Texturen beim Laden vorbereitet und nicht mitten im Lauf, wo es kurz hängen würde
+  function vorwaermen() {
+    const g = new THREE.Group(), dazu = (o) => { o.position.set((g.children.length % 8 - 4) * 2, 0, -6 - Math.floor(g.children.length / 8) * 2); g.add(o); };
+    W.zonen.forEach((z, i) => {
+      z.deko.forEach(f => dazu(f()));
+      dazu(W.heckeFuer(3, i)); dazu(W.blumenFuer(3, i)); dazu(W.grasBueschel(3, i, 2));
+      renderer.initTexture(z.boden);
+    });
+    ["kloetze", "ball", "balken", "pfuetze", "stange"].forEach(t => dazu(W.hindernis(t, 4)));
+    ["heuballen", "huhn", "enten", "laub", "schneeball", "eis"].forEach(t => dazu(W.weltHindernis(t, 4)));
+    ["turbo", "schild", "schubs", "magnet", "doppelt"].forEach(t => dazu(W.booster(t)));
+    ["logo", "ohren", "kitas"].forEach(t => { dazu(W.froebelHeckenTafel(t)); dazu(W.froebelTafel(t)); });
+    ["ohren", "kitas"].forEach(t => dazu(W.froebelSchild(t)));
+    [FW.ring(), FW.heissluftballon(), FW.gewitter(), FW.voegel(), FW.insel(), FW.regenbogen(), FW.wolkenBallen(), W.froebelBanner(2, .5)].forEach(dazu);
+    for (const art of ["staub", "funke", "dampf"]) { const k = teilchenHolen(art); dazu(k); }
+    const versteckt = [meer, flieger.gruppe, anjaFlieger.gruppe, strahlen, anja.gruppe, blase, schattenA, ...sternchen];   // auch was gerade unsichtbar ist
+    const sichtbar = versteckt.map(o => o.visible);
+    for (const o of versteckt) o.visible = true;
+    szene.add(g);
+    try {                                               // für beide Wege übersetzen: mit Nachbearbeitung (Zwischenbild) und direkt
+      if (NB) { renderer.setRenderTarget(NB.bild); renderer.compile(szene, kamera); }
+      renderer.setRenderTarget(null); renderer.compile(szene, kamera);
+      zeichnen();
+    } catch (e) {}
+    szene.remove(g);
+    versteckt.forEach((o, i) => { o.visible = sichtbar[i]; });
+    for (const k of [...g.children]) if (k.isSprite && k.userData.art) { g.remove(k); teilchenLager[k.userData.art].push(k); }
+    W.entsorgen(g);
   }
   // Leuchten und Farbstimmung kosten Leistung: ab Qualitätsstufe 2 wird direkt gezeichnet
   function zeichnen() {
@@ -1001,10 +1032,17 @@ if (rahmen) {
       o.rotation.x = angst * .5;
     }
   }
+  const teilchenLager = { staub: [], funke: [], dampf: [] };
+  function teilchenHolen(art, farbe) {
+    const k = teilchenLager[art].pop() || (art === "staub" ? W.staub() : art === "dampf" ? W.dampf() : W.funke("#ffffff"));
+    k.userData.art = art; k.material.opacity = 1;
+    if (farbe) k.material.color.set(farbe);
+    return k;
+  }
   function teilchenSchritt(dt) {
     teilchen = teilchen.filter(p => {
       p.t += dt; const f = p.t / p.dauer;
-      if (f >= 1) { szene.remove(p.k); p.k.material.dispose(); return false; }
+      if (f >= 1) { szene.remove(p.k); teilchenLager[p.k.userData.art].push(p.k); return false; }
       p.k.position.addScaledVector(p.v, dt); p.v.y -= (p.schwer || 0) * dt;
       p.k.material.opacity = (1 - f) * (p.alpha || 1); if (p.wachsen) p.k.scale.setScalar(.25 + f * p.wachsen);
       return true;
@@ -1274,7 +1312,7 @@ if (rahmen) {
     if ((FL.dampfTakt = (FL.dampfTakt || 0) - dt) <= 0 && zustand === "laeuft" && qualitaet < 3) {
       FL.dampfTakt = .035;
       for (const sx of [-2.5, 2.5]) {
-        const d = W.dampf(); d.position.copy(fg.localToWorld(new THREE.Vector3(sx, -.15, .4))); d.scale.setScalar(.3); szene.add(d);
+        const d = teilchenHolen("dampf"); d.position.copy(fg.localToWorld(new THREE.Vector3(sx, -.15, .4))); d.scale.setScalar(.3); szene.add(d);
         teilchen.push({ k: d, v: new THREE.Vector3(0, 0, 0), t: 0, dauer: .7, wachsen: .9, alpha: .55 });
       }
     }

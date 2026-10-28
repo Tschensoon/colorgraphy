@@ -4,7 +4,7 @@
 export function effekte(T, renderer, handy) {
   const typ = T.HalfFloatType;
   const bild = new T.WebGLRenderTarget(1, 1, { type: typ, samples: handy ? 2 : 4 });   // samples = Kantenglättung
-  const STUFEN = 5;
+  const STUFEN = handy ? 4 : 5, START = handy ? 2 : 1;   // am Handy beginnt der Schein bei Viertelauflösung
   const neuesZiel = () => new T.WebGLRenderTarget(1, 1, { type: typ, depthBuffer: false });
   const runter = Array.from({ length: STUFEN }, neuesZiel), hoch = Array.from({ length: STUFEN }, neuesZiel);
 
@@ -63,7 +63,7 @@ export function effekte(T, renderer, handy) {
     const w = Math.max(1, v.x), h = Math.max(1, v.y);
     bild.setSize(w, h);
     for (let i = 0; i < STUFEN; i++) {
-      const f = 2 ** (i + 1), b = Math.max(1, Math.round(w / f)), hh = Math.max(1, Math.round(h / f));
+      const f = 2 ** (i + START), b = Math.max(1, Math.round(w / f)), hh = Math.max(1, Math.round(h / f));
       runter[i].setSize(b, hh); hoch[i].setSize(b, hh);
     }
   }
@@ -93,5 +93,5 @@ export function effekte(T, renderer, handy) {
     u.saett.value += (ziel.saett - u.saett.value) * k; u.kontrast.value += (ziel.kontrast - u.kontrast.value) * k;
     u.staerke.value += (ziel.staerke - u.staerke.value) * k;
   }
-  return { groesse, zeichnen, stimmung, schritt, schwelle: hell.uniforms.schwelle };
+  return { groesse, zeichnen, stimmung, schritt, bild, schwelle: hell.uniforms.schwelle };
 }

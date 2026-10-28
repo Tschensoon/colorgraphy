@@ -1332,7 +1332,7 @@ export function welt(T, handy) {
   const grasMat = ["#82c24f", "#97c757", "#74b86a", "#c9a24a", "#e3ecf2"].map(c =>
     windEinbauen(std({ map: grasBild, color: c, alphaTest: .45, roughness: 1 })));
   function grasBueschel(laenge, z, breite) {
-    const dichte = (handy ? .7 : 1.5) * (z === 4 ? .35 : 1);
+    const dichte = (handy ? .45 : 1.5) * (z === 4 ? .35 : 1);
     const n = Math.max(1, Math.round(laenge * breite * dichte)), k = new T.InstancedMesh(grasGeo, grasMat[z], n);
     const m = new T.Matrix4(), q = new T.Quaternion(), e = new T.Euler();
     for (let i = 0; i < n; i++) {
