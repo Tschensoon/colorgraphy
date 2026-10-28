@@ -8,7 +8,7 @@ if (rahmen) {
   const $ = (sel) => rahmen.querySelector(sel);
   const huelle = $(".lauf-buehne"), hud = $(".lauf-hud"), ueber = $(".lauf-overlay"), warnung = $(".lauf-warnung");
   const losKnopf = $(".lauf-los"), ueberTitel = ueber.querySelector(".lauf-titel"), ueberText = $(".lauf-text"), zu = $(".lauf-zu");
-  const ergebnis = $(".lauf-ergebnis"), aufgabenFeld = $(".lauf-aufgaben"), shop = $(".lauf-shop:not(.lauf-top)"), pauseFeld = $(".lauf-pause");
+  const ergebnis = $(".lauf-ergebnis"), aufgabenFeld = $(".lauf-aufgaben"), shop = $(".lauf-laden"), pauseFeld = $(".lauf-pause");
   const pauseKnopf = $(".lauf-pause-knopf"), tonKnopf = $(".lauf-ton-knopf");
   const eintragForm = $(".lauf-eintragen"), eintragName = $("#lauf-name"), eintragMeldung = $(".le-meldung");
   const topFeld = $(".lauf-top"), topListe = $(".lauf-top-liste");
@@ -31,7 +31,7 @@ if (rahmen) {
   function laden() {
     if (!bereit) {
       const text = losKnopf.textContent; losKnopf.disabled = true; losKnopf.textContent = "Lädt die 3D-Welt …";
-      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=8"), import("./lauf-ton.js?v=2"), import("./lauf-flug.js?v=1")])
+      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=10"), import("./lauf-ton.js?v=2"), import("./lauf-flug.js?v=1")])
         .then(([m, w, t, f]) => { THREE = m; T = t.ton(); aufbauen(w, f); losKnopf.disabled = false; losKnopf.textContent = text; });
     }
     return bereit;
@@ -383,7 +383,7 @@ if (rahmen) {
     T.start();
     if (zustand === "aus") neu();
     zustand = "laeuft"; window.froebelAktiv = "lauf";
-    ueber.hidden = true; shop.hidden = true; topFeld.hidden = true; eintragForm.hidden = true; uhr.getDelta();
+    ueber.hidden = true; ladenZu(); topFeld.hidden = true; eintragForm.hidden = true; uhr.getDelta();
     T.musik(aktZone);
   });
 
@@ -458,30 +458,75 @@ if (rahmen) {
   aufgabenZeigen();
 
   // ---------- Sterne-Shop ----------
+  // Vorschaubilder: eine eigene kleine Giraffe wird mit den Teilen fotografiert (eigener Renderer, nur solange der Laden offen ist)
+  let foto = null;
+  const miniBilder = {};
+  function fotografieren(ids, art) {
+    if (!foto) {
+      const r = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+      r.setSize(256, 256, false); r.outputColorSpace = THREE.SRGBColorSpace; r.toneMapping = THREE.ACESFilmicToneMapping;
+      const sz = new THREE.Scene(), licht = new THREE.DirectionalLight("#fff3e0", 2.6);
+      licht.position.set(2, 4, -3); sz.add(new THREE.HemisphereLight("#ffffff", "#c9a87a", 1.4), licht);
+      const gir = W.giraffeBauen(); sz.add(gir.gruppe);
+      foto = { r, sz, gir, kam: new THREE.PerspectiveCamera(30, 1, .05, 50) };
+    }
+    const { r, sz, gir, kam } = foto;
+    W.ausstattungSetzen(gir, ids);
+    sz.updateMatrixWorld(true);
+    const z = new THREE.Vector3();
+    if (art === "kopf") { gir.kopf.getWorldPosition(z); z.y += .08; kam.position.set(z.x + .62, z.y + .12, z.z - .92); }
+    else if (art === "hals") { gir.hals.getWorldPosition(z); z.y += .2; z.z -= .2; kam.position.set(z.x + .75, z.y + .25, z.z - 1.05); }
+    else if (art === "ruecken") { z.set(0, 1.55, .1); kam.position.set(1.9, 2.6, 2.1); }
+    else { z.set(0, 1.35, -.15); kam.position.set(2.9, 2.2, -4.4); }
+    kam.lookAt(z);
+    r.render(sz, kam);
+    return r.domElement.toDataURL("image/png");
+  }
+  const fotoArt = (platz) => platz === "hals" ? "hals" : platz === "ruecken" ? "ruecken" : "kopf";
+  let anprobe = null;
+  function mitAnprobe() {               // getragene Teile plus das anprobierte (ersetzt das Teil am selben Platz)
+    if (!anprobe) return konto.an;
+    const p = W.AUSSTATTUNG[anprobe].platz;
+    return [...konto.an.filter(x => W.AUSSTATTUNG[x].platz !== p), anprobe];
+  }
   function shopZeigen() {
     shop.querySelector(".ls-bank b").textContent = konto.sterne;
     const ul = shop.querySelector(".ls-liste"); ul.replaceChildren();
-    const teile = W ? W.AUSSTATTUNG : {};
-    for (const [id, a] of Object.entries(teile)) {
-      const li = document.createElement("li"), name = document.createElement("span"), k = document.createElement("button");
-      name.textContent = a.name;
+    const teile = Object.entries(W.AUSSTATTUNG).sort((a, b) => a[1].preis - b[1].preis);
+    shop.querySelector(".ls-bild").src = fotografieren(mitAnprobe(), "ganz");
+    const a0 = anprobe && W.AUSSTATTUNG[anprobe];
+    shop.querySelector(".ls-anprobe").textContent = a0
+      ? (konto.besitz.includes(anprobe) ? `${a0.name}: gehört dir schon.` : `Anprobe: ${a0.name} für ${a0.preis} ★` + (konto.sterne < a0.preis ? ` (dir fehlen noch ${a0.preis - konto.sterne} ★)` : ""))
+      : "Tipp ein Teil an, um es anzuprobieren.";
+    for (const [id, a] of teile) {
+      const li = document.createElement("li"), bild = document.createElement("img"), name = document.createElement("span"), k = document.createElement("button");
+      if (!miniBilder[id]) miniBilder[id] = fotografieren([id], fotoArt(a.platz));
+      bild.src = miniBilder[id]; bild.alt = ""; name.textContent = a.name;
       const hat = konto.besitz.includes(id), an = konto.an.includes(id);
+      li.classList.toggle("traegt", an); li.classList.toggle("gewaehlt", anprobe === id);
       k.type = "button";
-      k.textContent = hat ? (an ? "Trägt sie" : "Anziehen") : `${a.preis} ★`;
+      k.textContent = hat ? (an ? "Ausziehen" : "Anziehen") : `${a.preis} ★`;
       k.classList.toggle("an", an);
       k.disabled = !hat && konto.sterne < a.preis;
-      k.addEventListener("click", () => {
+      li.addEventListener("click", () => { anprobe = anprobe === id ? null : id; shopZeigen(); });
+      k.addEventListener("click", (e) => {
+        e.stopPropagation();
         if (!konto.besitz.includes(id)) { if (konto.sterne < a.preis) return; konto.sterne -= a.preis; konto.besitz.push(id); T.booster(); }
         if (konto.an.includes(id)) konto.an = konto.an.filter(x => x !== id);
         else { konto.an = konto.an.filter(x => W.AUSSTATTUNG[x].platz !== a.platz); konto.an.push(id); }   // pro Platz nur ein Teil
+        anprobe = null;
         schreib("froebelinchen-rennt-konto", konto);
         W.ausstattungSetzen(spieler, konto.an); shopZeigen();
       });
-      li.append(name, k); ul.append(li);
+      li.append(bild, name, k); ul.append(li);
     }
   }
+  function ladenZu() {
+    shop.hidden = true; anprobe = null;
+    if (foto) { foto.r.dispose(); foto.r.forceContextLoss(); foto = null; }   // die zweite 3D-Fläche wieder freigeben
+  }
   $(".lauf-shop-knopf").addEventListener("click", async () => { await laden(); T.start(); shopZeigen(); shop.hidden = false; });
-  $(".ls-zu").addEventListener("click", () => { shop.hidden = true; });
+  $(".ls-zu").addEventListener("click", ladenZu);
 
   // ---------- Bestenliste ----------
   const ERLAUBT = /^[A-Za-zÄÖÜäöüßÀ-ÿ0-9 ._-]+$/;

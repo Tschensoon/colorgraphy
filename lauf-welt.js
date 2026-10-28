@@ -617,36 +617,101 @@ export function welt(T, handy) {
   // ---------- Ausstattung für Fröbelinchen (im Sterne-Shop freischaltbar) ----------
   const streifen = leinwand(64, 16, (g, w, h) => { for (let i = 0; i < 8; i++) { g.fillStyle = i % 2 ? "#ffffff" : "#e53935"; g.fillRect(i * 8, 0, 8, h); } });
   streifen.repeat.set(4, 1);
+  const bunt = leinwand(64, 64, (g, w, h) => { ["#ff6b9a", "#ffd23f", "#4fc3f7", "#7cd67c"].forEach((c, i) => { g.fillStyle = c; g.fillRect(0, i * 16, w, 16); }); });
+  const herz = (() => {                                    // Herzform für die Herzbrille
+    const f = new T.Shape(); f.moveTo(0, -.05);
+    f.bezierCurveTo(-.09, .01, -.06, .07, 0, .035); f.bezierCurveTo(.06, .07, .09, .01, 0, -.05);
+    return geteilt(new T.ExtrudeGeometry(f, { depth: .015, bevelEnabled: false }));
+  })();
+  const fluegelForm = (() => {
+    const f = new T.Shape(); f.moveTo(0, 0);
+    f.bezierCurveTo(.25, .35, .75, .45, .85, .2); f.bezierCurveTo(.7, .12, .6, 0, .7, -.12); f.bezierCurveTo(.5, -.05, .3, -.15, 0, 0);
+    return geteilt(new T.ShapeGeometry(f));
+  })();
   const A_MAT = {
     muetze: std({ color: "#e53935", roughness: .8 }), weiss: std({ color: "#ffffff", roughness: .9 }), gold: std({ color: "#ffcc33", metalness: .5, roughness: .3, emissive: "#8a6200", emissiveIntensity: .45 }),
     glas: std({ color: "#111820", metalness: .3, roughness: .1 }), schal: std({ map: streifen, roughness: .9 }), bluete: std({ color: "#ff6b9a", roughness: .6 }), mitte: std({ color: "#ffd23f", roughness: .6 }),
+    rosa: std({ color: "#ff7eb3", roughness: .5 }), blau: std({ color: "#1e6fd9", roughness: .6 }), lila: std({ color: "#6a3fb5", roughness: .7 }),
+    bunt: std({ map: bunt, roughness: .7 }), rot: std({ color: "#d32f2f", roughness: .6 }), schwarz: std({ color: "#26282c", roughness: .4 }),
+    orange: std({ color: "#ff8f1f", roughness: .7 }), umhang: std({ color: "#c62828", roughness: .7, side: T.DoubleSide }),
+    feder: std({ color: "#f6e3ff", roughness: .4, emissive: "#d9a8ff", emissiveIntensity: .35, transparent: true, opacity: .9, side: T.DoubleSide }),
   };
+  // Preise in Sternen: nach einer guten Runde reicht es für ein günstiges Teil, die Krone ist ein langes Sparziel.
+  // platz: pro Platz trägt Fröbelinchen nur ein Teil; kopf/gesicht/ohr sitzen am Kopf, hals am Hals, ruecken am Körper.
   const AUSSTATTUNG = {
-    muetze: { name: "Bommelmütze", preis: 30, platz: "kopf", bauen: () => {
-      const g = new T.Group(); teil(kegel(.17, .3, 20), A_MAT.muetze, g, 0, .27, .02); teil(new T.TorusGeometry(.15, .04, 10, 24), A_MAT.weiss, g, 0, .14, .02).rotation.x = Math.PI / 2;
-      teil(kugel, A_MAT.weiss, g, 0, .44, .02).scale.setScalar(.06); return g; } },
-    brille: { name: "Sonnenbrille", preis: 40, platz: "gesicht", bauen: () => {
-      const g = new T.Group();
-      for (const sx of [-1, 1]) { const l = teil(zyl(.055, .055, .02, 20), A_MAT.glas, g, sx * .1, .055, -.15); l.rotation.x = Math.PI / 2; l.rotation.z = sx * .35; }
-      teil(kiste(.08, .015, .015), A_MAT.glas, g, 0, .07, -.17); return g; } },
-    schal: { name: "Ringelschal", preis: 50, platz: "hals", bauen: () => {
-      const g = new T.Group(); const t = teil(new T.TorusGeometry(.19, .06, 12, 28), A_MAT.schal, g, 0, .12, -.1); t.rotation.x = Math.PI / 2 + .25;
-      teil(kiste(.1, .3, .04), A_MAT.schal, g, .08, -.02, -.28).rotation.z = .2; return g; } },
-    blume: { name: "Blume am Ohr", preis: 25, platz: "ohr", bauen: () => {
+    blume: { name: "Blume am Ohr", preis: 150, platz: "ohr", bauen: () => {
       const g = new T.Group();
       for (let i = 0; i < 5; i++) { const w = i / 5 * Math.PI * 2; teil(kugel, A_MAT.bluete, g, .2 + Math.cos(w) * .05, .17 + Math.sin(w) * .05, .02).scale.setScalar(.035); }
       teil(kugel, A_MAT.mitte, g, .2, .17, .03).scale.setScalar(.028); return g; } },
-    krone: { name: "Goldkrone", preis: 150, platz: "kopf", bauen: () => {
+    schleife: { name: "Haarschleife", preis: 200, platz: "ohr", bauen: () => {
+      const g = new T.Group();
+      for (const s of [-1, 1]) { const k = teil(kegel(.06, .12, 12), A_MAT.rosa, g, -.12 + s * .06, .22, .05); k.rotation.z = s * Math.PI / 2; k.scale.z = .5; }
+      teil(kugel, A_MAT.rosa, g, -.12, .22, .05).scale.setScalar(.03); return g; } },
+    muetze: { name: "Bommelmütze", preis: 250, platz: "kopf", bauen: () => {
+      const g = new T.Group(); teil(kegel(.17, .3, 20), A_MAT.muetze, g, 0, .27, .02); teil(new T.TorusGeometry(.15, .04, 10, 24), A_MAT.weiss, g, 0, .14, .02).rotation.x = Math.PI / 2;
+      teil(kugel, A_MAT.weiss, g, 0, .44, .02).scale.setScalar(.06); return g; } },
+    fliege: { name: "Fliege", preis: 300, platz: "hals", bauen: () => {
+      const g = new T.Group();
+      for (const s of [-1, 1]) { const k = teil(kegel(.06, .11, 10), A_MAT.rot, g, s * .055, .14, -.27); k.rotation.z = s * Math.PI / 2; k.scale.z = .45; }
+      teil(kugel, A_MAT.rot, g, 0, .14, -.27).scale.setScalar(.03); return g; } },
+    brille: { name: "Sonnenbrille", preis: 300, platz: "gesicht", bauen: () => {
+      const g = new T.Group();
+      for (const sx of [-1, 1]) { const l = teil(zyl(.055, .055, .02, 20), A_MAT.glas, g, sx * .1, .055, -.15); l.rotation.x = Math.PI / 2; l.rotation.z = sx * .35; }
+      teil(kiste(.08, .015, .015), A_MAT.glas, g, 0, .07, -.17); return g; } },
+    kappe: { name: "Basecap", preis: 350, platz: "kopf", bauen: () => {
+      const g = new T.Group();
+      teil(new T.SphereGeometry(.17, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2), A_MAT.blau, g, 0, .1, .02);
+      const s = teil(zyl(.13, .13, .015, 20), A_MAT.blau, g, 0, .11, -.15); s.scale.z = .8;
+      teil(kugel, A_MAT.weiss, g, 0, .27, .02).scale.setScalar(.02); return g; } },
+    schal: { name: "Ringelschal", preis: 400, platz: "hals", bauen: () => {
+      const g = new T.Group(); const t = teil(new T.TorusGeometry(.19, .06, 12, 28), A_MAT.schal, g, 0, .12, -.1); t.rotation.x = Math.PI / 2 + .25;
+      teil(kiste(.1, .3, .04), A_MAT.schal, g, .08, -.02, -.28).rotation.z = .2; return g; } },
+    partyhut: { name: "Partyhut", preis: 500, platz: "kopf", bauen: () => {
+      const g = new T.Group(); const k = teil(kegel(.12, .34, 20), A_MAT.bunt, g, .03, .3, .02); k.rotation.z = -.2;
+      teil(kugel, A_MAT.mitte, g, .1, .47, .02).scale.setScalar(.045); return g; } },
+    herzbrille: { name: "Herzbrille", preis: 600, platz: "gesicht", bauen: () => {
+      const g = new T.Group();
+      for (const sx of [-1, 1]) { const h = teil(herz, A_MAT.rosa, g, sx * .1, .055, -.17); h.rotation.y = sx * .35; }
+      teil(kiste(.08, .015, .015), A_MAT.rosa, g, 0, .07, -.17); return g; } },
+    kopfhoerer: { name: "Kopfhörer", preis: 650, platz: "ohr", bauen: () => {
+      const g = new T.Group(); const b = teil(new T.TorusGeometry(.19, .022, 8, 24, Math.PI), A_MAT.schwarz, g, 0, .07, .02);
+      for (const s of [-1, 1]) { const m = teil(zyl(.065, .065, .05, 18), A_MAT.rot, g, s * .19, .05, .02); m.rotation.z = Math.PI / 2; }
+      return g; } },
+    rucksack: { name: "Rucksack", preis: 700, platz: "ruecken", bauen: () => {
+      const g = new T.Group();
+      teil(new T.CapsuleGeometry(.2, .22, 8, 16), A_MAT.orange, g, 0, 1.62, .18).rotation.x = Math.PI / 2;
+      teil(kiste(.26, .14, .06), A_MAT.blau, g, 0, 1.58, .45);
+      for (const s of [-1, 1]) { const r = teil(new T.TorusGeometry(.24, .025, 6, 20, Math.PI), A_MAT.blau, g, s * .3, 1.35, .05); r.rotation.y = Math.PI / 2; r.rotation.z = -Math.PI / 2; }
+      return g; } },
+    medaille: { name: "Goldmedaille", preis: 800, platz: "hals", bauen: () => {
+      const g = new T.Group(); const t = teil(new T.TorusGeometry(.2, .014, 8, 28), A_MAT.blau, g, 0, .12, -.1); t.rotation.x = Math.PI / 2 + .25;
+      const m = teil(zyl(.085, .085, .025, 24), A_MAT.gold, g, 0, .02, -.37); m.rotation.x = Math.PI / 2 - .3; return g; } },
+    zauberhut: { name: "Zauberhut", preis: 900, platz: "kopf", bauen: () => {
+      const g = new T.Group(); teil(zyl(.27, .27, .02, 28), A_MAT.lila, g, 0, .15, .02);
+      const k = teil(kegel(.15, .48, 20), A_MAT.lila, g, 0, .4, .04); k.rotation.x = .15;
+      for (const [x, y, z] of [[.08, .3, -.12], [-.07, .42, -.07], [.03, .52, -.03]]) teil(kugel, A_MAT.gold, g, x, y, z).scale.setScalar(.025);
+      return g; } },
+    umhang: { name: "Heldenumhang", preis: 1200, platz: "ruecken", bauen: () => {
+      const g = new T.Group();
+      // halber, offener Zylinder über dem Rücken: vorn an den Schultern eng, hinten weit ausgestellt
+      const u = teil(new T.CylinderGeometry(.55, .4, 1.1, 24, 1, true, Math.PI * .55, Math.PI * .9), A_MAT.umhang, g, 0, 1.25, .22);
+      u.rotation.x = Math.PI / 2 - .15;
+      teil(kugel, A_MAT.gold, g, 0, 1.55, -.33).scale.setScalar(.05); return g; } },
+    fluegel: { name: "Feenflügel", preis: 1500, platz: "ruecken", bauen: () => {
+      const g = new T.Group();
+      for (const s of [-1, 1]) { const f = teil(fluegelForm, A_MAT.feder, g, s * .12, 1.6, -.05); f.scale.set(s * 1.5, 1.5, 1.5); f.rotation.y = s * -.5; f.rotation.x = -.2; }
+      return g; } },
+    krone: { name: "Goldkrone", preis: 2000, platz: "kopf", bauen: () => {
       const g = new T.Group(); teil(zyl(.14, .14, .08, 20, 1, true), A_MAT.gold, g, 0, .2, .02);
       for (let i = 0; i < 6; i++) { const w = i / 6 * Math.PI * 2; teil(kegel(.035, .1, 8), A_MAT.gold, g, Math.cos(w) * .14, .29, .02 + Math.sin(w) * .14); }
       return g; } },
   };
   function ausstattungSetzen(sp, ids) {
-    for (const ort of [sp.kopf, sp.hals]) for (const k of [...ort.children]) if (k.userData.ausstattung) ort.remove(k);
+    for (const ort of [sp.kopf, sp.hals, sp.koerper]) for (const k of [...ort.children]) if (k.userData.ausstattung) ort.remove(k);
     for (const id of ids) {
       const a = AUSSTATTUNG[id]; if (!a) continue;
       const teilG = a.bauen(); teilG.userData.ausstattung = true;
-      (a.platz === "hals" ? sp.hals : sp.kopf).add(teilG);
+      (a.platz === "hals" ? sp.hals : a.platz === "ruecken" ? sp.koerper : sp.kopf).add(teilG);
     }
   }
 

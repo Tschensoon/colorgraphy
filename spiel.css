@@ -164,11 +164,22 @@ body.spiel-offen { overflow: hidden; }
   padding: 1rem; background: rgba(255, 255, 255, .95); overflow-y: auto; }
 .lauf-shop[hidden] { display: none; }
 .ls-bank { margin: 0; font-weight: 700; color: #034a3e; }
-.ls-liste { list-style: none; margin: 0; padding: 0; display: grid; gap: .4rem; width: 100%; max-width: 380px; }
-.ls-liste li { display: flex; align-items: center; justify-content: space-between; gap: .6rem; padding: .45rem .7rem; border-radius: 12px; background: #f1f6f2; }
-.ls-liste button { border: 0; border-radius: 999px; padding: .35rem .9rem; font: inherit; font-weight: 700; cursor: pointer; background: #034a3e; color: #fff; }
+.lauf-laden { justify-content: flex-start; background: #fff; }
+.ls-kopf { display: flex; align-items: center; gap: .9rem; width: 100%; max-width: 640px; }
+.ls-bild { width: 150px; height: 150px; flex: none; border-radius: 18px; background: radial-gradient(circle at 50% 40%, #fff7e0, #ffe3b0); }
+.ls-titel { margin: 0; font-weight: 800; font-size: 1.15rem; color: #034a3e; }
+.ls-anprobe { margin: .25rem 0 0; font-size: .85rem; color: #4b5b56; }
+.ls-liste { list-style: none; margin: 0; padding: 0; display: grid; gap: .5rem; width: 100%; max-width: 640px;
+  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); }
+.ls-liste li { display: flex; flex-direction: column; align-items: center; gap: .3rem; padding: .45rem; border-radius: 14px; background: #f1f6f2;
+  border: 2px solid transparent; cursor: pointer; text-align: center; font-size: .85rem; font-weight: 600; color: #1d3a33; }
+.ls-liste li.gewaehlt { border-color: #ffb300; background: #fff7e0; }
+.ls-liste li.traegt { background: #e3f5dc; }
+.ls-liste li img { width: 84px; height: 84px; border-radius: 10px; background: #fff; }
+.ls-liste button { border: 0; border-radius: 999px; padding: .3rem .8rem; font: inherit; font-weight: 700; cursor: pointer; background: #034a3e; color: #fff; }
 .ls-liste button.an { background: #3b8f3c; }
 .ls-liste button:disabled { background: #c9d3cf; color: #6b7b76; cursor: default; }
+@media (max-height: 460px) { .ls-bild { width: 96px; height: 96px; } .ls-liste li img { width: 64px; height: 64px; } }
 .lauf-hud.hupf { animation: hud-hupf .25s ease-out; }
 @keyframes hud-hupf { 50% { transform: scale(1.12); } }
 @media (max-width: 600px) { .le-punkte b { font-size: 2rem; } .lauf-knoepfe .pill { padding: .6rem 1rem; } }
