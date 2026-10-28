@@ -1192,7 +1192,8 @@ if (rahmen) {
     const o = { typ, mesh, x, y, z, y0: y, ph: Math.random() * 6, weg: false, getroffen: false, ...mehr };
     FL.objekte.push(o); return o;
   }
-  function flugStern(x, y, z) { const m = W.toertchen(); m.scale.setScalar(1.3); return flugObjekt("stern", m, x, y, z); }
+  function flugStern(x, y, z) { const m = W.stern(); m.scale.setScalar(1.3);   // in der Luftwelt Sterne: vor dem hellen Himmel besser zu sehen als Törtchen
+    return flugObjekt("stern", m, x, y, z); }
   function reiheNeu() {
     const z = FL.naechst, schwer = Math.min(1, FL.strecke / 3000 + (FL.naechst < -1500 ? .2 : 0));
     const rx = () => zufall(-FX + 1, FX - 1), ry = () => zufall(FY0 + .8, FY1 - .8);
@@ -1279,7 +1280,7 @@ if (rahmen) {
     while (FL.naechst > FL.z - 170) reiheNeu();
 
     const einsammeln = (o) => {
-      o.weg = true; o.mesh.visible = false; sternZahl++; punkte += 10 * faktor; funkeln(o.mesh.position, "#ffb3d1", 8);
+      o.weg = true; o.mesh.visible = false; sternZahl++; punkte += 10 * faktor; funkeln(o.mesh.position, "#ffe066", 8);
       T.stern(sternZahl); GE.freude = .35; hud.classList.remove("hupf"); void hud.offsetWidth; hud.classList.add("hupf");
     };
     for (const o of FL.objekte) {
