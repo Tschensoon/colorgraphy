@@ -29,8 +29,11 @@ if (rahmen) {
     new IntersectionObserver((e, b) => { if (e.some(x => x.isIntersecting)) { b.disconnect(); laden(); } }, { rootMargin: "300px" }).observe(rahmen);
   }
   function laden() {
-    if (!bereit) bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=6"), import("./lauf-ton.js?v=1")])
-      .then(([m, w, t]) => { THREE = m; T = t.ton(); aufbauen(w); });
+    if (!bereit) {
+      const text = losKnopf.textContent; losKnopf.disabled = true; losKnopf.textContent = "Lädt die 3D-Welt …";
+      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=7"), import("./lauf-ton.js?v=1")])
+        .then(([m, w, t]) => { THREE = m; T = t.ton(); aufbauen(w); losKnopf.disabled = false; losKnopf.textContent = text; });
+    }
     return bereit;
   }
 
@@ -50,10 +53,10 @@ if (rahmen) {
   let renderer, szene, kamera, uhr, boden, spieler, anja;
   let abschnitte = [], hindernisse = [], sterne = [], booster = [];
   // Booster-Zeiten in Sekunden; schubs = laufende Szene, in der Fröbelinchen Anja wegschubst
-  const B = { turbo: 0, schild: 0, ruhe: 0, schubs: null };
+  const B = { turbo: 0, schild: 0, ruhe: 0, magnet: 0, doppelt: 0, schubs: null };
   let blase, sternchen = [];
   let zustand = "start", tempo, punkte, sternZahl, strecke, wackeln = 0, schlussSzene = null;
-  const S = { idx: 0, s: 0, spur: 0, x: 0, y: 0, vy: 0, duck: 0, abbiegen: 0, stolper: 0, lauf: 0, sprungPuffer: 0 };
+  const S = { idx: 0, s: 0, spur: 0, x: 0, y: 0, vy: 0, duck: 0, abbiegen: 0, stolper: 0, lauf: 0, sprungPuffer: 0, eis: 0, lande: 0 };
   const A = { nah: false, zeit: 0, abstand: 16, bis: 5, lauf: 0, schritt: 0 };
   const R = { booster: 0, schubs: 0, welt: 0, zeit: 0 };    // Werte dieser Runde für Aufgaben, Ergebnis und Bestenliste
   const tipps = new Set();
@@ -174,7 +177,7 @@ if (rahmen) {
     if (nr > 0 && Math.random() < .5) {
       const bs = zufall(14, L - 14);
       if (!hindernisse.some(o => o.nr === nr && Math.abs(o.s - bs) < 4)) {
-        const r = Math.random(), typ = r < .4 ? "turbo" : r < .75 ? "schild" : "schubs";
+        const r = Math.random(), typ = r < .24 ? "turbo" : r < .48 ? "schild" : r < .66 ? "schubs" : r < .83 ? "magnet" : "doppelt";
         const sp = wahl([-1, 0, 1]);
         booster.push({ nr, s: bs, spur: sp, typ, mesh: setze(W.booster(typ), bs, sp * SPUR, 1.05), weg: false });
       }
@@ -206,42 +209,64 @@ if (rahmen) {
       s += mindest * (1.35 - .35 * schwer) + zufall(0, 7 * (1 - schwer) + 2);
     }
   }
+  // Art des Hindernisses: block = ausweichen (sonst Rundenende), niedrig = drüberspringen, hoch = ducken, eis = rutschig
+  const ART = { kloetze: "block", heuballen: "block", ball: "niedrig", balken: "niedrig", pfuetze: "niedrig", laub: "niedrig",
+    huhn: "niedrig", enten: "niedrig", schneeball: "niedrig", stange: "hoch", eis: "eis" };
+  const HOEHE = { ball: .75, balken: .45, pfuetze: .15, laub: .5, huhn: .55, enten: .45, schneeball: .8 };
+  const WELT_HINDERNISSE = [[], ["heuballen", "huhn"], ["enten"], ["laub"], ["schneeball", "eis"]];   // eigene je Welt
   function hindernisNeu(ab, s, setze, schwer, vorher) {
-    const r = Math.random();
-    let typ, spuren = [-1, 0, 1];
-    const kloetzeWahr = .22 + .12 * schwer;
-    if (r < kloetzeWahr) {
-      typ = "kloetze";
+    const extra = WELT_HINDERNISSE[ab.zone] || [];
+    let typ;
+    if (extra.length && Math.random() < .4) typ = wahl(extra);
+    else {
+      const r = Math.random(), kw = .22 + .12 * schwer;
+      typ = r < kw ? "kloetze" : r < kw + .25 ? "ball" : r < kw + .42 ? "balken" : r < kw + .55 ? "pfuetze" : "stange";
+    }
+    if (vorher && vorher.art === "block" && ART[typ] === "block") typ = "balken";   // nie zwei Sperren direkt hintereinander
+    let spuren = [-1, 0, 1], mesh = null, bew = null;
+    if (typ === "kloetze") {
       const zwei = Math.random() < .25 + .4 * schwer;
       spuren = [-1, 0, 1].sort(() => Math.random() - .5).slice(0, zwei ? 2 : 1);
-      // nach Bauklötzen muss die freie Spur erreichbar bleiben: dieselbe freie Spur wie vorher
-      if (vorher && vorher.typ === "kloetze") {
-        const frei = [-1, 0, 1].filter(x => !vorher.spuren.includes(x));
-        spuren = spuren.filter(x => x !== frei[0]);
-        if (!spuren.length) spuren = [-1, 0, 1].filter(x => x !== frei[0]).slice(0, 1);
-      }
       for (const sp of spuren) setze(W.hindernis("kloetze"), s, sp * SPUR);
-    } else if (r < kloetzeWahr + .25) {
-      typ = "ball"; spuren = [wahl([-1, 0, 1])];
-      setze(W.hindernis("ball"), s, spuren[0] * SPUR);
-    } else if (r < kloetzeWahr + .42) {
-      typ = "balken"; setze(W.hindernis("balken", 2 * H - .3), s, 0);
-    } else if (r < kloetzeWahr + .55) {
-      typ = "pfuetze"; setze(W.hindernis("pfuetze", 2 * H), s, 0);
-    } else {
-      typ = "stange"; setze(W.hindernis("stange", 2 * H - .2), s, 0);   // Turnstange quer: ducken
-    }
-    const h = { nr: ab.nr, s, typ, spuren, getroffen: false };
+    } else if (typ === "ball" || typ === "heuballen" || typ === "schneeball") {
+      spuren = [wahl([-1, 0, 1])];
+      mesh = setze(typ === "ball" ? W.hindernis("ball") : W.weltHindernis(typ), s, spuren[0] * SPUR);
+      if (typ !== "ball") bew = { vs: typ === "heuballen" ? 3 : 4.5, weg: 0, max: 7 };   // rollt auf Fröbelinchen zu
+    } else if (typ === "huhn" || typ === "enten") {
+      const von = wahl([-1, 1]), x = von * (H - .4);
+      mesh = setze(W.weltHindernis(typ), s, x);
+      bew = { vx: -von * (typ === "huhn" ? 1.7 : 1.1), x };                              // läuft quer über den Weg
+      spuren = [Math.round(x / SPUR)];
+    } else if (typ === "laub" || typ === "eis") {
+      setze(W.weltHindernis(typ, 2 * H), s, 0);
+    } else if (typ === "balken") setze(W.hindernis("balken", 2 * H - .3), s, 0);
+    else if (typ === "pfuetze") setze(W.hindernis("pfuetze", 2 * H), s, 0);
+    else setze(W.hindernis("stange", 2 * H - .2), s, 0);   // Turnstange quer: ducken
+    const h = { nr: ab.nr, ab, s, typ, art: ART[typ], hoehe: HOEHE[typ] || 0, tiefe: typ === "eis" ? 1.5 : .55, spuren, mesh, bew, getroffen: false };
     hindernisse.push(h);
-    // Sterne in einer freien Spur hinter dem Hindernis
-    const frei = [-1, 0, 1].filter(sp => typ !== "kloetze" || !spuren.includes(sp));
-    const sp = wahl(frei);
-    for (let i = 0; i < 4; i++) {
-      const ds = s + 3 + i * 1.3; if (ds > ab.L - 4) break;
-      const m = setze(W.stern(), ds, sp * SPUR, .9);
-      sterne.push({ nr: ab.nr, s: ds, spur: sp, mesh: m, weg: false });
-    }
+    sterneLegen(ab, s, setze, h);
     return h;
+  }
+
+  // Sterne in Mustern: Bogen über Sprung-Hindernisse (nur im Sprung erreichbar), Zickzack oder gerade Reihe
+  function sterneLegen(ab, s, setze, h) {
+    const legen = (ds, sp, hoehe) => {
+      if (ds > ab.L - 4 || ds < 2) return;
+      const m = setze(W.stern(), ds, sp * SPUR, hoehe);
+      sterne.push({ nr: ab.nr, s: ds, spur: sp, h: hoehe, mesh: m, weg: false });
+    };
+    const ganzBreit = h.spuren.length === 3 && !h.bew;
+    if (h.art === "niedrig" && ganzBreit && Math.random() < .6) {
+      const sp = wahl([-1, 0, 1]);
+      for (let i = -2; i <= 2; i++) legen(s + i * 1.1, sp, .9 + 1.3 * (1 - (i * i) / 4));
+    } else if (Math.random() < .3) {
+      const folge = wahl([[-1, 0, 1, 0, -1, 0], [1, 0, -1, 0, 1, 0]]);
+      folge.forEach((sp, i) => legen(s + 3.5 + i * 1.7, sp, .9));
+    } else {
+      const frei = [-1, 0, 1].filter(sp => h.art !== "block" || !h.spuren.includes(sp));
+      const sp = wahl(frei);
+      for (let i = 0; i < 4; i++) legen(s + 3 + i * 1.3, sp, .9);
+    }
   }
 
   function abschnittWeg(ab) {
@@ -255,10 +280,10 @@ if (rahmen) {
     teilchen = [];
     abschnitte = []; hindernisse = []; sterne = []; booster = [];
     aktZone = 0; W.zoneWechsel(0, true);
-    Object.assign(B, { turbo: 0, schild: 0, ruhe: 0, schubs: null });
+    Object.assign(B, { turbo: 0, schild: 0, ruhe: 0, magnet: 0, doppelt: 0, schubs: null });
     Object.assign(R, { booster: 0, schubs: 0, welt: 0, zeit: 0 });
     tempo = START_TEMPO; punkte = 0; sternZahl = 0; strecke = 0; wackeln = 0; schlussSzene = null;
-    Object.assign(S, { idx: 0, s: 0, spur: 0, x: 0, y: 0, vy: 0, duck: 0, abbiegen: 0, stolper: 0, sprungPuffer: 0 });
+    Object.assign(S, { idx: 0, s: 0, spur: 0, x: 0, y: 0, vy: 0, duck: 0, abbiegen: 0, stolper: 0, sprungPuffer: 0, eis: 0, lande: 0 });
     Object.assign(A, { nah: false, zeit: 0, abstand: 16, bis: 5 });
     spieler.koerper.rotation.set(0, 0, 0);
     tipps.clear();
@@ -529,6 +554,8 @@ if (rahmen) {
     R.booster++; T.booster();
     if (typ === "turbo") { B.turbo = 6; meldung("Turbo!", "Fröbelinchen rennt schneller"); }
     else if (typ === "schild") { B.schild = 5; meldung("Schutzschild!", "5 Sekunden unverwundbar"); }
+    else if (typ === "magnet") { B.magnet = 8; meldung("Sterne-Magnet!", "Alle Sterne fliegen zu dir"); }
+    else if (typ === "doppelt") { B.doppelt = 10; meldung("Doppelte Punkte!", "10 Sekunden lang alles ×2"); }
     else if (!B.schubs) { B.schubs = { t: 0, umfallen: 0, getroffen: false }; A.nah = true; A.zeit = 99; meldung("Schubs-Booster!", "Hol sie dir, Fröbelinchen!"); }
   }
 
@@ -543,6 +570,8 @@ if (rahmen) {
   function hudZeigen() {
     let t = `${Math.floor(punkte)} Punkte · ★ ${sternZahl}`;
     if (B.turbo > 0) t += ` · ⚡ ${Math.ceil(B.turbo)}`;
+    if (B.magnet > 0) t += ` · 🧲 ${Math.ceil(B.magnet)}`;
+    if (B.doppelt > 0) t += ` · ×2 ${Math.ceil(B.doppelt)}`;
     if (B.schild > 0) t += ` · 🛡 ${Math.ceil(B.schild)}`;
     if (B.ruhe > 0) t += ` · Ruhe ${Math.ceil(B.ruhe)}`;
     if (hud.textContent !== t) hud.textContent = t;
@@ -556,7 +585,8 @@ if (rahmen) {
     if (tutorialFertig) return;
     const vor = hindernisse.find(o => o.nr === S.idx && o.s > S.s && o.s - S.s < 11);
     if (vor) {
-      const art = vor.typ === "stange" ? "runter" : vor.typ === "kloetze" ? "seite" : "hoch";
+      const art = vor.art === "hoch" ? "runter" : vor.art === "block" ? "seite" : vor.art === "eis" ? null : "hoch";
+      if (art)
       if (!tipps.has(art)) { tipps.add(art); meldung("Tipp", T_TEXT[art]); }
     }
     if (ab.L - S.s < 15 && !tipps.has("ecke" + ab.nr) && tipps.size < 6) { tipps.add("ecke" + ab.nr); meldung("Tipp", T_TEXT.ecke(ab.dreh)); }
@@ -578,9 +608,10 @@ if (rahmen) {
   function schritt(dt) {
     tempo = Math.min(MAX_TEMPO, tempo + BESCHL * dt); R.zeit += dt;
     const v = tempo * (S.stolper > 0 ? .6 : 1) * (B.turbo > 0 ? 1.35 : 1);
-    for (const k of ["turbo", "schild", "ruhe"]) B[k] = Math.max(0, B[k] - dt);
+    for (const k of ["turbo", "schild", "ruhe", "magnet", "doppelt"]) B[k] = Math.max(0, B[k] - dt);
+    const faktor = B.doppelt > 0 ? 2 : 1;
     const unverwundbar = B.schild > 0 || !!B.schubs;
-    S.s += v * dt; strecke += v * dt; punkte += v * dt;
+    S.s += v * dt; strecke += v * dt; punkte += v * dt * faktor;
     S.stolper = Math.max(0, S.stolper - dt);
 
     let ab = abschnitte.find(a => a.nr === S.idx);
@@ -594,31 +625,65 @@ if (rahmen) {
     while (abschnitte[abschnitte.length - 1].nr < S.idx + 3) abschnittNeu();
     while (abschnitte[0].nr < S.idx - 1) abschnittWeg(abschnitte.shift());
 
-    S.x += (S.spur * SPUR - S.x) * Math.min(1, dt * 12);
+    S.x += (S.spur * SPUR - S.x) * Math.min(1, dt * (S.eis > 0 ? 2.5 : 12));   // auf Eis lenkt es sich träger
+    S.eis = Math.max(0, S.eis - dt);
+    const warOben = S.y > 0;
     S.vy -= G * dt; S.y = Math.max(0, S.y + S.vy * dt);
+    if (warOben && S.y === 0) S.lande = .22;                                     // kurz einfedern
     if (S.y === 0) { S.vy = 0; if (S.sprungPuffer > 0) springen(); }
     S.sprungPuffer = Math.max(0, S.sprungPuffer - dt);
     S.duck = Math.max(0, S.duck - dt);
     tutorialSchritt(ab);
 
+    // Bewegte Hindernisse: rollen auf Fröbelinchen zu oder laufen quer über den Weg, sobald sie in Sicht kommen
+    for (const h of hindernisse) {
+      if (!h.bew || h.nr !== S.idx || h.s - S.s > 30 || h.s < S.s - 5) continue;
+      if (h.bew.vs && h.bew.weg < h.bew.max) {
+        const d = h.bew.vs * dt; h.s -= d; h.bew.weg += d;
+        h.mesh.userData.rolle.rotation.x += d / h.mesh.userData.radius;
+      }
+      if (h.bew.vx) {
+        h.bew.x += h.bew.vx * dt; if (Math.abs(h.bew.x) > H - .3) h.bew.vx *= -1;
+        const breite = h.typ === "enten" ? .7 : .25;
+        h.spuren = [...new Set([Math.round((h.bew.x - breite) / SPUR), Math.round((h.bew.x + breite) / SPUR)])].filter(x => x >= -1 && x <= 1);
+        h.mesh.rotation.y = -h.ab.h * Math.PI / 2 + (h.bew.vx > 0 ? -Math.PI / 2 : Math.PI / 2);
+      }
+      const [hx, hz] = punkt(h.ab, h.s, h.bew.vx ? h.bew.x : h.spuren[0] * SPUR);
+      h.mesh.position.x = hx; h.mesh.position.z = hz;
+    }
+
     // Zusammenstöße
     for (const h of hindernisse) {
-      if (h.getroffen || unverwundbar || h.nr !== S.idx || Math.abs(h.s - S.s) > .55) continue;
+      if (h.getroffen || h.nr !== S.idx || Math.abs(h.s - S.s) > h.tiefe) continue;
       const spur = Math.round(S.x / SPUR);
       if (!h.spuren.includes(spur)) continue;
-      if (h.typ === "kloetze") { h.getroffen = true; verlieren("Bumm, Bauklötze! Wechsel die Spur.", "kloetze"); return; }
-      const trifft = h.typ === "stange" ? S.duck <= 0 : S.y < (h.typ === "ball" ? .75 : h.typ === "balken" ? .45 : .15);
+      if (h.art === "eis") {
+        h.getroffen = true; S.eis = 1.5; T.spur();
+        if (!tipps.has("eis")) { tipps.add("eis"); meldung("Glatteis!", "Lenken geht kurz langsamer"); }
+        continue;
+      }
+      if (unverwundbar) continue;
+      if (h.art === "block") { h.getroffen = true; verlieren(h.typ === "heuballen" ? "Uff, ein Heuballen! Weich ihm aus." : "Bumm, Bauklötze! Wechsel die Spur.", "kloetze"); return; }
+      const trifft = h.art === "hoch" ? S.duck <= 0 : S.y < h.hoehe;
       if (trifft) { h.getroffen = true; stolpern(); if (zustand !== "laeuft") return; }
     }
-    for (const st of sterne) {
-      if (st.weg || st.nr !== S.idx || Math.abs(st.s - S.s) > .8 || Math.round(S.x / SPUR) !== st.spur) continue;
-      st.weg = true; st.mesh.visible = false; sternZahl++; punkte += 10; funkeln(st.mesh.position, "#ffe066", 8);
+    // Sterne: hohe Sterne gibt es nur im Sprung, mit Magnet fliegen alle Sterne vor einem heran
+    const einsammeln = (st) => {
+      st.weg = true; st.mesh.visible = false; sternZahl++; punkte += 10 * faktor; funkeln(st.mesh.position, "#ffe066", 8);
       T.stern(sternZahl); hud.classList.remove("hupf"); void hud.offsetWidth; hud.classList.add("hupf");
+    };
+    for (const st of sterne) {
+      if (st.weg || st.nr !== S.idx) continue;
+      const vor = st.s - S.s;
+      if (B.magnet > 0 && vor > -.5 && vor < 9) { if (vor < 1.2) einsammeln(st); else st.zieht = true; continue; }
+      if (Math.abs(vor) > .8 || Math.round(S.x / SPUR) !== st.spur) continue;
+      if (Math.abs(S.y + .9 - (st.h || .9)) > 1) continue;
+      einsammeln(st);
     }
     for (const bo of booster) {
       if (bo.weg || bo.nr !== S.idx || Math.abs(bo.s - S.s) > .9 || Math.round(S.x / SPUR) !== bo.spur) continue;
       bo.weg = true; bo.mesh.visible = false; boosterNehmen(bo.typ);
-      funkeln(bo.mesh.position, { turbo: "#ffcc33", schild: "#6ec6ff", schubs: "#ff7aa2" }[bo.typ], 18);
+      funkeln(bo.mesh.position, { turbo: "#ffcc33", schild: "#6ec6ff", schubs: "#ff7aa2", magnet: "#ff6b6b", doppelt: "#c58cff" }[bo.typ], 18);
     }
 
     // Anja: kommt am Anfang nach 5 s, danach alle 15–22 s, und wenn man stolpert; ihre Schritte werden lauter, je näher sie ist
@@ -689,7 +754,14 @@ if (rahmen) {
     blase.visible = B.schild > 0 && (B.schild > 1 || Math.floor(B.schild * 8) % 2 === 0);
     if (blase.visible) blase.scale.setScalar(1 + Math.sin(performance.now() / 180) * .03);
     // Ducken: Hals nach vorn und in die Hocke (von den Hufen aus gestaucht, damit sie auf dem Boden bleibt)
-    g.scale.y += ((S.duck > 0 ? .8 : 1) - g.scale.y) * Math.min(1, dt * 20);
+    // Landen: kurz einfedern; Sprung nach oben: etwas strecken
+    S.lande = Math.max(0, S.lande - dt);
+    const feder = S.lande > 0 ? Math.sin(S.lande / .22 * Math.PI) * .16 : 0, streck = S.y > 0 && S.vy > 0 ? .06 : 0;
+    g.scale.y += ((S.duck > 0 ? .8 : 1) - feder + streck - g.scale.y) * Math.min(1, dt * 20);
+    g.scale.x = g.scale.z = 1 + feder * .5;
+    // Fang-Szene: Anja hebt Fröbelinchen hoch
+    const hebe = fang && schlussSzene.t > .6 ? Math.min(1, (schlussSzene.t - .6) / .5) : 0;
+    if (hebe) { g.position.y = hebe * .9; spieler.beine.forEach((b, i) => { b.oben.rotation.x = Math.sin(schlussSzene.t * 9 + i) * .35; b.unten.rotation.x = -.3; }); }
     spieler.schwanz.rotation.z = Math.sin(S.lauf * .5) * .3; spieler.schwanz.rotation.x = .25 + Math.sin(S.lauf) * .15;
 
     // Anja läuft hinter Fröbelinchen auf demselben Weg
@@ -705,7 +777,7 @@ if (rahmen) {
       b.oben.rotation.x = Math.sin(ph) * .75; b.unten.rotation.x = -Math.max(0, Math.sin(ph + 1.6)) * 1.35;
     });
     anja.arme.forEach((a, i) => {
-      if (fang) { a.oben.rotation.x = 1.5; a.unten.rotation.x = .3; a.oben.rotation.z = (i ? -1 : 1) * -.25; return; }   // Arme nach vorn: Umarmung
+      if (fang) { const h2 = schlussSzene.t > .6 ? Math.min(1, (schlussSzene.t - .6) / .5) : 0; a.oben.rotation.x = 1.5 + h2 * 1.1; a.unten.rotation.x = .3 - h2 * .3; a.oben.rotation.z = (i ? -1 : 1) * -.25; return; }   // erst umarmen, dann hochheben
       const ph = A.lauf + i * Math.PI;
       a.oben.rotation.x = -Math.sin(ph) * .7; a.unten.rotation.x = 1.1 + Math.sin(ph) * .25;
     });
@@ -721,7 +793,15 @@ if (rahmen) {
     });
     anja.zopf.rotation.x = .2 + Math.sin(A.lauf * 2) * .3;
 
-    for (const st of sterne) st.mesh.rotation.y += dt * 3;
+    for (const st of sterne) {
+      st.mesh.rotation.y += dt * 3;
+      if (st.zieht && !st.weg) st.mesh.position.lerp(new THREE.Vector3(g.position.x, g.position.y + 1, g.position.z), Math.min(1, dt * 9));
+    }
+    const tz = performance.now() / 1000;
+    for (const h of hindernisse) {                    // Huhn und Enten watscheln
+      const hp = h.mesh && h.mesh.userData.huepf; if (!hp) continue;
+      (Array.isArray(hp) ? hp : [hp]).forEach((k, i) => { k.position.y = Math.abs(Math.sin(tz * 11 + i)) * .06; k.rotation.z = Math.sin(tz * 11 + i) * .12; });
+    }
     for (const bo of booster) { bo.mesh.userData.innen.rotation.y += dt * 3; bo.mesh.position.y = 1.05 + Math.sin(performance.now() / 300 + bo.s) * .1; }
     kamera.fov += (((kamera.aspect < .8 ? 72 : 62) + (B.turbo > 0 ? 8 : 0)) - kamera.fov) * Math.min(1, dt * 3); kamera.updateProjectionMatrix();
     W.bodenFolgen(px, pz);   // Bodenmuster bleibt am Ort, obwohl die Fläche mitwandert
@@ -739,7 +819,9 @@ if (rahmen) {
     else kamYaw = kamPos ? winkel(kamYaw, yaw, Math.min(1, dt * 5)) : yaw;
     const sin = Math.sin(kamYaw), cos = Math.cos(kamYaw);
     const hoch = kamera.aspect < .8;   // Handy hochkant: höher und steiler, sonst ist oben nur Himmel
-    const ziel2 = new THREE.Vector3(px + sin * (hoch ? 7.5 : 7), hoch ? 6.2 : 4.6, pz + cos * (hoch ? 7.5 : 7));
+    const kurve = fang ? 0 : Math.min(1, Math.abs(Math.atan2(Math.sin(yaw - kamYaw), Math.cos(yaw - kamYaw))) / (Math.PI / 2));
+    const abst = (hoch ? 7.5 : 7) - kurve * 3.2, kh = (hoch ? 6.2 : 4.6) + kurve * 1.6;   // in Kurven näher und höher: nicht durch die Hecke
+    const ziel2 = new THREE.Vector3(px + sin * abst, kh, pz + cos * abst);
     if (!kamPos) kamPos = ziel2.clone(); else kamPos.lerp(ziel2, Math.min(1, dt * 8));
     kamera.position.copy(kamPos);
     if (wackeln > 0) { wackeln = Math.max(0, wackeln - dt); kamera.position.x += (Math.random() - .5) * wackeln * .6; kamera.position.y += (Math.random() - .5) * wackeln * .4; }

@@ -403,6 +403,46 @@ export function welt(T, handy) {
     }
     return g;
   }
+  // ---------- Hindernisse der einzelnen Welten ----------
+  const H_MAT = {
+    huhn: std({ color: "#fbfaf4", roughness: .8 }), kamm: std({ color: "#e0302c", roughness: .6 }), schnabel: std({ color: "#f4a21c", roughness: .5 }),
+    ente: std({ color: "#ffd84a", roughness: .6 }), schnee: std({ color: "#f6f9fc", roughness: .7 }), schwarz: std({ color: "#1d1d1d", roughness: .4 }),
+    laub: ["#d2691e", "#e8a33d", "#b33a1f", "#f2c14e", "#9c4a1a"].map(c => std({ color: c, roughness: .9 })),
+    eis: std({ color: "#bfe4ff", roughness: .05, metalness: .3, transparent: true, opacity: .75, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 }),
+  };
+  function weltHindernis(typ, breite) {
+    const g = new T.Group();
+    if (typ === "heuballen" || typ === "schneeball") {     // rollt auf Fröbelinchen zu (Drehung um die Querachse)
+      const r = typ === "heuballen" ? .7 : .5;
+      const rolle = gelenk(g, 0, r, 0); g.userData.rolle = rolle; g.userData.radius = r;
+      if (typ === "heuballen") { const k = teil(zyl(r, r, 1.15, 22), M.heu, rolle); k.rotation.z = Math.PI / 2; }
+      else teil(kugel, H_MAT.schnee, rolle).scale.setScalar(r);
+    } else if (typ === "huhn") {
+      const k = gelenk(g, 0, 0, 0); g.userData.huepf = k;
+      teil(kugel, H_MAT.huhn, k, 0, .32, .02).scale.set(.2, .2, .26);
+      teil(kugel, H_MAT.huhn, k, 0, .55, -.15).scale.setScalar(.12);
+      teil(kiste(.03, .08, .12), H_MAT.kamm, k, 0, .69, -.14);
+      teil(kegel(.04, .1, 8), H_MAT.schnabel, k, 0, .54, -.29).rotation.x = -Math.PI / 2;
+      for (const sx of [-1, 1]) { teil(zyl(.015, .015, .2, 6), H_MAT.schnabel, k, sx * .07, .1, .02); teil(kugel, H_MAT.schwarz, k, sx * .06, .58, -.24).scale.setScalar(.018); }
+    } else if (typ === "enten") {                              // Mama Ente mit zwei Küken hintereinander
+      g.userData.huepf = [];
+      [[0, 1], [.55, .65], [1.0, .6]].forEach(([z, f]) => {
+        const e = gelenk(g, 0, 0, z); g.userData.huepf.push(e);
+        teil(kugel, H_MAT.ente, e, 0, .2 * f, 0).scale.set(.18 * f, .15 * f, .26 * f);
+        teil(kugel, H_MAT.ente, e, 0, .4 * f, -.17 * f).scale.setScalar(.11 * f);
+        teil(kegel(.05 * f, .1 * f, 8), H_MAT.schnabel, e, 0, .38 * f, -.3 * f).rotation.x = -Math.PI / 2;
+      });
+    } else if (typ === "laub") {                               // Laubhaufen über die ganze Breite: drüberspringen
+      for (let i = 0; i < 16; i++) {
+        const k = teil(kugel, wahl(H_MAT.laub), g, zufall(-breite / 2 + .3, breite / 2 - .3), .1, zufall(-.35, .35));
+        k.scale.set(zufall(.35, .6), zufall(.2, .4), zufall(.3, .5));
+      }
+    } else if (typ === "eis") {                                // glatte Eisfläche: man lenkt kurz langsamer
+      const k = new T.Mesh(new T.PlaneGeometry(breite, 3).rotateX(-Math.PI / 2), H_MAT.eis); k.position.y = .06; k.receiveShadow = true; g.add(k);
+    }
+    return g;
+  }
+
   function stern() { const k = new T.Mesh(geo.stern, mat.stern); k.castShadow = true; return k; }
 
   // Schildkrötenpanzer zum Einsammeln: gewölbt, Sechseck-Platten, heller Rand
@@ -436,6 +476,12 @@ export function welt(T, handy) {
   const boosterArt = {
     turbo: ["#ffb300", (g) => { g.beginPath(); [[70, 14], [34, 70], [60, 70], [50, 114], [94, 52], [66, 52], [80, 14]].forEach(([x, y], i) => g[i ? "lineTo" : "moveTo"](x, y)); g.closePath(); g.fill(); }],
     schild: ["#2f8be0", (g) => { g.beginPath(); g.moveTo(64, 18); g.lineTo(100, 32); g.quadraticCurveTo(98, 88, 64, 112); g.quadraticCurveTo(30, 88, 28, 32); g.closePath(); g.fill(); }],
+    magnet: ["#e53935", (g) => {
+      g.lineWidth = 16; g.strokeStyle = "#fff"; g.beginPath(); g.arc(64, 58, 26, Math.PI, 0, true); g.stroke();
+      g.fillStyle = "#fff"; g.fillRect(30, 58, 16, 30); g.fillRect(82, 58, 16, 30);
+      g.fillStyle = "#bdbdbd"; g.fillRect(30, 80, 16, 10); g.fillRect(82, 80, 16, 10);
+    }],
+    doppelt: ["#8e24aa", (g) => { g.font = "bold 58px Arial, sans-serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText("×2", 64, 68); }],
     schubs: ["#e8577a", (g) => {
       g.beginPath();
       for (let i = 0; i < 16; i++) { const r = i % 2 ? 26 : 50, a = i / 16 * Math.PI * 2; g[i ? "lineTo" : "moveTo"](64 + Math.cos(a) * r, 64 + Math.sin(a) * r); }
@@ -950,6 +996,6 @@ export function welt(T, handy) {
   }
   const luft = new T.Group(); luft.add(wetter, voegel);
 
-  return { entsorgen, pfeilSchild, bodenPfeil, AUSSTATTUNG, ausstattungSetzen, zonen: ZONEN, zoneFuer, dekoFuer, heckeFuer, blumenFuer, bodenFlaeche, bodenFolgen, verbinden, zoneWechsel, zoneSchritt,
+  return { weltHindernis, entsorgen, pfeilSchild, bodenPfeil, AUSSTATTUNG, ausstattungSetzen, zonen: ZONEN, zoneFuer, dekoFuer, heckeFuer, blumenFuer, bodenFlaeche, bodenFolgen, verbinden, zoneWechsel, zoneSchritt,
     animieren, wetterSchritt, voegelSchritt, luft, mat, geo, giraffeBauen, anjaBauen, boden, heckenStueck, blumen, ferne, sonnenScheibe, funke, staub, kante, dekoNeu, hindernis, stern, panzer, booster, blase, himmel, wolken, gras };
 }

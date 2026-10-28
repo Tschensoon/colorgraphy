@@ -174,6 +174,8 @@
     } finally { knopf.disabled = false; }
   });
   bestenlisteLaden();
+  // Offline spielbar (z. B. als App auf dem Startbildschirm): Dateien werden im Browser gemerkt, siehe sw.js
+  if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
 
   // Spielauswahl oben: am Handy öffnet die Karte das Spiel im Vollbild, am PC springt die Seite zum Spiel
   window.froebelSpringen = { oeffnen() { if (handy) vollbildAn(); else rahmen.scrollIntoView({ behavior: "smooth", block: "center" }); } };
