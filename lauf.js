@@ -22,7 +22,7 @@ if (rahmen) {
     new IntersectionObserver((e, b) => { if (e.some(x => x.isIntersecting)) { b.disconnect(); laden(); } }, { rootMargin: "300px" }).observe(rahmen);
   }
   function laden() {
-    if (!bereit) bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=1")])
+    if (!bereit) bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=2")])
       .then(([m, w]) => { THREE = m; aufbauen(w); });
     return bereit;
   }
@@ -32,8 +32,11 @@ if (rahmen) {
   const START_TEMPO = 9, MAX_TEMPO = 21, BESCHL = .1;
   const SPRUNG = 7.2, G = 22, DUCKEN = .75;
   let renderer, szene, kamera, uhr, boden, spieler, anja;
-  let abschnitte = [], hindernisse = [], sterne = [];
-  let zustand = "start", tempo, punkte, sternZahl, strecke, rekord = 0;
+  let abschnitte = [], hindernisse = [], panzer = [], booster = [];
+  // Booster-Zeiten in Sekunden; schubs = laufende Szene, in der Fröbelinchen Anja wegschubst
+  const B = { turbo: 0, schild: 0, ruhe: 0, schubs: null };
+  let blase, sternchen = [];
+  let zustand = "start", tempo, punkte, panzerZahl, strecke, rekord = 0;
   const S = { idx: 0, s: 0, spur: 0, x: 0, y: 0, vy: 0, duck: 0, abbiegen: 0, stolper: 0, lauf: 0 };
   const A = { nah: false, zeit: 0, abstand: 16, bis: 5, lauf: 0 };
   try { rekord = +localStorage.getItem("froebelinchen-rennt-rekord") || 0; } catch (e) {}
@@ -77,6 +80,8 @@ if (rahmen) {
     boden.rotation.x = -Math.PI / 2; boden.position.y = -.02; boden.receiveShadow = true; szene.add(boden);
     spieler = W.giraffeBauen(); szene.add(spieler.gruppe);
     anja = W.anjaBauen(); szene.add(anja.gruppe);
+    blase = W.blase(); spieler.gruppe.add(blase);
+    sternchen = [0, 1, 2].map(() => { const st = W.stern(); st.scale.setScalar(.45); st.visible = false; szene.add(st); return st; });
     neu();
     groesse(); new ResizeObserver(groesse).observe(huelle);
     renderer.setAnimationLoop(bild);
@@ -126,6 +131,15 @@ if (rahmen) {
       hindernisNeu(ab, s, setze);
       s += zufall(10, 16) * Math.min(1.4, tempo / START_TEMPO * .9 + .2);
     }
+    // Ab und zu ein Booster an einer freien Stelle
+    if (nr > 0 && Math.random() < .5) {
+      const bs = zufall(14, L - 14);
+      if (!hindernisse.some(h => h.nr === nr && Math.abs(h.s - bs) < 4)) {
+        const r = Math.random(), typ = r < .4 ? "turbo" : r < .75 ? "schild" : "schubs";
+        const sp = [-1, 0, 1][Math.floor(Math.random() * 3)];
+        booster.push({ nr, s: bs, spur: sp, typ, mesh: setze(W.booster(typ), bs, sp * SPUR, 1.05), weg: false });
+      }
+    }
     // Kita-Welt neben dem Weg
     for (let d = 10; d < L - 10; d += zufall(10, 16)) {
       const seite = Math.random() < .5 ? -1 : 1;
@@ -151,20 +165,21 @@ if (rahmen) {
       typ = "stange"; setze(W.hindernis("stange", 2 * H - .2), s, 0);   // Turnstange quer: ducken
     }
     hindernisse.push({ nr: ab.nr, s, typ, spuren, getroffen: false });
-    // Sterne in einer freien Spur hinter dem Hindernis
+    // Panzer in einer freien Spur hinter dem Hindernis
     const frei = [-1, 0, 1].filter(sp => typ !== "kloetze" || !spuren.includes(sp));
     const sp = frei[Math.floor(Math.random() * frei.length)];
     for (let i = 0; i < 4; i++) {
       const ds = s + 3 + i * 1.3; if (ds > ab.L - 4) break;
-      const m = setze(W.stern(), ds, sp * SPUR, .9);
-      sterne.push({ nr: ab.nr, s: ds, spur: sp, mesh: m, weg: false });
+      const m = setze(W.panzer(), ds, sp * SPUR, .55);
+      panzer.push({ nr: ab.nr, s: ds, spur: sp, mesh: m, weg: false });
     }
   }
 
   function neu() {
     for (const ab of abschnitte) szene.remove(ab.gruppe);
-    abschnitte = []; hindernisse = []; sterne = [];
-    tempo = START_TEMPO; punkte = 0; sternZahl = 0; strecke = 0;
+    abschnitte = []; hindernisse = []; panzer = []; booster = [];
+    Object.assign(B, { turbo: 0, schild: 0, ruhe: 0, schubs: null });
+    tempo = START_TEMPO; punkte = 0; panzerZahl = 0; strecke = 0;
     Object.assign(S, { idx: 0, s: 0, spur: 0, x: 0, y: 0, vy: 0, duck: 0, abbiegen: 0, stolper: 0 });
     Object.assign(A, { nah: false, zeit: 0, abstand: 16, bis: 5 });
     while (abschnitte.length < 4) abschnittNeu();
@@ -234,31 +249,57 @@ if (rahmen) {
     const p = Math.floor(punkte);
     if (p > rekord) { rekord = p; try { localStorage.setItem("froebelinchen-rennt-rekord", rekord); } catch (e) {} }
     ueberTitel.textContent = grund;
-    ueberText.textContent = `${p} Punkte · ${sternZahl} Sterne · Rekord ${rekord}`;
+    ueberText.textContent = `${p} Punkte · ${panzerZahl} Panzer · Rekord ${rekord}`;
     losKnopf.textContent = "Nochmal";
     ueber.hidden = false;
   }
 
-  function warnen() {
+  // Einblendung oben im Bild (Warnung vor Anja, Booster)
+  function meldung(oben, unten) {
+    warnung.querySelector("strong").textContent = oben; warnung.querySelector("span").textContent = unten;
     warnung.classList.remove("an"); void warnung.offsetWidth; warnung.classList.add("an");
   }
   function anjaKommt(dauer) {
-    A.nah = true; A.zeit = dauer; warnen();
+    if (B.ruhe > 0 || B.schubs) return;           // nach dem Schubser hat man Ruhe
+    A.nah = true; A.zeit = dauer; meldung("Achtung, Anja kommt!", "Lauf schneller!");
   }
   function stolpern() {
     if (A.nah && A.abstand < 7) { ende("Anja hat dich erwischt!"); return; }
     S.stolper = .5; tempo = Math.max(START_TEMPO, tempo * .85);
     anjaKommt(6);
   }
+  function boosterNehmen(typ) {
+    if (typ === "turbo") { B.turbo = 6; meldung("Turbo!", "Fröbelinchen rennt schneller"); }
+    else if (typ === "schild") { B.schild = 5; meldung("Schutzschild!", "5 Sekunden unverwundbar"); }
+    else if (!B.schubs) { B.schubs = { t: 0, umfallen: 0, getroffen: false }; A.nah = true; A.zeit = 99; meldung("Schubs-Booster!", "Hol sie dir, Fröbelinchen!"); }
+  }
 
   function hudZeigen() {
-    hud.textContent = `${Math.floor(punkte)} Punkte · ★ ${sternZahl}`;
+    let t = `${Math.floor(punkte)} Punkte · 🐢 ${panzerZahl}`;
+    if (B.turbo > 0) t += ` · ⚡ ${Math.ceil(B.turbo)}`;
+    if (B.schild > 0) t += ` · 🛡 ${Math.ceil(B.schild)}`;
+    if (B.ruhe > 0) t += ` · Ruhe ${Math.ceil(B.ruhe)}`;
+    hud.textContent = t;
+  }
+
+  // Schubser: Anja holt auf, Fröbelinchen dreht sich um, schubst sie mit dem Kopf ins Gras und läuft weiter
+  function schubsSchritt(dt, v) {
+    const sc = B.schubs; sc.t += dt;
+    if (sc.t < .8) { A.abstand += (2.2 - A.abstand) * Math.min(1, dt * 6); return; }
+    if (!sc.getroffen) { sc.getroffen = true; meldung("Schubs!", "Anja plumpst hin · 10 s Ruhe"); }
+    sc.umfallen = Math.min(1, sc.umfallen + dt * 3);
+    A.abstand += v * dt;                               // sie bleibt liegen, Fröbelinchen läuft davon
+    if (sc.t > 1.6 && A.abstand > 16) {
+      B.schubs = null; B.ruhe = 10; A.nah = false; A.zeit = 0; A.bis = 10 + zufall(5, 10);
+    }
   }
 
   // ---------- Spielschritt ----------
   function schritt(dt) {
     tempo = Math.min(MAX_TEMPO, tempo + BESCHL * dt);
-    const v = tempo * (S.stolper > 0 ? .6 : 1);
+    const v = tempo * (S.stolper > 0 ? .6 : 1) * (B.turbo > 0 ? 1.35 : 1);
+    for (const k of ["turbo", "schild", "ruhe"]) B[k] = Math.max(0, B[k] - dt);
+    const unverwundbar = B.schild > 0 || !!B.schubs;
     S.s += v * dt; strecke += v * dt; punkte += v * dt;
     S.stolper = Math.max(0, S.stolper - dt);
 
@@ -273,7 +314,7 @@ if (rahmen) {
     while (abschnitte[abschnitte.length - 1].nr < S.idx + 3) abschnittNeu();
     while (abschnitte[0].nr < S.idx - 1) {
       const alt = abschnitte.shift(); szene.remove(alt.gruppe);
-      hindernisse = hindernisse.filter(h => h.nr !== alt.nr); sterne = sterne.filter(s => s.nr !== alt.nr);
+      hindernisse = hindernisse.filter(h => h.nr !== alt.nr); panzer = panzer.filter(s => s.nr !== alt.nr); booster = booster.filter(b => b.nr !== alt.nr);
     }
 
     S.x += (S.spur * SPUR - S.x) * Math.min(1, dt * 12);
@@ -282,19 +323,24 @@ if (rahmen) {
 
     // Zusammenstöße
     for (const h of hindernisse) {
-      if (h.getroffen || h.nr !== S.idx || Math.abs(h.s - S.s) > .55) continue;
+      if (h.getroffen || unverwundbar || h.nr !== S.idx || Math.abs(h.s - S.s) > .55) continue;
       const spur = Math.round(S.x / SPUR);
       if (!h.spuren.includes(spur)) continue;
       if (h.typ === "kloetze") { h.getroffen = true; ende("Bumm, Bauklötze! Wechsel die Spur."); return; }
       const trifft = h.typ === "stange" ? S.duck <= 0 : S.y < (h.typ === "ball" ? .75 : h.typ === "balken" ? .45 : .15);
       if (trifft) { h.getroffen = true; stolpern(); if (zustand !== "laeuft") return; }
     }
-    for (const st of sterne) {
+    for (const st of panzer) {
       if (st.weg || st.nr !== S.idx || Math.abs(st.s - S.s) > .8 || Math.round(S.x / SPUR) !== st.spur) continue;
-      st.weg = true; st.mesh.visible = false; sternZahl++; punkte += 10;
+      st.weg = true; st.mesh.visible = false; panzerZahl++; punkte += 10;
+    }
+    for (const bo of booster) {
+      if (bo.weg || bo.nr !== S.idx || Math.abs(bo.s - S.s) > .9 || Math.round(S.x / SPUR) !== bo.spur) continue;
+      bo.weg = true; bo.mesh.visible = false; boosterNehmen(bo.typ);
     }
 
     // Anja: kommt am Anfang nach 5 s, danach alle 15–22 s, und wenn man stolpert
+    if (B.schubs) { schubsSchritt(dt, v); hudZeigen(); return; }
     A.bis -= dt;
     if (!A.nah && A.bis <= 0) anjaKommt(5);
     if (A.nah) { A.zeit -= dt; if (A.zeit <= 0) { A.nah = false; A.bis = zufall(15, 22); } }
@@ -316,8 +362,10 @@ if (rahmen) {
     const g = spieler.gruppe;
     const ziel = new THREE.Vector3(px, S.y, pz);
     if (!kamPos) g.position.copy(ziel); else g.position.lerp(ziel, Math.min(1, dt * 18));
-    g.rotation.y = winkel(g.rotation.y, yaw, Math.min(1, dt * 12));
-    if (lauft) S.lauf += dt * tempo * (A.nah ? 1.5 : 1.1);
+    // beim Schubser dreht sie sich kurz um (zu Anja nach hinten) und wieder zurück
+    const umdrehen = B.schubs ? Math.max(0, Math.sin(Math.min(1, Math.max(0, (B.schubs.t - .45) / 1.1)) * Math.PI)) : 0;
+    g.rotation.y = winkel(g.rotation.y, yaw + umdrehen * Math.PI, Math.min(1, dt * 12));
+    if (lauft) S.lauf += dt * tempo * (A.nah ? 1.5 : 1.1) * (B.turbo > 0 ? 1.35 : 1);
     spieler.beine.forEach((b, i) => {      // diagonal gleiche Beine, Knie knicken nach hinten
       const ph = S.lauf + (i === 0 || i === 3 ? 0 : Math.PI), vorn = i < 2;
       if (S.y > 0) { b.oben.rotation.x = vorn ? .6 : -.5; b.unten.rotation.x = vorn ? -1.2 : -.5; return; }
@@ -325,7 +373,10 @@ if (rahmen) {
       b.unten.rotation.x = -Math.max(0, Math.sin(ph + 1.5)) * .95;
     });
     spieler.koerper.position.y = S.y > 0 ? 0 : Math.abs(Math.sin(S.lauf)) * .04;
-    spieler.hals.rotation.x = S.duck > 0 ? -1.15 : (S.stolper > 0 ? Math.sin(S.stolper * 30) * .3 : 0);
+    const kopfnuss = B.schubs && B.schubs.t > .7 && B.schubs.t < 1.1 ? -Math.sin((B.schubs.t - .7) / .4 * Math.PI) * .9 : 0;
+    spieler.hals.rotation.x = S.duck > 0 ? -1.15 : (S.stolper > 0 ? Math.sin(S.stolper * 30) * .3 : kopfnuss);
+    blase.visible = B.schild > 0 && (B.schild > 1 || Math.floor(B.schild * 8) % 2 === 0);
+    if (blase.visible) blase.scale.setScalar(1 + Math.sin(performance.now() / 180) * .03);
     // Ducken: Hals nach vorn und in die Hocke (von den Hufen aus gestaucht, damit sie auf dem Boden bleibt)
     g.scale.y += ((S.duck > 0 ? .8 : 1) - g.scale.y) * Math.min(1, dt * 20);
     spieler.schwanz.rotation.z = Math.sin(S.lauf * .5) * .3; spieler.schwanz.rotation.x = .25 + Math.sin(S.lauf) * .15;
@@ -345,10 +396,21 @@ if (rahmen) {
       const ph = A.lauf + i * Math.PI;
       a.oben.rotation.x = -Math.sin(ph) * .7; a.unten.rotation.x = 1.1 + Math.sin(ph) * .25;
     });
-    anja.k.rotation.x = -.12; anja.k.position.y = Math.abs(Math.sin(A.lauf)) * .05;
+    const fall = B.schubs ? B.schubs.umfallen : 0;   // nach dem Schubser plumpst sie nach hinten ins Gras
+    anja.k.rotation.x = -.12 + fall * 1.45; anja.k.position.y = fall ? fall * .1 : Math.abs(Math.sin(A.lauf)) * .05;
+    if (fall) { anja.beine.forEach(b => { b.oben.rotation.x = -1.3 * fall; b.unten.rotation.x = 0; }); anja.arme.forEach((a, i) => { a.oben.rotation.x = -2.2 * fall; a.oben.rotation.z = (i ? -1 : 1) * .6 * fall; }); }
+    else anja.arme.forEach(a => { a.oben.rotation.z = 0; });
+    sternchen.forEach((st, i) => {                  // Sternchen kreisen über ihrem Kopf
+      st.visible = fall > .5;
+      if (!st.visible) return;
+      const w = performance.now() / 300 + i * Math.PI * 2 / 3, kopf = new THREE.Vector3(0, 1.75, .8).applyEuler(anja.gruppe.rotation).add(anja.gruppe.position);
+      st.position.set(kopf.x + Math.cos(w) * .35, .5 + Math.sin(w * 2) * .05, kopf.z + Math.sin(w) * .35); st.rotation.y = w * 2;
+    });
     anja.zopf.rotation.x = .2 + Math.sin(A.lauf * 2) * .3;
 
-    for (const st of sterne) st.mesh.rotation.y += dt * 3;
+    for (const st of panzer) st.mesh.rotation.y += dt * 2.2;
+    for (const bo of booster) { bo.mesh.userData.innen.rotation.y += dt * 3; bo.mesh.position.y = 1.05 + Math.sin(performance.now() / 300 + bo.s) * .1; }
+    kamera.fov += (((kamera.aspect < .8 ? 72 : 62) + (B.turbo > 0 ? 8 : 0)) - kamera.fov) * Math.min(1, dt * 3); kamera.updateProjectionMatrix();
     boden.position.set(px, -.02, pz);
     W.gras.offset.set(px / (400 / 90), -pz / (400 / 90));   // Grasmuster bleibt am Ort, obwohl die Fläche mitwandert
     sonne.position.set(px - 10, 18, pz + 6); sonne.target.position.set(px, 0, pz);

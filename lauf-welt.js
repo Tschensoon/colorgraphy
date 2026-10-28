@@ -370,6 +370,73 @@ export function welt(T, handy) {
   }
   function stern() { const k = new T.Mesh(geo.stern, mat.stern); k.castShadow = true; return k; }
 
+  // Schildkrötenpanzer zum Einsammeln: gewölbt, Sechseck-Platten, heller Rand
+  const panzerMuster = leinwand(256, 128, (g, w, h) => {
+    g.fillStyle = "#2f5a24"; g.fillRect(0, 0, w, h);
+    const r = 18, dx = r * 1.5, dy = r * Math.sqrt(3);
+    for (let c = -1; c * dx < w + r; c++) for (let z = -1; z * dy < h + r; z++) {
+      const cx = c * dx, cy = z * dy + (c % 2 ? dy / 2 : 0);
+      g.beginPath();
+      for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2; g[i ? "lineTo" : "moveTo"](cx + Math.cos(a) * (r - 2.5), cy + Math.sin(a) * (r - 2.5)); }
+      g.closePath();
+      const v = g.createRadialGradient(cx, cy, 2, cx, cy, r);
+      const ton = zufall(-8, 8);
+      v.addColorStop(0, `hsl(${95 + ton}, 45%, 42%)`); v.addColorStop(1, `hsl(${85 + ton}, 50%, 28%)`);
+      g.fillStyle = v; g.fill();
+      g.strokeStyle = "rgba(230,210,140,.55)"; g.lineWidth = 1.5; g.stroke();
+    }
+  });
+  const panzerMat = std({ map: panzerMuster, roughness: .45, metalness: .05, bumpMap: panzerMuster, bumpScale: 2 });
+  const panzerRand = std({ color: "#e6d29a", roughness: .6 });
+  const panzerGeo = new T.SphereGeometry(.3, 28, 12, 0, Math.PI * 2, 0, Math.PI / 2), randGeo = new T.TorusGeometry(.3, .045, 10, 32);
+  function panzer() {
+    const g = new T.Group(), innen = new T.Group(); g.add(innen);
+    const d = teil(panzerGeo, panzerMat, innen); d.scale.y = .68;
+    const r = teil(randGeo, panzerRand, innen); r.rotation.x = Math.PI / 2;
+    innen.rotation.x = .45;           // etwas zur Kamera gekippt, damit man das Muster sieht
+    return g;
+  }
+
+  // Booster: Münze mit Symbol und Leuchten
+  const boosterArt = {
+    turbo: ["#ffb300", (g) => { g.beginPath(); [[70, 14], [34, 70], [60, 70], [50, 114], [94, 52], [66, 52], [80, 14]].forEach(([x, y], i) => g[i ? "lineTo" : "moveTo"](x, y)); g.closePath(); g.fill(); }],
+    schild: ["#2f8be0", (g) => { g.beginPath(); g.moveTo(64, 18); g.lineTo(100, 32); g.quadraticCurveTo(98, 88, 64, 112); g.quadraticCurveTo(30, 88, 28, 32); g.closePath(); g.fill(); }],
+    schubs: ["#e8577a", (g) => {
+      g.beginPath();
+      for (let i = 0; i < 16; i++) { const r = i % 2 ? 26 : 50, a = i / 16 * Math.PI * 2; g[i ? "lineTo" : "moveTo"](64 + Math.cos(a) * r, 64 + Math.sin(a) * r); }
+      g.closePath(); g.fill();
+      g.fillStyle = "#e8577a"; g.font = "bold 46px Arial, sans-serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText("!", 64, 66);
+    }],
+  };
+  const boosterMat = {}, glimmMat = {};
+  for (const [typ, [farbe, symbol]] of Object.entries(boosterArt)) {
+    const bild = leinwand(128, 128, (g, w, h) => {
+      g.fillStyle = farbe; g.beginPath(); g.arc(64, 64, 62, 0, 7); g.fill();
+      g.strokeStyle = "rgba(255,255,255,.9)"; g.lineWidth = 6; g.beginPath(); g.arc(64, 64, 55, 0, 7); g.stroke();
+      g.fillStyle = "#ffffff"; symbol(g);
+    }, false);
+    bild.center.set(.5, .5); bild.rotation = Math.PI / 2;   // Deckel der liegenden Münze ist um 90° gedreht
+    boosterMat[typ] = [std({ color: farbe, roughness: .3, metalness: .4 }), std({ map: bild, roughness: .35, emissive: farbe, emissiveIntensity: .25 }), std({ map: bild, roughness: .35, emissive: farbe, emissiveIntensity: .25 })];
+    const glimm = leinwand(64, 64, (g) => {
+      const v = g.createRadialGradient(32, 32, 0, 32, 32, 32); v.addColorStop(0, farbe); v.addColorStop(1, "rgba(255,255,255,0)");
+      g.fillStyle = v; g.fillRect(0, 0, 64, 64);
+    }, false);
+    glimmMat[typ] = new T.SpriteMaterial({ map: glimm, transparent: true, opacity: .55, depthWrite: false, blending: T.AdditiveBlending });
+  }
+  const muenzGeo = new T.CylinderGeometry(.36, .36, .1, 36);
+  function booster(typ) {
+    const g = new T.Group(), innen = new T.Group(); g.add(innen);
+    const m = teil(muenzGeo, boosterMat[typ], innen); m.rotation.x = Math.PI / 2;
+    const s = new T.Sprite(glimmMat[typ]); s.scale.setScalar(1.4); g.add(s);
+    g.userData.innen = innen;
+    return g;
+  }
+  // Schutzblase um Fröbelinchen
+  function blase() {
+    const k = new T.Mesh(new T.SphereGeometry(1.35, 32, 20), new T.MeshStandardMaterial({ color: "#8fd8ff", emissive: "#3fa9ff", emissiveIntensity: .35, transparent: true, opacity: .22, roughness: .1, depthWrite: false }));
+    k.position.y = 1.15; k.visible = false; return k;
+  }
+
   // ---------- Himmel und Umgebungslicht ----------
   function himmel() {
     const geom = new T.SphereGeometry(170, 32, 16), farben = [], oben = new T.Color("#5aa7ea"), unten = new T.Color("#e3f3fb");
@@ -390,5 +457,5 @@ export function welt(T, handy) {
     return g;
   }
 
-  return { mat, geo, giraffeBauen, anjaBauen, boden, heckenStueck, kante, dekoNeu, hindernis, stern, himmel, wolken, gras };
+  return { mat, geo, giraffeBauen, anjaBauen, boden, heckenStueck, kante, dekoNeu, hindernis, stern, panzer, booster, blase, himmel, wolken, gras };
 }
