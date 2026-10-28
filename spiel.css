@@ -1,0 +1,5 @@
+.spiel-bereich { padding: 0 0 4rem; }
+.spiel-rahmen { max-width: 900px; margin: 0 auto; border-radius: 18px; overflow: hidden;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, .35); touch-action: manipulation; }
+.spiel-rahmen canvas { display: block; width: 100%; height: auto; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.spiel-hilfe { max-width: 900px; margin: .9rem auto 0; text-align: center; opacity: .75; font-size: .95rem; }
