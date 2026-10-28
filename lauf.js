@@ -427,7 +427,7 @@ if (rahmen) {
     { id: "herbst", text: "Lauf bis in den Herbstwald", lohn: 40, ok: () => R.welt >= 3 },
     { id: "winter", text: "Lauf bis ins Winterland", lohn: 60, ok: () => R.welt >= 4 },
     { id: "meter2500", text: "Lauf 2500 Meter", lohn: 80, ok: () => strecke >= 2500 },
-    { id: "luftwelt", text: "Schaff 5000 Punkte und flieg in die Luftwelt", lohn: 100, ok: () => R.flug >= 1 },
+    { id: "luftwelt", text: "Schaff 3000 Punkte und flieg in die Luftwelt", lohn: 100, ok: () => R.flug >= 1 },
     { id: "ringe10", text: "Flieg durch 10 Ringe in einer Runde", lohn: 60, ok: () => R.ringe >= 10 },
   ];
   const aktiveAufgaben = () => {
@@ -635,8 +635,8 @@ if (rahmen) {
     const unverwundbar = B.schild > 0 || !!B.schubs || FL.abflug > 0;
     S.s += v * dt; strecke += v * dt; punkte += v * dt * faktor;
     S.stolper = Math.max(0, S.stolper - dt);
-    // 5000 Punkte: weiß überblenden, dann geht es im Flugzeug weiter (Level 2)
-    if (!FL.abflug && punkte >= FLUG_AB) { FL.abflug = .001; T.abflug(); meldung("5000 Punkte!", "Fröbelinchen steigt ins Flugzeug …"); }
+    // 3000 Punkte: weiß überblenden, dann geht es im Flugzeug weiter (Level 2)
+    if (!FL.abflug && punkte >= FLUG_AB) { FL.abflug = .001; T.abflug(); meldung(`${FLUG_AB} Punkte!`, "Fröbelinchen steigt ins Flugzeug …"); }
     if (FL.abflug) {
       FL.abflug += dt; blende.style.opacity = Math.min(1, FL.abflug / .9);
       if (FL.abflug >= .9) { flugStart(); return; }
@@ -880,10 +880,10 @@ if (rahmen) {
   }
 
   // ---------- Level 2: Luftwelt ----------
-  // Ab 5000 Punkten fliegt Fröbelinchen in ihrem Spielzeug-Flugzeug nach Norden (-z). Finger ziehen bzw. Pfeiltasten lenken
+  // Ab 3000 Punkten fliegt Fröbelinchen in ihrem Spielzeug-Flugzeug nach Norden (-z). Finger ziehen bzw. Pfeiltasten lenken
   // frei nach links, rechts, oben und unten. Durch Ringe fliegen gibt Punkte; Ballons, Gewitterwolken und Vögel bringen sie
   // ins Trudeln, dann holt Anja in ihrem eigenen Flieger auf (wie das Stolpern am Boden).
-  const FLUG_AB = 5000, FX = 7, FY0 = 3, FY1 = 13;
+  const FLUG_AB = 3000, FX = 7, FY0 = 3, FY1 = 13;
   const FL = { an: false, abflug: 0, x: 0, y: 7, z: 0, zx: 0, zy: 7, v: 18, neig: 0, nick: 0, naechst: 0, strecke: 0, trudeln: 0,
     regenbogen: 0, objekte: [], tasten: { x: 0, y: 0 }, ax: 0, ay: 7 };
   let FW, flieger, anjaFlieger, meer, flugGruppe, blende;
