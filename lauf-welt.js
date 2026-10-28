@@ -868,15 +868,11 @@ export function welt(T, handy) {
     for (const dreh of [0, Math.PI]) { const m = teil(geo, FM.banner, g); m.rotation.y = dreh; m.position.z = dreh ? -.012 : .012; }
     return g;
   }
-  // Torbogen über dem Weg: zwei Pfosten und ein Banner hoch über Fröbelinchen (auch beim Springen frei)
-  function froebelTor(breite) {
+  // Tafel vorn an der Hecke am Ende eines Wegstücks, unter dem Pfeilschild
+  function froebelHeckenTafel(art) {
     const g = new T.Group();
-    for (const s of [-1, 1]) {
-      teil(zyl(.11, .13, 5.3, 16), FM.dunkel, g, s * breite / 2, 2.65, 0);
-      teil(kugel, FM.weiss, g, s * breite / 2, 5.38, 0).scale.setScalar(.16);
-    }
-    const ban = froebelBanner(breite - .3, 1.15); ban.position.y = 4.55; g.add(ban);
-    teil(zyl(.035, .035, breite, 8), FM.dunkel, g, 0, 5.15, 0).rotation.z = Math.PI / 2;
+    teil(kiste(2.42, 1.22, .06), FM.dunkel, g, 0, 0, -.03);
+    teil(tafelGeo, FM.tafel[art], g, 0, 0, .002).scale.set(.55, .55, 1);
     return g;
   }
   // Werbetafel auf der Wiese, auf zwei Beinen
@@ -914,7 +910,7 @@ export function welt(T, handy) {
   const bodenPfeilMat = new T.MeshBasicMaterial({ map: bodenPfeilBild, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 });
   function pfeilSchild(dreh) {
     const g = new T.Group();
-    for (const x of [-1, 1]) teil(zyl(.07, .07, 3.2, 8), mat.holz, g, x, 1.6, .05);
+    for (const x of [-1.42, 1.42]) teil(zyl(.07, .07, 3.2, 8), mat.holz, g, x, 1.6, .05);   // außen, damit die Tafel darunter frei bleibt
     const b = teil(schildGeo, schildMat, g, 0, 2.85, .14); b.scale.x = dreh;   // gespiegelt = nach links
     return g;
   }
@@ -1443,6 +1439,6 @@ export function welt(T, handy) {
   }
   const luft = new T.Group(); luft.add(wetter, voegel);
 
-  return { froebelBanner, froebelTor, froebelTafel, froebelSchild, kontaktSchatten, grasBueschel, dampf, weltHindernis, entsorgen, pfeilSchild, bodenPfeil, AUSSTATTUNG, ausstattungSetzen, zonen: ZONEN, zoneFuer, dekoFuer, heckeFuer, blumenFuer, bodenFlaeche, bodenFolgen, verbinden, zoneWechsel, zoneSchritt,
+  return { froebelBanner, froebelHeckenTafel, froebelTafel, froebelSchild, kontaktSchatten, grasBueschel, dampf, weltHindernis, entsorgen, pfeilSchild, bodenPfeil, AUSSTATTUNG, ausstattungSetzen, zonen: ZONEN, zoneFuer, dekoFuer, heckeFuer, blumenFuer, bodenFlaeche, bodenFolgen, verbinden, zoneWechsel, zoneSchritt,
     animieren, wetterSchritt, voegelSchritt, luft, mat, geo, giraffeBauen, anjaBauen, boden, heckenStueck, blumen, ferne, sonnenScheibe, funke, staub, kante, dekoNeu, hindernis, stern, panzer, booster, blase, himmel, wolken, gras };
 }

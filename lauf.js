@@ -31,7 +31,7 @@ if (rahmen) {
   function laden() {
     if (!bereit) {
       const text = losKnopf.textContent; losKnopf.disabled = true; losKnopf.textContent = "Lädt die 3D-Welt …";
-      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=13"), import("./lauf-ton.js?v=2"), import("./lauf-flug.js?v=2"), import("./lauf-effekte.js?v=1")])
+      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=15"), import("./lauf-ton.js?v=2"), import("./lauf-flug.js?v=2"), import("./lauf-effekte.js?v=1")])
         .then(([m, w, t, f, e]) => { THREE = m; T = t.ton(); aufbauen(w, f, e); losKnopf.disabled = false; losKnopf.textContent = text; });
     }
     return bereit;
@@ -187,9 +187,8 @@ if (rahmen) {
     if (erster) setze(W.heckeFuer(2 * H + 2, ab.zone, 1.5, .9), -6.55, 0, 0, Math.PI / 2);
 
     hindernisseVerteilen(ab, setze);
-    // Fröbel: Torbogen am Start (hinter Fröbelinchen) und am Anfang jeder Welt, dazu Tafeln und Schilder am Wegrand
-    if (erster) setze(W.froebelTor(2 * H + 1.1), -3.5, 0);
-    else if (nr % 3 === 0) setze(W.froebelTor(2 * H + 1.1), 7, 0);
+    // Fröbel: in jeder Kurve eine Tafel an der Hecke (dort schaut man ohnehin hin), dazu Tafeln und Schilder am Wegrand
+    setze(W.froebelHeckenTafel(["ohren", "kitas", "logo"][nr % 3]), L + H + .06, 0, .72);   // mittig unter dem Pfeilschild
     if (!erster && Math.random() < .5) {
       const seite = wahl([-1, 1]);
       setze(W.froebelTafel(wahl(["logo", "logo", "ohren", "kitas"])), zufall(14, L - 16), seite * (H + zufall(4, 6.5)), 0, -seite * .45);
