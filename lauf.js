@@ -8,7 +8,7 @@ if (rahmen) {
   const $ = (sel) => rahmen.querySelector(sel);
   const huelle = $(".lauf-buehne"), hud = $(".lauf-hud"), ueber = $(".lauf-overlay"), warnung = $(".lauf-warnung");
   const losKnopf = $(".lauf-los"), ueberTitel = ueber.querySelector(".lauf-titel"), ueberText = $(".lauf-text"), zu = $(".lauf-zu");
-  const ergebnis = $(".lauf-ergebnis"), aufgabenFeld = $(".lauf-aufgaben"), shop = $(".lauf-shop"), pauseFeld = $(".lauf-pause");
+  const ergebnis = $(".lauf-ergebnis"), aufgabenFeld = $(".lauf-aufgaben"), shop = $(".lauf-shop:not(.lauf-top)"), pauseFeld = $(".lauf-pause");
   const pauseKnopf = $(".lauf-pause-knopf"), tonKnopf = $(".lauf-ton-knopf");
   const eintragForm = $(".lauf-eintragen"), eintragName = $("#lauf-name"), eintragMeldung = $(".le-meldung");
   const topFeld = $(".lauf-top"), topListe = $(".lauf-top-liste");
