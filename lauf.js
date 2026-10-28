@@ -10,6 +10,12 @@ if (rahmen) {
   const losKnopf = $(".lauf-los"), ueberTitel = ueber.querySelector(".lauf-titel"), ueberText = $(".lauf-text"), zu = $(".lauf-zu");
   const ergebnis = $(".lauf-ergebnis"), aufgabenFeld = $(".lauf-aufgaben"), shop = $(".lauf-shop"), pauseFeld = $(".lauf-pause");
   const pauseKnopf = $(".lauf-pause-knopf"), tonKnopf = $(".lauf-ton-knopf");
+  const eintragForm = $(".lauf-eintragen"), eintragName = $("#lauf-name"), eintragMeldung = $(".le-meldung");
+  const topFeld = $(".lauf-top"), topListe = $(".lauf-top-liste");
+  const seitenListe = document.getElementById("lauf-bestenliste"), seitenOl = seitenListe && seitenListe.querySelector("ol");
+  // Gemeinsame Bestenliste (Supabase, Region Frankfurt). Der Schlüssel ist öffentlich und erlaubt nur Lesen
+  // und das geprüfte Eintragen über die Funktion „eintragen“ (Prüfung von Name und Punkten in der Datenbank).
+  const DB = { url: "https://gnzasrjjmyrbufdiuatw.supabase.co", key: "sb_publishable_c3NCrNIU-JtHB-9LJEBGFw_vjYDPQ_c" };
   const handy = matchMedia("(pointer: coarse)").matches;
   rahmen.classList.toggle("touch", handy);
   let THREE = null, bereit = null, T = null;
@@ -49,7 +55,7 @@ if (rahmen) {
   let zustand = "start", tempo, punkte, sternZahl, strecke, wackeln = 0, schlussSzene = null;
   const S = { idx: 0, s: 0, spur: 0, x: 0, y: 0, vy: 0, duck: 0, abbiegen: 0, stolper: 0, lauf: 0, sprungPuffer: 0 };
   const A = { nah: false, zeit: 0, abstand: 16, bis: 5, lauf: 0, schritt: 0 };
-  const R = { booster: 0, schubs: 0, welt: 0 };    // Werte dieser Runde für Aufgaben und Ergebnis
+  const R = { booster: 0, schubs: 0, welt: 0, zeit: 0 };    // Werte dieser Runde für Aufgaben, Ergebnis und Bestenliste
   const tipps = new Set();
 
   const richtung = (h) => h === 0 ? [0, -1] : [h, 0];           // Norden = -z, Osten = +x, Westen = -x
@@ -249,7 +255,7 @@ if (rahmen) {
     abschnitte = []; hindernisse = []; sterne = []; booster = [];
     aktZone = 0; W.zoneWechsel(0, true);
     Object.assign(B, { turbo: 0, schild: 0, ruhe: 0, schubs: null });
-    Object.assign(R, { booster: 0, schubs: 0, welt: 0 });
+    Object.assign(R, { booster: 0, schubs: 0, welt: 0, zeit: 0 });
     tempo = START_TEMPO; punkte = 0; sternZahl = 0; strecke = 0; wackeln = 0; schlussSzene = null;
     Object.assign(S, { idx: 0, s: 0, spur: 0, x: 0, y: 0, vy: 0, duck: 0, abbiegen: 0, stolper: 0, sprungPuffer: 0 });
     Object.assign(A, { nah: false, zeit: 0, abstand: 16, bis: 5 });
@@ -331,7 +337,7 @@ if (rahmen) {
     T.start();
     if (zustand === "aus") neu();
     zustand = "laeuft"; window.froebelAktiv = "lauf";
-    ueber.hidden = true; shop.hidden = true; uhr.getDelta();
+    ueber.hidden = true; shop.hidden = true; topFeld.hidden = true; eintragForm.hidden = true; uhr.getDelta();
     T.musik(aktZone);
   });
 
@@ -360,6 +366,7 @@ if (rahmen) {
     if (neuerRekord) T.rekord(); else T.ende();
     if (!tutorialFertig) { tutorialFertig = true; schreib("froebelinchen-rennt-tutorial", true); }
     aufgabenZeigen();
+    eintragenAnbieten(p, Math.ceil(R.zeit));
     losKnopf.textContent = "Nochmal";
     ueber.hidden = false;
   }
@@ -427,6 +434,78 @@ if (rahmen) {
   }
   $(".lauf-shop-knopf").addEventListener("click", async () => { await laden(); T.start(); shopZeigen(); shop.hidden = false; });
   $(".ls-zu").addEventListener("click", () => { shop.hidden = true; });
+
+  // ---------- Bestenliste ----------
+  const ERLAUBT = /^[A-Za-zÄÖÜäöüßÀ-ÿ0-9 ._-]+$/;
+  const SPERRE = ["arsch", "fick", "fotze", "hure", "nazi", "hitler", "wichs", "schlampe", "spast", "missgeburt", "fuck", "shit", "bitch", "cunt", "nigg", "porn"];
+  let offeneRunde = null, meinEintrag = null, topDaten = [];
+  const zeile = (rang, name, punkte, eigen) => {
+    const li = document.createElement("li"); if (eigen) li.className = "eigen";
+    for (const [k, t] of [["bl-rang", rang], ["bl-name", name], ["bl-punkte", punkte]]) {
+      const sp = document.createElement("span"); sp.className = k; sp.textContent = t; li.append(sp);
+    }
+    return li;
+  };
+  function topZeigen() {
+    let markiert = false;
+    const bauen = () => topDaten.length
+      ? topDaten.map((e, i) => {
+          const eigen = !markiert && meinEintrag && e.name === meinEintrag.name && e.punkte === meinEintrag.punkte;
+          if (eigen) markiert = true;
+          return zeile(i + 1 + ".", e.name, e.punkte, eigen);
+        })
+      : [zeile("", "Noch keine Einträge. Lauf los und trag dich als Erstes ein!", "", false)];
+    topListe.replaceChildren(...bauen());
+    markiert = false;
+    if (seitenOl) { seitenOl.replaceChildren(...bauen()); seitenListe.hidden = false; }
+  }
+  async function bestenlisteLaden() {
+    try {
+      const r = await fetch(`${DB.url}/rest/v1/bestenliste?select=name,punkte&spiel=eq.rennt&order=punkte.desc,erstellt.asc&limit=10`,
+                            { headers: { apikey: DB.key }, cache: "no-store" });
+      if (!r.ok) throw new Error(r.status);
+      topDaten = await r.json(); topZeigen();
+    } catch (e) {
+      topListe.replaceChildren(zeile("", "Die Bestenliste ist gerade nicht erreichbar.", "", false));
+    }
+  }
+  function eintragenAnbieten(punkteRunde, sekunden) {
+    eintragMeldung.textContent = ""; eintragMeldung.classList.remove("fehler");
+    if (punkteRunde < 30 || sekunden < 1) { eintragForm.hidden = true; offeneRunde = null; return; }
+    offeneRunde = { punkte: punkteRunde, sekunden };
+    try { eintragName.value = localStorage.getItem("froebelinchen-name") || ""; } catch (e) {}
+    eintragForm.querySelector(".le-zeile").hidden = false; eintragForm.querySelector("label").hidden = false;
+    eintragForm.hidden = false;
+  }
+  eintragForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!offeneRunde) return;
+    const name = eintragName.value.replace(/\s+/g, " ").trim(), fehler = (t) => { eintragMeldung.textContent = t; eintragMeldung.classList.add("fehler"); };
+    eintragMeldung.classList.remove("fehler");
+    if (!name || name.length > 16) return fehler("Bitte einen Namen mit 1 bis 16 Zeichen eingeben.");
+    if (!ERLAUBT.test(name)) return fehler("Bitte nur Buchstaben, Zahlen, Leerzeichen, Punkt und Bindestrich.");
+    if (SPERRE.some(w => name.toLowerCase().replace(/[\s._-]/g, "").includes(w))) return fehler("Bitte einen anderen Namen wählen.");
+    const runde = offeneRunde; offeneRunde = null;          // jede Runde nur einmal eintragen
+    const knopf = eintragForm.querySelector("button"); knopf.disabled = true; eintragMeldung.textContent = "Wird eingetragen …";
+    try {
+      const r = await fetch(`${DB.url}/rest/v1/rpc/eintragen`, {
+        method: "POST", headers: { apikey: DB.key, "Content-Type": "application/json" },
+        body: JSON.stringify({ p_name: name, p_punkte: runde.punkte, p_sekunden: runde.sekunden, p_spiel: "rennt" }) });
+      if (!r.ok) { let m = ""; try { m = (await r.json()).message; } catch (x) {} throw new Error(m || "Fehler " + r.status); }
+      try { localStorage.setItem("froebelinchen-name", name); } catch (x) {}
+      meinEintrag = { name, punkte: runde.punkte };
+      await bestenlisteLaden();
+      const platz = topDaten.findIndex(x => x.name === name && x.punkte === runde.punkte);
+      eintragMeldung.textContent = platz >= 0 ? `Eingetragen! Du bist auf Platz ${platz + 1}.` : "Eingetragen! Für die Top 10 hat es diesmal nicht gereicht.";
+      eintragForm.querySelector(".le-zeile").hidden = true; eintragForm.querySelector("label").hidden = true;
+      if (platz >= 0) T.rekord();
+    } catch (err) {
+      offeneRunde = runde; fehler("Hat nicht geklappt: " + err.message);
+    } finally { knopf.disabled = false; }
+  });
+  $(".lauf-top-knopf").addEventListener("click", () => { bestenlisteLaden(); topFeld.hidden = false; });
+  $(".lt-zu").addEventListener("click", () => { topFeld.hidden = true; });
+  bestenlisteLaden();
 
   // ---------- Einblendungen, Anja, Booster ----------
   function meldung(oben, unten) {
@@ -496,7 +575,7 @@ if (rahmen) {
 
   // ---------- Spielschritt ----------
   function schritt(dt) {
-    tempo = Math.min(MAX_TEMPO, tempo + BESCHL * dt);
+    tempo = Math.min(MAX_TEMPO, tempo + BESCHL * dt); R.zeit += dt;
     const v = tempo * (S.stolper > 0 ? .6 : 1) * (B.turbo > 0 ? 1.35 : 1);
     for (const k of ["turbo", "schild", "ruhe"]) B[k] = Math.max(0, B[k] - dt);
     const unverwundbar = B.schild > 0 || !!B.schubs;

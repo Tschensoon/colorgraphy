@@ -172,3 +172,21 @@ body.spiel-offen { overflow: hidden; }
 .lauf-hud.hupf { animation: hud-hupf .25s ease-out; }
 @keyframes hud-hupf { 50% { transform: scale(1.12); } }
 @media (max-width: 600px) { .le-punkte b { font-size: 2rem; } .lauf-knoepfe .pill { padding: .6rem 1rem; } }
+
+/* Bestenliste im Lauf-Spiel */
+.lauf-eintragen { margin: .7rem auto 0; max-width: 340px; }
+.lauf-eintragen[hidden] { display: none; }
+.lauf-eintragen label { display: block; font-size: .8rem; color: #4b5b56; margin-bottom: .25rem; }
+.le-zeile { display: flex; gap: .4rem; }
+.le-zeile input { flex: 1; min-width: 0; padding: .5rem .7rem; border: 1px solid #c9d3cf; border-radius: 10px; font: inherit; font-size: 16px; color: #24332f; background: #fff; }
+.le-meldung { margin: .35rem 0 0; font-size: .85rem; font-weight: 700; color: #034a3e; }
+.le-meldung.fehler { color: #b3261e; }
+.le-meldung:empty { display: none; }
+.lauf-top-liste, .lauf-top-seite { list-style: none; margin: 0; padding: 0; width: 100%; max-width: 380px; }
+.lauf-top-liste li { display: flex; gap: .7rem; align-items: baseline; padding: .4rem .7rem; margin-bottom: .3rem; border-radius: 10px; background: #f1f6f2; color: #24332f; text-align: left; }
+.lauf-top-liste li.eigen, .lauf-top-seite li.eigen { background: #ffe9a8; font-weight: 800; }
+.lauf-top-seite { max-width: none; }
+.lauf-top-seite li { display: flex; gap: .8rem; align-items: baseline; padding: .5rem .3rem; border-top: 1px solid var(--line); border-radius: 8px; }
+.lauf-top-seite li:first-child { border-top: 0; }
+.lauf-top-seite li.eigen { color: #24332f; }
+@media (pointer: coarse) { #lauf-bestenliste { margin-top: 1rem; } }
