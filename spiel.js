@@ -47,17 +47,19 @@
   try { rekord = +localStorage.getItem("froebelinchen-rekord") || 0; } catch (e) {}
 
   const G = { x: 90, y: BODEN, vy: 0, amBoden: true, lauf: 0 };
-  // Verfolgungsjagd: alle 20 s rennt Fröbelinchen in die Bildmitte, eine Läuferin jagt ihr 5 s lang hinterher
-  const JAGD_ALLE = 20, JAGD_DAUER = 5, START_X = 90;
+  // Verfolgungsjagd: Anja kommt das erste Mal nach 5 s, danach immer wieder alle 15–22 s,
+  // Fröbelinchen rennt dann in die Bildmitte und Anja jagt ihr 5 s lang hinterher
+  const JAGD_ERSTE = 5, JAGD_DAUER = 5, START_X = 90;
+  const naechsteJagd = () => 15 + Math.random() * 7;
   const F = { x: -90, y: BODEN, vy: 0, lauf: 0, da: false };
-  let jagd = null, bisJagd = JAGD_ALLE;
+  let jagd = null, bisJagd = JAGD_ERSTE;
   let endeZeit = 0, laufzeit = 0, baelle = [], wolken = [], tempo, strecke, naechster, zustand = "start", halten = false, blitz = 0, zeitAlt = 0;
   const FARBEN = [["#e53935", "#ffcdd2"], ["#1e88e5", "#bbdefb"], ["#fdd835", "#fff9c4"], ["#43a047", "#c8e6c9"], ["#8e24aa", "#e1bee7"]];
 
   function neu() {
     baelle = []; tempo = 330; strecke = 0; naechster = 500; blitz = 0; laufzeit = 0;
     G.y = BODEN; G.vy = 0; G.amBoden = true; G.x = START_X;
-    jagd = null; bisJagd = JAGD_ALLE; F.da = false;
+    jagd = null; bisJagd = JAGD_ERSTE; F.da = false;
     wolken = Array.from({ length: 4 }, (_, i) => ({ x: i * 260 + Math.random() * 120, y: 30 + Math.random() * 60, s: .7 + Math.random() * .5 }));
   }
   neu();
@@ -183,7 +185,7 @@
 
   function schritt(dt) {
     if (zustand !== "laeuft") return;
-    tempo = Math.min(820, tempo + dt * 9); laufzeit += dt;
+    tempo = Math.min(820, tempo + dt * 5); laufzeit += dt;
     const dx = tempo * dt; strecke += dx; G.lauf += dx;
     jagdSchritt(dt, dx);
 
@@ -276,7 +278,7 @@
     F.vy += 3000 * dt; F.y = Math.min(BODEN, F.y + F.vy * dt);
     if (F.y >= BODEN) F.vy = 0;
 
-    if (t > JAGD_DAUER && F.x < -80 && zurueck >= 1) { jagd = null; bisJagd = JAGD_ALLE; F.da = false; G.x = START_X; }
+    if (t > JAGD_DAUER && F.x < -80 && zurueck >= 1) { jagd = null; bisJagd = naechsteJagd(); F.da = false; G.x = START_X; }
   }
 
   // Blonde Läuferin (gezeichnet von den Füßen aus)
@@ -321,6 +323,25 @@
     ctx.beginPath(); ctx.ellipse(-3, -93, 6, 9, .2, 0, 7); ctx.fill();
     ctx.fillStyle = "#3a2a1e"; ctx.beginPath(); ctx.arc(11, -95, 1.6, 0, 7); ctx.fill();
     ctx.strokeStyle = "#a0523d"; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(12, -89, 2.6, .2, Math.PI - .2); ctx.stroke();
+    ctx.restore();
+  }
+
+  // Warnschrift im Himmel zu Beginn jeder Jagd: springt kurz auf, steht, blendet aus
+  function warnung() {
+    if (!jagd || jagd.t > 3) return;
+    const t = jagd.t;
+    const gross = t < .25 ? glatt(t / .25) * 1.15 : t < .4 ? 1.15 - (t - .25) / .15 * .15 : 1;
+    ctx.save();
+    ctx.globalAlpha = t > 2.5 ? Math.max(0, 1 - (t - 2.5) / .5) : 1;
+    ctx.translate(W / 2, 70); ctx.scale(gross, gross); ctx.rotate(Math.sin(t * 9) * .02);
+    ctx.textAlign = "center"; ctx.lineJoin = "round";
+    const zeile = (text, y, px, farbe) => {
+      ctx.font = `800 ${px}px Segoe UI, system-ui, sans-serif`;
+      ctx.lineWidth = 7; ctx.strokeStyle = "#fff"; ctx.strokeText(text, 0, y);
+      ctx.fillStyle = farbe; ctx.fillText(text, 0, y);
+    };
+    zeile("Achtung, Anja kommt!", 0, W < 600 ? 30 : 34, "#e8577a");
+    zeile("Lauf schneller!", W < 600 ? 34 : 38, W < 600 ? 24 : 27, "#034a3e");
     ctx.restore();
   }
 
@@ -435,6 +456,7 @@
     baelle.forEach(ball);
     laeuferin();
     giraffe();
+    warnung();
     texte();
     requestAnimationFrame(bild);
   }
