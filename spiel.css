@@ -209,3 +209,10 @@ body.spiel-offen { overflow: hidden; }
 .lauf-tempo.an { opacity: .65; animation: lauf-tempo .3s linear infinite; }
 @keyframes lauf-tempo { 50% { transform: rotate(1.2deg) scale(1.04); } }
 @media (prefers-reduced-motion: reduce) { .lauf-tempo.an { animation: none; opacity: .35; } }
+
+/* Figurenwahl vor dem Start */
+.lauf-figur { display: flex; gap: .5rem; align-items: center; justify-content: center; flex-wrap: wrap; }
+.lauf-figur span { font-weight: 800; color: #034a3e; font-size: .9rem; }
+.lauf-figur button { border: 2px solid rgba(3, 74, 62, .3); border-radius: 999px; padding: .4rem .9rem; font: inherit; font-weight: 700;
+  color: #034a3e; background: rgba(255, 255, 255, .8); cursor: pointer; }
+.lauf-figur button[aria-pressed="true"] { background: #034a3e; border-color: #034a3e; color: #fff; }

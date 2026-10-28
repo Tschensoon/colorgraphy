@@ -328,25 +328,34 @@ export function welt(T, handy) {
     return formCache.get(key);
   }
 
-  // Giraffenfell direkt im Shader: Flecken aus einem räumlichen Zellmuster, helle Netzlinien dazwischen,
-  // heller Bauch und helle Schnauze über ein eigenes Attribut. So passt das Muster auch auf das nahtlose Netz.
-  const fleck = new T.MeshPhysicalMaterial({ color: "#ffffff", roughness: 1, sheen: 1, sheenRoughness: .5, sheenColor: new T.Color("#ffd29a") });
-  fleck.onBeforeCompile = (sh) => {
-    sh.vertexShader = "attribute float hell;\nvarying float vHell;\nvarying vec3 vOrt;\n" + sh.vertexShader.replace("#include <begin_vertex>", "#include <begin_vertex>\nvOrt = position; vHell = hell;");
-    sh.fragmentShader = "varying float vHell;\nvarying vec3 vOrt;\nvec3 zufall3(vec3 p) { return fract(sin(vec3(dot(p, vec3(127.1, 311.7, 74.7)), dot(p, vec3(269.5, 183.3, 246.1)), dot(p, vec3(113.5, 271.9, 124.6)))) * 43758.5453); }\n"
-      + sh.fragmentShader.replace("#include <map_fragment>", `
-      vec3 q = vOrt * 7.2, zelle = floor(q), fq = fract(q);
-      float f1 = 9., f2 = 9., ton = 0.;
-      for (int x = -1; x <= 1; x++) for (int y = -1; y <= 1; y++) for (int z = -1; z <= 1; z++) {
-        vec3 o = vec3(float(x), float(y), float(z)), h = zufall3(zelle + o), r = o + h * .85 - fq;
-        float d = dot(r, r);
-        if (d < f1) { f2 = f1; f1 = d; ton = h.y; } else if (d < f2) f2 = d;
-      }
-      float linie = 1. - smoothstep(.07, .15, sqrt(f2) - sqrt(f1));
-      vec3 fell = mix(mix(vec3(.74, .19, .012), vec3(.86, .26, .02), ton), vec3(.96, .72, .40), linie);
-      diffuseColor.rgb *= mix(fell, vec3(.96, .76, .48), clamp(vHell, 0., 1.));`);
-  };
-  fleck.customProgramCacheKey = () => "giraffe-fleck";
+  // Muster direkt im Shader: Zellen aus einem räumlichen Zellmuster mit Linien dazwischen (Giraffenflecken,
+  // Panzerplatten), dazu eine helle Fläche über ein eigenes Attribut (Bauch, Schnauze). Passt auf das nahtlose Netz.
+  const glsl = (c) => `vec3(${c.map(v => v.toFixed(3)).join(", ")})`;
+  const linear = (hex) => { const c = new T.Color(hex); return [c.r, c.g, c.b]; };
+  function musterMaterial(name, { skala, zelleA, zelleB, linie, breite, hell, sheen }) {
+    const m = new T.MeshPhysicalMaterial({ color: "#ffffff", roughness: 1, sheen: 1, sheenRoughness: .5, sheenColor: new T.Color(sheen) });
+    m.onBeforeCompile = (sh) => {
+      sh.vertexShader = "attribute float hell;\nvarying float vHell;\nvarying vec3 vOrt;\n" + sh.vertexShader.replace("#include <begin_vertex>", "#include <begin_vertex>\nvOrt = position; vHell = hell;");
+      sh.fragmentShader = "varying float vHell;\nvarying vec3 vOrt;\nvec3 zufall3(vec3 p) { return fract(sin(vec3(dot(p, vec3(127.1, 311.7, 74.7)), dot(p, vec3(269.5, 183.3, 246.1)), dot(p, vec3(113.5, 271.9, 124.6)))) * 43758.5453); }\n"
+        + sh.fragmentShader.replace("#include <map_fragment>", `
+        vec3 q = vOrt * ${skala.toFixed(2)}, zelle = floor(q), fq = fract(q);
+        float f1 = 9., f2 = 9., ton = 0.;
+        for (int x = -1; x <= 1; x++) for (int y = -1; y <= 1; y++) for (int z = -1; z <= 1; z++) {
+          vec3 o = vec3(float(x), float(y), float(z)), h = zufall3(zelle + o), r = o + h * .85 - fq;
+          float d = dot(r, r);
+          if (d < f1) { f2 = f1; f1 = d; ton = h.y; } else if (d < f2) f2 = d;
+        }
+        float linie = 1. - smoothstep(${breite[0].toFixed(3)}, ${breite[1].toFixed(3)}, sqrt(f2) - sqrt(f1));
+        vec3 fell = mix(mix(${glsl(linear(zelleA))}, ${glsl(linear(zelleB))}, ton), ${glsl(linear(linie))}, linie);
+        diffuseColor.rgb *= mix(fell, ${glsl(linear(hell))}, clamp(vHell, 0., 1.));`);
+    };
+    m.customProgramCacheKey = () => "muster-" + name;
+    return m;
+  }
+  const fleck = musterMaterial("giraffe", { skala: 7.2, zelleA: "#e07a12", zelleB: "#ee8b18", linie: "#fbe0aa", breite: [.07, .15], hell: "#fbe3b6", sheen: "#ffd29a" });
+  const leoPanzer = musterMaterial("panzer", { skala: 3.4, zelleA: "#2f8a3a", zelleB: "#3d9e44", linie: "#b7d96a", breite: [.05, .11], hell: "#f3d27a", sheen: "#d6ffb0" });
+  const leoHaut = new T.MeshPhysicalMaterial({ color: "#8fd06a", roughness: 1, sheen: 1, sheenRoughness: .5, sheenColor: new T.Color("#e4ffc8") });
+  const leoSohle = std({ color: "#f3d27a", roughness: .9 }), leoBacke = std({ color: "#ff9fb6", roughness: .8 });
   // Haut, Shirt und Jeans über Farben je Punkt (Anjas Körper ist ein einziges Netz)
   const anjaKoerperMat = new T.MeshPhysicalMaterial({ vertexColors: true, roughness: .75, sheen: .3, sheenColor: new T.Color("#ffe0d0") });
 
@@ -413,7 +422,68 @@ export function welt(T, handy) {
     const schwanz = gelenk(koerper, 0, 1.3, .75);
     const sm = teil(rundStab(.026, .016, .48), fleck, schwanz, 0, 0, .02); sm.rotation.x = .2;
     teil(kugel, mat.giraffeDunkel, schwanz, 0, -.5, .1).scale.set(.045, .085, .045);
-    return { gruppe: g, koerper, hals, kopf, beine, schwanz, augen, ohren };
+    return { gruppe: g, koerper, hals, kopf, beine, schwanz, augen, ohren, ...FIGUR_INFO.giraffe };
+  }
+
+  // ---------- Schildkröte Leo: Plüschschildkröte mit grünem Panzer ----------
+  const FIGUR_INFO = {
+    giraffe: { name: "Fröbelinchen", blick: 1.35, rueckenY: 0, blaseY: 1.15, blaseS: 1, cockpit: [-.85, .3, 1],
+      fotoGanz: [[0, 1.35, -.15], [2.9, 2.2, -4.4]], fotoRuecken: [[0, 1.55, .1], [1.9, 2.6, 2.1]] },
+    leo: { name: "Leo", blick: .85, rueckenY: -.5, blaseY: .72, blaseS: 1, cockpit: [.12, .4, .55],
+      fotoGanz: [[0, .75, -.1], [2.3, 1.6, -3.3]], fotoRuecken: [[0, 1.2, .1], [1.7, 2.3, 2.2]] },
+  };
+  let leoFormen = null;
+  function leoFormenBauen() {
+    // Panzer: hohe Kuppel mit flacher Unterseite, umlaufender Rand und heller Bauchpanzer
+    const panzer = (x, y, z) => {
+      let d = Math.max(F.ei(x, y, z, 0, .62, .05, .6, .44, .72), .36 - y);
+      d = F.weich(d, F.ei(x, y, z, 0, .39, .05, .65, .1, .77), .06);
+      d = F.weich(d, F.ei(x, y, z, 0, .32, .05, .52, .14, .64), .08);
+      return d;
+    };
+    const bauch = (x, y) => [Math.max(0, Math.min(1, (.38 - y) / .05))];
+    // Hals und Kopf (im Hals-Gelenk): kurzer dicker Hals, runder Kopf mit kleiner Schnauze
+    const K = [0, .34, -.3];
+    const kopf = (x, y, z) => {
+      let d = F.stab(x, y, z, [0, -.05, .14], [0, .26, -.2], .14, .12);
+      d = F.weich(d, F.ei(x, y, z, K[0], K[1], K[2], .17, .16, .2), .07);
+      d = F.weich(d, F.ei(x, y, z, K[0], K[1] - .04, K[2] - .12, .12, .1, .1), .04);
+      return d;
+    };
+    leoFormen = {
+      panzer: formNetz(panzer, [-.72, .12, -.8], [.72, 1.12, .9], handy ? .032 : .024, bauch),
+      kopf: formNetz(kopf, [-.25, -.25, -.6], [.25, .56, .35], handy ? .022 : .016),
+    };
+  }
+  function leoBauen() {
+    if (!leoFormen) leoFormenBauen();
+    const g = new T.Group(), koerper = gelenk(g, 0, 0, 0);
+    koerper.scale.setScalar(1.2);                         // etwas größer, damit Leo im Spiel gut zu sehen ist
+    teil(leoFormen.panzer, leoPanzer, koerper);
+    const hals = gelenk(koerper, 0, .58, -.6);
+    teil(leoFormen.kopf, leoHaut, hals);
+    const kopf = gelenk(hals, 0, .34, -.3), augen = [], ohren = [];
+    for (const s of [-1, 1]) {
+      const auge = teil(kugel, mat.auge, kopf, s * .085, .06, -.15); auge.scale.set(.042, .046, .03);
+      const glanzP = teil(kugel, mat.glanz, kopf, s * .094, .075, -.178); glanzP.scale.setScalar(.012);
+      for (const a of [auge, glanzP]) { a.userData.y = a.scale.y; augen.push(a); }
+      teil(kugel, leoBacke, kopf, s * .12, -.03, -.13).scale.set(.035, .022, .02);           // rosa Bäckchen
+      teil(kugel, mat.auge, kopf, s * .025, -.01, -.245).scale.set(.01, .008, .008);          // Nasenlöcher
+    }
+    const mund = teil(new T.TorusGeometry(.045, .008, 6, 18, Math.PI), mat.auge, kopf, 0, -.045, -.215); mund.rotation.z = Math.PI;   // Lächeln
+    // kurze dicke Beine mit hellen Fußsohlen; oben schwingt, unten knickt (wie bei Fröbelinchen)
+    const beine = [];
+    for (const [x, z] of [[-.4, -.42], [.4, -.42], [-.4, .44], [.4, .44]]) {
+      const oben = gelenk(koerper, x, .42, z);
+      teil(rundStab(.125, .115, .2), leoHaut, oben);
+      const unten = gelenk(oben, 0, -.2, 0);
+      teil(rundStab(.115, .12, .16), leoHaut, unten);
+      teil(kugel, leoSohle, unten, 0, -.19, -.02).scale.set(.12, .045, .14);
+      beine.push({ oben, unten });
+    }
+    const schwanz = gelenk(koerper, 0, .42, .78);
+    const sm = teil(rundStab(.06, .015, .2), leoHaut, schwanz); sm.rotation.x = .9;
+    return { gruppe: g, koerper, hals, kopf, beine, schwanz, augen, ohren, ...FIGUR_INFO.leo };
   }
 
   // ---------- Anja: Läuferin mit blondem Pferdeschwanz ----------
@@ -1088,6 +1158,7 @@ export function welt(T, handy) {
     for (const id of ids) {
       const a = AUSSTATTUNG[id]; if (!a) continue;
       const teilG = a.bauen(); teilG.userData.ausstattung = true;
+      if (a.platz === "ruecken") teilG.position.y += sp.rueckenY || 0;
       (a.platz === "hals" ? sp.hals : a.platz === "ruecken" ? sp.koerper : sp.kopf).add(teilG);
     }
   }
@@ -1512,6 +1583,6 @@ export function welt(T, handy) {
   }
   const luft = new T.Group(); luft.add(wetter, voegel);
 
-  return { toertchen, frauBauen, sprechblase, froebelBanner, froebelHeckenTafel, froebelTafel, froebelSchild, kontaktSchatten, grasBueschel, dampf, weltHindernis, entsorgen, pfeilSchild, bodenPfeil, AUSSTATTUNG, ausstattungSetzen, zonen: ZONEN, zoneFuer, dekoFuer, heckeFuer, blumenFuer, bodenFlaeche, bodenFolgen, verbinden, zoneWechsel, zoneSchritt,
+  return { leoBauen, FIGUR_INFO, toertchen, frauBauen, sprechblase, froebelBanner, froebelHeckenTafel, froebelTafel, froebelSchild, kontaktSchatten, grasBueschel, dampf, weltHindernis, entsorgen, pfeilSchild, bodenPfeil, AUSSTATTUNG, ausstattungSetzen, zonen: ZONEN, zoneFuer, dekoFuer, heckeFuer, blumenFuer, bodenFlaeche, bodenFolgen, verbinden, zoneWechsel, zoneSchritt,
     animieren, wetterSchritt, voegelSchritt, luft, mat, geo, giraffeBauen, anjaBauen, boden, heckenStueck, blumen, ferne, sonnenScheibe, funke, staub, kante, dekoNeu, hindernis, stern, panzer, booster, blase, himmel, wolken, gras };
 }

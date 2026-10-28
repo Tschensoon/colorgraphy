@@ -31,7 +31,7 @@ if (rahmen) {
   function laden() {
     if (!bereit) {
       const text = losKnopf.textContent; losKnopf.disabled = true; losKnopf.textContent = "Lädt die 3D-Welt …";
-      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=22"), import("./lauf-ton.js?v=2"), import("./lauf-flug.js?v=2"), import("./lauf-effekte.js?v=3")])
+      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=23"), import("./lauf-ton.js?v=2"), import("./lauf-flug.js?v=2"), import("./lauf-effekte.js?v=3")])
         .then(([m, w, t, f, e]) => { THREE = m; T = t.ton(); aufbauen(w, f, e); losKnopf.disabled = false; losKnopf.textContent = text; });
     }
     return bereit;
@@ -45,6 +45,8 @@ if (rahmen) {
   let erledigt = lies("froebelinchen-rennt-aufgaben", []);
   let qualitaet = lies("froebelinchen-rennt-qualitaet", 0);
   let tutorialFertig = lies("froebelinchen-rennt-tutorial", false);
+  let figur = lies("froebelinchen-rennt-figur", "giraffe");
+  const NAME = () => figur === "leo" ? "Leo" : "Fröbelinchen";
 
   // ---------- Spielwerte ----------
   const SPUR = 1.6, H = 2.9, ECKE = 12;           // Spurbreite, halbe Wegbreite, Abbiegezone vor der Ecke
@@ -104,10 +106,10 @@ if (rahmen) {
     uhr = new THREE.Clock();
     boden = W.bodenFlaeche(); szene.add(boden, W.luft);
     W.verbinden({ szene, himmelMat: himmelKugel.material, sonne });
-    spieler = W.giraffeBauen(); szene.add(spieler.gruppe);
+    spieler = figur === "leo" ? W.leoBauen() : W.giraffeBauen(); szene.add(spieler.gruppe);
     W.ausstattungSetzen(spieler, konto.an);
     anja = W.anjaBauen(); szene.add(anja.gruppe);
-    blase = W.blase(); spieler.gruppe.add(blase);
+    blase = W.blase(); spieler.gruppe.add(blase); blasePassen(1);
     sternchen = [0, 1, 2].map(() => { const st = W.stern(); st.scale.setScalar(.45); st.visible = false; szene.add(st); return st; });
     flugAufbauen(flugModul);
     // Leuchten und Farbstimmung nur, wenn das Gerät Bilder mit hohem Helligkeitsumfang zeichnen kann
@@ -481,6 +483,29 @@ if (rahmen) {
   }
   aufgabenZeigen();
 
+  // ---------- Figurenwahl: Fröbelinchen oder Schildkröte Leo ----------
+  const figurKnoepfe = [...rahmen.querySelectorAll(".lauf-figur button")];
+  const figurKnoepfeZeigen = () => figurKnoepfe.forEach(k => k.setAttribute("aria-pressed", String(k.dataset.figur === figur)));
+  figurKnoepfeZeigen();
+  function blasePassen(f) { blase.scale.setScalar(spieler.blaseS * f); blase.position.y = spieler.blaseY; }
+  function figurWechseln(neu) {
+    if (neu === figur || (zustand !== "start" && zustand !== "aus")) return;
+    figur = neu; schreib("froebelinchen-rennt-figur", figur); figurKnoepfeZeigen();
+    if (!spieler) return;                                   // 3D noch nicht geladen: wird beim Aufbau gebaut
+    const alt = spieler.gruppe;
+    spieler = figur === "leo" ? W.leoBauen() : W.giraffeBauen();
+    const eltern = alt.parent || szene;                     // im Ergebnis nach einem Flug sitzt die Figur im Flugzeug
+    eltern.remove(alt); alt.remove(blase); eltern.add(spieler.gruppe);
+    spieler.gruppe.add(blase); blasePassen(1);
+    if (FL.an) {
+      const [cy, cz, cs] = spieler.cockpit;
+      spieler.gruppe.position.set(0, cy, cz); spieler.gruppe.scale.setScalar(cs); spieler.beine.forEach(b => { b.oben.visible = false; });
+    } else { spieler.gruppe.position.copy(alt.position); spieler.gruppe.rotation.copy(alt.rotation); }
+    W.ausstattungSetzen(spieler, konto.an);
+    T.booster();
+  }
+  figurKnoepfe.forEach(k => k.addEventListener("click", async () => { await laden(); T.start(); figurWechseln(k.dataset.figur); }));
+
   // ---------- Sterne-Shop ----------
   // Vorschaubilder: eine eigene kleine Giraffe wird mit den Teilen fotografiert (eigener Renderer, nur solange der Laden offen ist)
   let foto = null;
@@ -491,17 +516,19 @@ if (rahmen) {
       r.setSize(256, 256, false); r.outputColorSpace = THREE.SRGBColorSpace; r.toneMapping = THREE.ACESFilmicToneMapping;
       const sz = new THREE.Scene(), licht = new THREE.DirectionalLight("#fff3e0", 2.6);
       licht.position.set(2, 4, -3); sz.add(new THREE.HemisphereLight("#ffffff", "#c9a87a", 1.4), licht);
-      const gir = W.giraffeBauen(); sz.add(gir.gruppe);
-      foto = { r, sz, gir, kam: new THREE.PerspectiveCamera(30, 1, .05, 50) };
+      foto = { r, sz, figuren: {}, kam: new THREE.PerspectiveCamera(30, 1, .05, 50) };
     }
-    const { r, sz, gir, kam } = foto;
+    const { r, sz, kam } = foto;
+    if (!foto.figuren[figur]) { const f = figur === "leo" ? W.leoBauen() : W.giraffeBauen(); sz.add(f.gruppe); foto.figuren[figur] = f; }
+    for (const [k, f] of Object.entries(foto.figuren)) f.gruppe.visible = k === figur;
+    const gir = foto.figuren[figur];
     W.ausstattungSetzen(gir, ids);
     sz.updateMatrixWorld(true);
     const z = new THREE.Vector3();
     if (art === "kopf") { gir.kopf.getWorldPosition(z); z.y += .08; kam.position.set(z.x + .62, z.y + .12, z.z - .92); }
     else if (art === "hals") { gir.hals.getWorldPosition(z); z.y += .2; z.z -= .2; kam.position.set(z.x + .75, z.y + .25, z.z - 1.05); }
-    else if (art === "ruecken") { z.set(0, 1.55, .1); kam.position.set(1.9, 2.6, 2.1); }
-    else { z.set(0, 1.35, -.15); kam.position.set(2.9, 2.2, -4.4); }
+    else if (art === "ruecken") { z.set(...gir.fotoRuecken[0]); kam.position.set(...gir.fotoRuecken[1]); }
+    else { z.set(...gir.fotoGanz[0]); kam.position.set(...gir.fotoGanz[1]); }
     kam.lookAt(z);
     r.render(sz, kam);
     return r.domElement.toDataURL("image/png");
@@ -524,8 +551,9 @@ if (rahmen) {
       : "Tipp ein Teil an, um es anzuprobieren.";
     for (const [id, a] of teile) {
       const li = document.createElement("li"), bild = document.createElement("img"), name = document.createElement("span"), k = document.createElement("button");
-      if (!miniBilder[id]) miniBilder[id] = fotografieren([id], fotoArt(a.platz));
-      bild.src = miniBilder[id]; bild.alt = ""; name.textContent = a.name;
+      const key = figur + ":" + id;
+      if (!miniBilder[key]) miniBilder[key] = fotografieren([id], fotoArt(a.platz));
+      bild.src = miniBilder[key]; bild.alt = ""; name.textContent = a.name;
       const hat = konto.besitz.includes(id), an = konto.an.includes(id);
       li.classList.toggle("traegt", an); li.classList.toggle("gewaehlt", anprobe === id);
       k.type = "button";
@@ -633,7 +661,7 @@ if (rahmen) {
   const ANJA_FLUG = ["Flieg schneller!", "„Ich flieg dir hinterher!“", "„Warte, Fröbelinchen!“"];
   function anjaKommt(dauer) {
     if (B.ruhe > 0 || B.schubs) return;           // nach dem Schubser hat man Ruhe
-    if (!A.nah) { meldung("Achtung, Anja kommt!", FL.an ? wahl(ANJA_FLUG) : wahl(ANJA_RUFE)); T.anja(); }
+    if (!A.nah) { meldung("Achtung, Anja kommt!", (FL.an ? wahl(ANJA_FLUG) : wahl(ANJA_RUFE)).replace("Fröbelinchen", NAME())); T.anja(); }
     A.nah = true; A.zeit = dauer;
   }
   function stolpern() {
@@ -644,11 +672,11 @@ if (rahmen) {
   }
   function boosterNehmen(typ) {
     R.booster++; T.booster();
-    if (typ === "turbo") { B.turbo = 6; wackeln = Math.max(wackeln, .2); meldung("Turbo!", "Fröbelinchen rennt schneller"); }
+    if (typ === "turbo") { B.turbo = 6; wackeln = Math.max(wackeln, .2); meldung("Turbo!", `${NAME()} rennt schneller`); }
     else if (typ === "schild") { B.schild = 5; meldung("Schutzschild!", "5 Sekunden unverwundbar"); }
     else if (typ === "magnet") { B.magnet = 8; meldung("Sterne-Magnet!", "Alle Sterne fliegen zu dir"); }
     else if (typ === "doppelt") { B.doppelt = 10; meldung("Doppelte Punkte!", "10 Sekunden lang alles ×2"); }
-    else if (!B.schubs) { B.schubs = { t: 0, umfallen: 0, getroffen: false }; A.nah = true; A.zeit = 99; meldung("Schubs-Booster!", "Hol sie dir, Fröbelinchen!"); }
+    else if (!B.schubs) { B.schubs = { t: 0, umfallen: 0, getroffen: false }; A.nah = true; A.zeit = 99; meldung("Schubs-Booster!", `Hol sie dir, ${NAME()}!`); }
   }
 
   // Eine Frau mit schwarzen Haaren rennt Fröbelinchen auf ihrer Spur entgegen und sucht ihre Autoschlüssel: ausweichen!
@@ -723,7 +751,7 @@ if (rahmen) {
     S.s += v * dt; strecke += v * dt; punkte += v * dt * faktor;
     S.stolper = Math.max(0, S.stolper - dt);
     // 3000 Punkte: weiß überblenden, dann geht es im Flugzeug weiter (Level 2)
-    if (!FL.abflug && punkte >= FL.ab) { FL.abflug = .001; T.abflug(); meldung(`${FL.ab} Punkte!`, "Fröbelinchen steigt ins Flugzeug …"); }
+    if (!FL.abflug && punkte >= FL.ab) { FL.abflug = .001; T.abflug(); meldung(`${FL.ab} Punkte!`, `${NAME()} steigt ins Flugzeug …`); }
     if (FL.abflug) {
       FL.abflug += dt; blende.style.opacity = Math.min(1, FL.abflug / .9);
       if (FL.abflug >= .9) { flugStart(); return; }
@@ -976,12 +1004,13 @@ if (rahmen) {
     let ziel2 = new THREE.Vector3(px + sin * abst, kh, pz + cos * abst);
     if (leerlauf) {                                     // langsamer Schwenk vor ihr hin und her
       const w = yaw + Math.sin(performance.now() / 4000) * .45, r = hoch ? 5.6 : 4.6;   // vor ihr, innerhalb der Hecken
-      ziel2 = new THREE.Vector3(px - Math.sin(w) * r, hoch ? 2.4 : 2, pz - Math.cos(w) * r);
+      const kl = spieler.blick < 1;                       // Leo ist kleiner: Kamera näher und tiefer
+      ziel2 = new THREE.Vector3(px - Math.sin(w) * r * (kl ? .8 : 1), (hoch ? 2.4 : 2) * (kl ? .7 : 1), pz - Math.cos(w) * r * (kl ? .8 : 1));
     }
     if (!kamPos) kamPos = ziel2.clone(); else kamPos.lerp(ziel2, Math.min(1, dt * (leerlauf ? 2.5 : 8)));
     kamera.position.copy(kamPos);
     if (wackeln > 0) { wackeln = Math.max(0, wackeln - dt); kamera.position.x += (Math.random() - .5) * wackeln * .6; kamera.position.y += (Math.random() - .5) * wackeln * .4; }
-    if (leerlauf) kamera.lookAt(px, 1.35, pz);
+    if (leerlauf) kamera.lookAt(px, spieler.blick, pz);
     else kamera.lookAt(px - sin * (hoch ? 5 : 7), hoch ? -.6 : .6, pz - cos * (hoch ? 5 : 7));
     himmelKugel.position.copy(kamera.position); wolkenGruppe.position.set(kamera.position.x, 0, kamera.position.z);
     ferneGruppe.position.set(kamera.position.x, 0, kamera.position.z);
@@ -1011,7 +1040,7 @@ if (rahmen) {
     ["turbo", "schild", "schubs", "magnet", "doppelt"].forEach(t => dazu(W.booster(t)));
     ["logo", "ohren", "kitas"].forEach(t => { dazu(W.froebelHeckenTafel(t)); dazu(W.froebelTafel(t)); });
     ["ohren", "kitas"].forEach(t => dazu(W.froebelSchild(t)));
-    dazu(W.toertchen());
+    dazu(W.toertchen()); dazu((figur === "leo" ? W.giraffeBauen() : W.leoBauen()).gruppe);
     { const f = W.frauBauen(); f.gruppe.add(W.sprechblase(["Ich suche meine", "Autoschlüssel!"])); dazu(f.gruppe); }
     [FW.ring(), FW.heissluftballon(), FW.gewitter(), FW.voegel(), FW.insel(), FW.regenbogen(), FW.wolkenBallen(), W.froebelBanner(2, .5)].forEach(dazu);
     for (const art of ["staub", "funke", "dampf"]) { const k = teilchenHolen(art); dazu(k); }
@@ -1109,9 +1138,10 @@ if (rahmen) {
     for (const o of [flieger.gruppe, anjaFlieger.gruppe, meer, flugGruppe]) o.visible = true;
     Object.assign(FL, { x: 0, y: 7, z: 0, zx: 0, zy: 7, v: Math.max(18, tempo), neig: 0, nick: 0, naechst: -45, strecke: 0, trudeln: 0, regenbogen: 250, ax: 0, ay: 7, zeit: 0, landung: 0, gewarnt: false });
     // Fröbelinchen sitzt im Cockpit (Beine im Rumpf versteckt), Anja genauso in ihrem rosa Flieger
-    flieger.sitz.add(spieler.gruppe); spieler.gruppe.position.set(0, -.85, .3); spieler.gruppe.rotation.set(0, 0, 0); spieler.gruppe.scale.setScalar(1);
+    const [cy, cz, cs] = spieler.cockpit;
+    flieger.sitz.add(spieler.gruppe); spieler.gruppe.position.set(0, cy, cz); spieler.gruppe.rotation.set(0, 0, 0); spieler.gruppe.scale.setScalar(cs);
     spieler.koerper.position.y = 0; spieler.beine.forEach(b => { b.oben.visible = false; });
-    blase.scale.setScalar(2.3); blase.position.y = .6;
+    blase.scale.setScalar(2.3 / spieler.cockpit[2]); blase.position.y = .6;
     anjaFlieger.sitz.add(anja.gruppe); anja.gruppe.position.set(0, -.75, .25); anja.gruppe.rotation.set(0, 0, 0);
     anja.k.rotation.x = 0; anja.k.position.y = 0; anja.beine.forEach(b => { b.oben.visible = false; });
     sternchen.forEach(st => { st.visible = false; });
@@ -1130,7 +1160,7 @@ if (rahmen) {
       szene.add(spieler.gruppe, anja.gruppe);
       spieler.gruppe.position.set(0, 0, 0); spieler.gruppe.rotation.set(0, 0, 0); spieler.beine.forEach(b => { b.oben.visible = true; });
       anja.gruppe.position.set(0, 0, 0); anja.gruppe.rotation.set(0, 0, 0); anja.beine.forEach(b => { b.oben.visible = true; });
-      blase.scale.setScalar(1); blase.position.y = 1.15;
+      spieler.gruppe.scale.setScalar(1); blasePassen(1);
       for (const o of [boden, ferneGruppe]) o.visible = true;
       W.luft.visible = qualitaet < 3;
       szene.fog.near = 45; szene.fog.far = 120;
