@@ -31,7 +31,7 @@ if (rahmen) {
   function laden() {
     if (!bereit) {
       const text = losKnopf.textContent; losKnopf.disabled = true; losKnopf.textContent = "Lädt die 3D-Welt …";
-      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=12"), import("./lauf-ton.js?v=2"), import("./lauf-flug.js?v=2"), import("./lauf-effekte.js?v=1")])
+      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=13"), import("./lauf-ton.js?v=2"), import("./lauf-flug.js?v=2"), import("./lauf-effekte.js?v=1")])
         .then(([m, w, t, f, e]) => { THREE = m; T = t.ton(); aufbauen(w, f, e); losKnopf.disabled = false; losKnopf.textContent = text; });
     }
     return bereit;
@@ -187,6 +187,17 @@ if (rahmen) {
     if (erster) setze(W.heckeFuer(2 * H + 2, ab.zone, 1.5, .9), -6.55, 0, 0, Math.PI / 2);
 
     hindernisseVerteilen(ab, setze);
+    // Fröbel: Torbogen am Start (hinter Fröbelinchen) und am Anfang jeder Welt, dazu Tafeln und Schilder am Wegrand
+    if (erster) setze(W.froebelTor(2 * H + 1.1), -3.5, 0);
+    else if (nr % 3 === 0) setze(W.froebelTor(2 * H + 1.1), 7, 0);
+    if (!erster && Math.random() < .5) {
+      const seite = wahl([-1, 1]);
+      setze(W.froebelTafel(wahl(["logo", "logo", "ohren", "kitas"])), zufall(14, L - 16), seite * (H + zufall(4, 6.5)), 0, -seite * .45);
+    }
+    if (!erster && Math.random() < .55) {
+      const seite = wahl([-1, 1]);
+      setze(W.froebelSchild(wahl(["ohren", "kitas"])), zufall(10, L - 14), seite * (H + 1.3), 0, -seite * .6);
+    }
 
     // Ab und zu ein Booster an einer freien Stelle
     if (!erster && Math.random() < .5) {
@@ -1117,6 +1128,14 @@ if (rahmen) {
         const b = zufall(10, 22); w.scale.set(b, b / 2, 1);
         flugObjekt("deko", w, seite * zufall(10 + b / 2, 40), zufall(b / 4, 18), z + zufall(-10, 10));   // ganz über dem Wolkenmeer, sonst schneidet es die Wolke ab
       }
+    }
+    if (Math.random() < .09) {                         // Fröbel-Banner zwischen zwei Heißluftballons, am Rand
+      const g = new THREE.Group(), seite = wahl([-1, 1]);
+      for (const s of [-1, 1]) { const b = FW.heissluftballon(); b.position.x = s * 4.6; g.add(b); }
+      const ban = W.froebelBanner(7.6, 1.45); ban.position.y = -2.6; g.add(ban);
+      const seile = new THREE.BufferGeometry().setFromPoints([-1, 1].flatMap(s => [new THREE.Vector3(s * 4.6, -1.9, 0), new THREE.Vector3(s * 3.75, -1.88, 0)]));
+      g.add(new THREE.LineSegments(seile, new THREE.LineBasicMaterial({ color: "#5a4632" })));
+      flugObjekt("deko", g, seite * zufall(13, 19), zufall(5, 12), z - 12);
     }
     if (Math.random() < .12) flugObjekt("durch", FW.wolkenBallen(), rx(), ry(), z - 22);   // Wolke zum Durchfliegen
     if (-z > FL.regenbogen) { FL.regenbogen += 1600; flugObjekt("deko", FW.regenbogen(), 0, -8, z - 60); }

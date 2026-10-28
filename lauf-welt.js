@@ -777,6 +777,125 @@ export function welt(T, handy) {
     });
   }
 
+  // ---------- Fröbel: Banner, Werbetafeln und Schilder ----------
+  // Das Logo kommt als Bild (spiel/froebel-logo.png), Texte in Figtree (wie auf der Seite) in den Fröbel-Farben.
+  // Bis Logo und Schrift geladen sind, steht eine gezeichnete Fassung da; danach werden die Flächen neu gemalt.
+  const FR = { dunkel: "#004d3a", gruen: "#3baa35", hell: "#a8c700" };
+  const logoBild = new Image();
+  const neuMalen = [];
+  function froebelFlaeche(w, h, malen) {
+    const t = leinwand(w, h, malen, false);
+    neuMalen.push(() => { const g = t.image.getContext("2d"); g.clearRect(0, 0, w, h); malen(g, w, h); t.needsUpdate = true; });
+    return t;
+  }
+  Promise.all([
+    new Promise(r => { logoBild.onload = r; logoBild.onerror = r; logoBild.src = "spiel/froebel-logo.png"; }),
+    document.fonts ? document.fonts.load("800 80px Figtree").catch(() => {}) : null,
+  ]).then(() => neuMalen.forEach(f => f()));
+  const schrift = (px) => `800 ${px}px Figtree, "Trebuchet MS", Arial, sans-serif`;
+  // Bildzeichen: helles Quadrat, grüner Kreis, dunkles Dreieck (Größe s = Kantenlänge des Quadrats)
+  function zeichen(g, x, y, s) {
+    g.fillStyle = FR.hell; g.fillRect(x, y + s, s, s);
+    g.fillStyle = FR.gruen; g.beginPath(); g.arc(x + s * 1.62, y + s * .5, s * .5, 0, 7); g.fill();
+    g.fillStyle = FR.dunkel; g.beginPath(); g.moveTo(x + s * 1.12, y + s); g.lineTo(x + s * 2.12, y + s); g.lineTo(x + s * 2.12, y + s * 2); g.closePath(); g.fill();
+  }
+  let logoAusschnitt = null;
+  function logoMalen(g, cx, cy, hoehe) {            // Logo mittig um (cx, cy), so hoch wie „hoehe“
+    if (logoBild.naturalWidth) {
+      if (!logoAusschnitt) {                          // weißen Rand des Bildes abschneiden
+        const c = document.createElement("canvas"), w = logoBild.naturalWidth, h = logoBild.naturalHeight; c.width = w; c.height = h;
+        const k = c.getContext("2d"); k.drawImage(logoBild, 0, 0); const d = k.getImageData(0, 0, w, h).data;
+        let x0 = w, y0 = h, x1 = 0, y1 = 0;
+        for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+          const i = (y * w + x) * 4; if (d[i + 3] > 40 && d[i] + d[i + 1] + d[i + 2] < 690) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+        }
+        logoAusschnitt = x1 > x0 ? [x0, y0, x1 - x0 + 1, y1 - y0 + 1] : [0, 0, w, h];
+      }
+      const [x0, y0, w, h] = logoAusschnitt, b = w * hoehe / h;
+      g.drawImage(logoBild, x0, y0, w, h, cx - b / 2, cy - hoehe / 2, b, hoehe);
+    } else {
+      const s = hoehe / 2; g.font = schrift(hoehe * .62); g.textBaseline = "alphabetic";
+      const tb = g.measureText("Fröbel").width, b = s * 2.12 + s * .7 + tb, x = cx - b / 2;
+      zeichen(g, x, cy - hoehe / 2, s);
+      g.fillStyle = FR.dunkel; g.fillText("Fröbel", x + s * 2.82, cy + hoehe * .38);
+    }
+  }
+  const TEXTE = { ohren: ["Ohren auf", "für Kinder!"], kitas: ["Kitas", "für Kinder."] };
+  // große Tafel: weiß, Logo oder Spruch in Dunkelgrün, unten ein Streifen in Hellgrün und Grün
+  const tafelBild = {
+    logo: froebelFlaeche(1024, 512, (g, w, h) => {
+      g.fillStyle = "#ffffff"; g.fillRect(0, 0, w, h); logoMalen(g, w / 2, h * .44, h * .5);
+      g.fillStyle = FR.hell; g.fillRect(0, h - 44, w * .5, 44); g.fillStyle = FR.gruen; g.fillRect(w * .5, h - 44, w * .5, 44);
+    }),
+  };
+  for (const [art, [a, b]] of Object.entries(TEXTE)) {
+    tafelBild[art] = froebelFlaeche(1024, 512, (g, w, h) => {
+      g.fillStyle = "#ffffff"; g.fillRect(0, 0, w, h);
+      zeichen(g, 70, 120, 105);
+      g.fillStyle = FR.dunkel; g.textBaseline = "alphabetic";
+      let px = 150; g.font = schrift(px);
+      while (Math.max(g.measureText(a).width, g.measureText(b).width) > w - 400 && px > 60) g.font = schrift(px -= 6);
+      g.fillText(a, 340, 220); g.fillStyle = FR.gruen; g.fillText(b, 340, 220 + px * 1.05);
+      g.fillStyle = FR.hell; g.fillRect(0, h - 44, w * .5, 44); g.fillStyle = FR.gruen; g.fillRect(w * .5, h - 44, w * .5, 44);
+    });
+  }
+  // kleines Schild: dunkelgrün mit weißer Schrift und hellgrünem Quadrat
+  const schildBild = {};
+  for (const [art, [a, b]] of Object.entries(TEXTE)) {
+    schildBild[art] = froebelFlaeche(512, 256, (g, w, h) => {
+      g.fillStyle = FR.dunkel; g.beginPath(); g.roundRect(0, 0, w, h, 26); g.fill();
+      g.fillStyle = FR.hell; g.fillRect(34, 40, 46, 46); g.fillStyle = FR.gruen; g.beginPath(); g.arc(57, 140, 22, 0, 7); g.fill();
+      g.fillStyle = "#ffffff"; g.textBaseline = "alphabetic";
+      let px = 78; g.font = schrift(px);
+      while (Math.max(g.measureText(a).width, g.measureText(b).width) > w - 140 && px > 30) g.font = schrift(px -= 4);
+      g.fillText(a, 112, 112); g.fillStyle = FR.hell; g.fillText(b, 112, 112 + px * 1.05);
+    });
+  }
+  const bannerBild = froebelFlaeche(1024, 192, (g, w, h) => {
+    g.fillStyle = "#ffffff"; g.fillRect(0, 0, w, h); logoMalen(g, w / 2, h * .48, h * .7);
+    g.fillStyle = FR.hell; g.fillRect(0, 0, w, 10); g.fillStyle = FR.gruen; g.fillRect(0, h - 10, w, 10);
+  });
+  const frMat = (map) => std({ map, roughness: .55, emissive: "#ffffff", emissiveMap: map, emissiveIntensity: .12 });
+  const FM = {
+    tafel: Object.fromEntries(Object.entries(tafelBild).map(([k, t]) => [k, frMat(t)])),
+    schild: Object.fromEntries(Object.entries(schildBild).map(([k, t]) => [k, frMat(t)])),
+    banner: frMat(bannerBild), dunkel: std({ color: FR.dunkel, roughness: .6 }), weiss: std({ color: "#f4f6f2", roughness: .6 }),
+  };
+  const tafelGeo = geteilt(new T.PlaneGeometry(4.2, 2.1)), schildGeo2 = geteilt(new T.PlaneGeometry(1.8, .9));
+  // beidseitiges Banner (vorn und hinten lesbar), Mitte bei (0, 0)
+  function froebelBanner(b, h) {
+    const g = new T.Group(), geo = new T.PlaneGeometry(b, h);
+    for (const dreh of [0, Math.PI]) { const m = teil(geo, FM.banner, g); m.rotation.y = dreh; m.position.z = dreh ? -.012 : .012; }
+    return g;
+  }
+  // Torbogen über dem Weg: zwei Pfosten und ein Banner hoch über Fröbelinchen (auch beim Springen frei)
+  function froebelTor(breite) {
+    const g = new T.Group();
+    for (const s of [-1, 1]) {
+      teil(zyl(.11, .13, 5.3, 16), FM.dunkel, g, s * breite / 2, 2.65, 0);
+      teil(kugel, FM.weiss, g, s * breite / 2, 5.38, 0).scale.setScalar(.16);
+    }
+    const ban = froebelBanner(breite - .3, 1.15); ban.position.y = 4.55; g.add(ban);
+    teil(zyl(.035, .035, breite, 8), FM.dunkel, g, 0, 5.15, 0).rotation.z = Math.PI / 2;
+    return g;
+  }
+  // Werbetafel auf der Wiese, auf zwei Beinen
+  function froebelTafel(art) {
+    const g = new T.Group();
+    for (const s of [-1, 1]) teil(zyl(.07, .09, 2.2, 10), FM.dunkel, g, s * 1.5, 1.1, -.06);
+    teil(kiste(4.4, 2.3, .1), FM.dunkel, g, 0, 2.6, -.06);
+    teil(tafelGeo, FM.tafel[art], g, 0, 2.6, .002);
+    return g;
+  }
+  // kleines Schild am Pfosten, gut sichtbar über der Hecke
+  function froebelSchild(art) {
+    const g = new T.Group();
+    teil(zyl(.05, .06, 2.6, 10), mat.holz, g, 0, 1.3, -.05);
+    teil(kiste(1.9, 1, .06), FM.dunkel, g, 0, 2.2, -.04);
+    teil(schildGeo2, FM.schild[art], g, 0, 2.2, .0);
+    return g;
+  }
+
   // ---------- Abbiege-Hinweise: Schild auf der Hecke am Ende, leuchtende Pfeile auf dem Weg ----------
   const pfeilBild = leinwand(256, 128, (g, w, h) => {
     g.fillStyle = "#ffcc1f"; g.beginPath(); g.roundRect(4, 4, w - 8, h - 8, 22); g.fill();
@@ -1324,6 +1443,6 @@ export function welt(T, handy) {
   }
   const luft = new T.Group(); luft.add(wetter, voegel);
 
-  return { kontaktSchatten, grasBueschel, dampf, weltHindernis, entsorgen, pfeilSchild, bodenPfeil, AUSSTATTUNG, ausstattungSetzen, zonen: ZONEN, zoneFuer, dekoFuer, heckeFuer, blumenFuer, bodenFlaeche, bodenFolgen, verbinden, zoneWechsel, zoneSchritt,
+  return { froebelBanner, froebelTor, froebelTafel, froebelSchild, kontaktSchatten, grasBueschel, dampf, weltHindernis, entsorgen, pfeilSchild, bodenPfeil, AUSSTATTUNG, ausstattungSetzen, zonen: ZONEN, zoneFuer, dekoFuer, heckeFuer, blumenFuer, bodenFlaeche, bodenFolgen, verbinden, zoneWechsel, zoneSchritt,
     animieren, wetterSchritt, voegelSchritt, luft, mat, geo, giraffeBauen, anjaBauen, boden, heckenStueck, blumen, ferne, sonnenScheibe, funke, staub, kante, dekoNeu, hindernis, stern, panzer, booster, blase, himmel, wolken, gras };
 }
