@@ -1,4 +1,4 @@
-// Spielseite: Teilen, Offline-Hilfe und die Auswahlkarte oben. Das Spiel selbst steht in lauf.js.
+// Spielseite: Teilen, Offline-Hilfe und der Start-Knopf am Handy. Das Spiel selbst steht in lauf.js.
 (() => {
   // Teilen: Text mit dem eigenen Rekord aus „Fröbelinchen rennt“, falls schon gespielt
   const LINK = "https://colorgraphy.de/spiel.html";
@@ -19,8 +19,8 @@
   // Offline spielbar (z. B. als App auf dem Startbildschirm): Dateien werden im Browser gemerkt, siehe sw.js
   if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
 
-  // Auswahlkarte oben: am Handy öffnet sie das Spiel im Vollbild, am PC springt die Seite zum Spiel
-  document.querySelectorAll(".wahl-karte").forEach(k => k.addEventListener("click", () => {
+  // Am Handy öffnet der Knopf „Jetzt spielen“ das Spiel im Vollbild
+  document.querySelectorAll(".lauf-handy-start").forEach(k => k.addEventListener("click", () => {
     if (window.froebelRennen) window.froebelRennen.oeffnen();
   }));
 })();

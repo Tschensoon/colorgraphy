@@ -122,7 +122,7 @@ body.spiel-offen { overflow: hidden; }
 
 /* Handy: Spiele nur über die Auswahl im Vollbild, nicht eingebettet (sonst löst Scrollen über dem Spielfeld es aus) */
 @media (pointer: coarse) {
-  .spiel-rahmen:not(.vollbild), .lauf-rahmen:not(.vollbild), .spiel-hilfe, .lauf-bereich > :not(.lauf-rahmen) { display: none; }
+  .spiel-rahmen:not(.vollbild), .lauf-rahmen:not(.vollbild), .spiel-hilfe, .lauf-bereich > :not(.lauf-rahmen):not(.lauf-handy-start) { display: none; }
   .lauf-bereich { margin-top: 0; }
 }
 
@@ -276,3 +276,7 @@ body.spiel-offen { overflow: hidden; }
 .wahl-raster { grid-template-columns: minmax(0, 560px); justify-content: center; }
 .spiel-bereich .lauf-bereich { margin-top: 0; }
 .spiel-teilen { margin-top: 1.4rem; }
+
+/* Am Handy startet ein großer Knopf das Spiel im Vollbild (eingebettet ist es dort ausgeblendet); am PC steht das Spiel direkt da */
+.lauf-handy-start { display: none; }
+@media (pointer: coarse) { .lauf-handy-start { display: inline-flex; margin: .5rem auto 0; padding: 1rem 2.2rem; font-size: 1.2rem; } }

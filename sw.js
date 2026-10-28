@@ -2,7 +2,7 @@
 // und nebenbei gemerkt. Nur ohne Netz kommt die gemerkte Fassung, so ist die Seite nie veraltet.
 const SPEICHER = "colorgraphy-v1";
 const VORAB = ["spiel.html", "spiel.css", "spiel.js", "lauf.js", "lauf-welt.js", "lauf-ton.js", "lauf-flug.js", "lauf-effekte.js", "style.css", "tools.css", "seite.js", "ziehen.js",
-  "vendor/three/three.module.min.js", "spiel/vorschau-rennen.jpg", "spiel/froebel-logo.png", "favicon.svg"];
+  "vendor/three/three.module.min.js", "spiel/froebel-logo.png", "favicon.svg"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(SPEICHER).then(c => c.addAll(VORAB)).catch(() => {}).then(() => self.skipWaiting()));
