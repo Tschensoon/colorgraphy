@@ -29,7 +29,7 @@ if (rahmen) {
     new IntersectionObserver((e, b) => { if (e.some(x => x.isIntersecting)) { b.disconnect(); laden(); } }, { rootMargin: "300px" }).observe(rahmen);
   }
   function laden() {
-    if (!bereit) bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=5"), import("./lauf-ton.js?v=1")])
+    if (!bereit) bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=6"), import("./lauf-ton.js?v=1")])
       .then(([m, w, t]) => { THREE = m; T = t.ton(); aufbauen(w); });
     return bereit;
   }
@@ -87,7 +87,8 @@ if (rahmen) {
     const pmrem = new THREE.PMREMGenerator(renderer), himmelSzene = new THREE.Scene();
     himmelSzene.add(W.himmel());
     szene.environment = pmrem.fromScene(himmelSzene, .02).texture;
-    kamera = new THREE.PerspectiveCamera(62, 1, .1, 400);
+    // nahe Grenze 0,5 m statt 0,1 m: der Tiefenpuffer wird dadurch viel genauer, flache Dinge flimmern am Handy nicht mehr
+    kamera = new THREE.PerspectiveCamera(62, 1, .5, 260);
     szene.add(new THREE.HemisphereLight("#cfe6ff", "#6c8f3c", .85));
     sonne = new THREE.DirectionalLight("#ffe7c4", 2.8);
     sonne.castShadow = true;
@@ -638,6 +639,24 @@ if (rahmen) {
     if (sz.t > 1.6) ende(sz.grund);
   }
 
+  // Sonne mit dem Spieler mitführen, aber nur in ganzen Schatten-Pixeln: so bleiben Schattenkanten ruhig
+  const SONNE_RICHTUNG = [-10, 18, 6];
+  let lichtRechts = null, lichtOben = null;
+  function schattenNachfuehren(px, pz) {
+    if (!lichtRechts) {
+      const d = new THREE.Vector3(...SONNE_RICHTUNG).normalize();
+      lichtRechts = new THREE.Vector3(0, 1, 0).cross(d).normalize(); lichtOben = d.clone().cross(lichtRechts).normalize();
+    }
+    const cam = sonne.shadow.camera, texel = (cam.right - cam.left) / sonne.shadow.mapSize.x;
+    const p = new THREE.Vector3(px, 0, pz);
+    const a = Math.round(p.dot(lichtRechts) / texel) * texel, b = Math.round(p.dot(lichtOben) / texel) * texel;
+    const tiefe = p.dot(new THREE.Vector3(...SONNE_RICHTUNG).normalize());
+    const z = lichtRechts.clone().multiplyScalar(a).add(lichtOben.clone().multiplyScalar(b))
+      .add(new THREE.Vector3(...SONNE_RICHTUNG).normalize().multiplyScalar(tiefe));
+    sonne.target.position.copy(z);
+    sonne.position.set(z.x + SONNE_RICHTUNG[0], z.y + SONNE_RICHTUNG[1], z.z + SONNE_RICHTUNG[2]);
+  }
+
   // ---------- Bild ----------
   let kamYaw = 0, kamPos = null;
   const winkel = (a, b, k) => a + (((b - a + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI) * k;
@@ -713,7 +732,7 @@ if (rahmen) {
     }
     const zeit = performance.now() / 1000;
     W.zoneSchritt(dt); W.animieren(zeit);
-    sonne.position.set(px - 10, 18, pz + 6); sonne.target.position.set(px, 0, pz);
+    schattenNachfuehren(px, pz);
 
     // Kamera schräg hinter Fröbelinchen, dreht beim Abbiegen weich mit; bei der Fang-Szene langsam herum
     if (fang) kamYaw += dt * .9;

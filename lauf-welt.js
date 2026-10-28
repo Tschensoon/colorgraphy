@@ -9,7 +9,7 @@ export function welt(T, handy) {
     const c = document.createElement("canvas"); c.width = w; c.height = h;
     malen(c.getContext("2d"), w, h);
     const t = new T.CanvasTexture(c);
-    t.colorSpace = T.SRGBColorSpace; t.anisotropy = 4;
+    t.colorSpace = T.SRGBColorSpace; t.anisotropy = 8;
     if (wiederholen) t.wrapS = t.wrapT = T.RepeatWrapping;
     return t;
   }
@@ -154,15 +154,15 @@ export function welt(T, handy) {
   const plueschBasis = { roughness: 1, sheen: 1, sheenRoughness: .55 };
   const mat = {
     gras: std({ map: gras, roughness: 1 }),
-    weg: std({ map: pflaster, roughness: .95, bumpMap: pflaster, bumpScale: 1.5 }),
+    weg: std({ map: pflaster, roughness: .95, bumpMap: handy ? null : pflaster, bumpScale: 1.5 }),
     kante: std({ color: "#cfcac0", roughness: .9 }),
-    hecke: std({ map: hecke, roughness: 1, bumpMap: hecke, bumpScale: 4 }),
+    hecke: std({ map: hecke, roughness: 1, bumpMap: handy ? null : hecke, bumpScale: 4 }),
     holz: std({ map: holz, roughness: .8 }),
     rinde: std({ map: rinde, roughness: 1, bumpMap: rinde, bumpScale: 3 }),
-    laub: std({ map: laub, roughness: .95, bumpMap: laub, bumpScale: 3 }),
+    laub: std({ map: laub, roughness: .95, bumpMap: handy ? null : laub, bumpScale: 3 }),
     dach: std({ map: dach, roughness: .8 }),
     sand: std({ color: "#e9d29a", roughness: 1 }),
-    pfuetze: std({ color: "#6f9fc4", roughness: .04, metalness: .2, transparent: true, opacity: .82 }),
+    pfuetze: std({ color: "#6f9fc4", roughness: .04, metalness: .2, transparent: true, opacity: .82, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }),
     metall: std({ color: "#2f7fd0", roughness: .3, metalness: .6 }),
     metallRot: std({ color: "#d84a3a", roughness: .35, metalness: .5 }),
     plastikGelb: std({ color: "#ffcd2e", roughness: .35 }),
@@ -391,7 +391,7 @@ export function welt(T, handy) {
       const s = teil(zyl(.22, .22, breite, 16), mat.rinde, g, 0, .24, 0); s.rotation.z = Math.PI / 2;
       for (const x of [-breite / 2 + .4, breite / 2 - .4]) teil(kiste(.3, .16, .5), mat.holz, g, x, .08, 0);
     } else if (typ === "pfuetze") {
-      const p = new T.Mesh(new T.CircleGeometry(1, 28), mat.pfuetze); p.rotation.x = -Math.PI / 2; p.scale.set(breite / 2 - .1, .9, 1); p.position.y = .025;
+      const p = new T.Mesh(new T.CircleGeometry(1, 28), mat.pfuetze); p.rotation.x = -Math.PI / 2; p.scale.set(breite / 2 - .1, .9, 1); p.position.y = .05;
       p.receiveShadow = true; g.add(p);
     } else if (typ === "stange") {
       const s = teil(zyl(.09, .09, breite + .2, 16), mat.metall, g, 0, 1.45, 0); s.rotation.z = Math.PI / 2;
@@ -557,7 +557,7 @@ export function welt(T, handy) {
   }, false);
   const schildMat = std({ map: pfeilBild, roughness: .5, emissive: "#ffcc1f", emissiveIntensity: .35 });
   const schildGeo = geteilt(new T.PlaneGeometry(3, 1.5)), bodenPfeilGeo = geteilt(new T.PlaneGeometry(2.3, 2.3).rotateX(-Math.PI / 2));
-  const bodenPfeilMat = new T.MeshBasicMaterial({ map: bodenPfeilBild, transparent: true, depthWrite: false });
+  const bodenPfeilMat = new T.MeshBasicMaterial({ map: bodenPfeilBild, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 });
   function pfeilSchild(dreh) {
     const g = new T.Group();
     for (const x of [-1, 1]) teil(zyl(.07, .07, 3.2, 8), mat.holz, g, x, 1.6, .05);
@@ -565,7 +565,7 @@ export function welt(T, handy) {
     return g;
   }
   function bodenPfeil(dreh) {
-    const k = new T.Mesh(bodenPfeilGeo, bodenPfeilMat); k.position.y = .03; k.scale.x = dreh; return k;
+    const k = new T.Mesh(bodenPfeilGeo, bodenPfeilMat); k.position.y = .06; k.scale.x = dreh; return k;
   }
 
   // ---------- Ausstattung für Fröbelinchen (im Sterne-Shop freischaltbar) ----------
@@ -635,7 +635,7 @@ export function welt(T, handy) {
   const herbstLaub = [leinwand(256, 256, (g, w, h) => {
     g.fillStyle = "#c8611c"; g.fillRect(0, 0, w, h);
     for (let i = 0; i < 1500; i++) { g.fillStyle = wahl(["#e07b1f", "#f2a531", "#b8401b", "#d9531e", "#f6c24a"]); g.beginPath(); g.ellipse(Math.random() * w, Math.random() * h, zufall(2, 5), zufall(1.5, 3), Math.random() * 3, 0, 7); g.fill(); }
-  })].map(t => std({ map: t, roughness: .95, bumpMap: t, bumpScale: 3 }))[0];
+  })].map(t => std({ map: t, roughness: .95, bumpMap: handy ? null : t, bumpScale: 3 }))[0];
   const holzRot = leinwand(256, 256, (g, w, h) => {
     g.fillStyle = "#b8352b"; g.fillRect(0, 0, w, h);
     for (let x = 0; x < w; x += 16) { g.fillStyle = "rgba(0,0,0,.18)"; g.fillRect(x, 0, 2, h); }
@@ -847,7 +847,7 @@ export function welt(T, handy) {
   const dekoFuer = (z) => wahl(ZONEN[z].deko)();
 
   // Hecken je Welt: im Herbst bunt, im Winter mit Schnee auf der Krone
-  const heckeHerbst = std({ map: hecke, color: "#ffc27a", roughness: 1, bumpMap: hecke, bumpScale: 4 });
+  const heckeHerbst = std({ map: hecke, color: "#ffc27a", roughness: 1, bumpMap: handy ? null : hecke, bumpScale: 4 });
   function heckeFuer(laenge, z) {
     const g = heckenStueck(laenge), art = ZONEN[z].hecke;
     if (art === "herbst") g.children.forEach(k => { k.material = heckeHerbst; });
@@ -864,7 +864,7 @@ export function welt(T, handy) {
     bodenA = new T.Mesh(geom, std({ map: gras, roughness: 1 }));
     bodenB = new T.Mesh(geom, std({ map: gras, roughness: 1, transparent: true, opacity: 0, depthWrite: false }));
     for (const b of [bodenA, bodenB]) { b.rotation.x = -Math.PI / 2; b.receiveShadow = true; }
-    bodenA.position.y = -.03; bodenB.position.y = -.02;
+    bodenA.position.y = -.12; bodenB.position.y = -.1;
     const g = new T.Group(); g.add(bodenA, bodenB); return g;
   }
   function bodenFolgen(px, pz) {
