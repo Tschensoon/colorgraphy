@@ -22,7 +22,8 @@ if (rahmen) {
     new IntersectionObserver((e, b) => { if (e.some(x => x.isIntersecting)) { b.disconnect(); laden(); } }, { rootMargin: "300px" }).observe(rahmen);
   }
   function laden() {
-    if (!bereit) bereit = import("./vendor/three/three.module.min.js").then(m => { THREE = m; aufbauen(); });
+    if (!bereit) bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=1")])
+      .then(([m, w]) => { THREE = m; aufbauen(w); });
     return bereit;
   }
 
@@ -30,8 +31,8 @@ if (rahmen) {
   const SPUR = 1.6, H = 2.9, ECKE = 7;            // Spurbreite, halbe Wegbreite, Abbiegezone vor der Ecke
   const START_TEMPO = 9, MAX_TEMPO = 21, BESCHL = .1;
   const SPRUNG = 7.2, G = 22, DUCKEN = .75;
-  let renderer, szene, kamera, uhr, boden, spieler, anja, sternGeo, mat = {}, geo = {};
-  let abschnitte = [], hindernisse = [], sterne = [], deko = [];
+  let renderer, szene, kamera, uhr, boden, spieler, anja;
+  let abschnitte = [], hindernisse = [], sterne = [];
   let zustand = "start", tempo, punkte, sternZahl, strecke, rekord = 0;
   const S = { idx: 0, s: 0, spur: 0, x: 0, y: 0, vy: 0, duck: 0, abbiegen: 0, stolper: 0, lauf: 0 };
   const A = { nah: false, zeit: 0, abstand: 16, bis: 5, lauf: 0 };
@@ -46,40 +47,36 @@ if (rahmen) {
   const zufall = (a, b) => a + Math.random() * (b - a);
 
   // ---------- Aufbau ----------
-  function aufbauen() {
+  let W, sonne, himmelKugel, wolkenGruppe;
+  function aufbauen(weltModul) {
     renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
-    renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+    renderer.setPixelRatio(Math.min(devicePixelRatio || 1, handy ? 1.5 : 2));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
+    renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     huelle.prepend(renderer.domElement);
+    W = weltModul.welt(THREE, handy);
     szene = new THREE.Scene();
-    const himmel = new THREE.Color("#bfe6fb");
-    szene.background = himmel; szene.fog = new THREE.Fog(himmel, 35, 95);
-    kamera = new THREE.PerspectiveCamera(62, 1, .1, 200);
-    szene.add(new THREE.HemisphereLight("#ffffff", "#7fb069", 1.6));
-    const sonne = new THREE.DirectionalLight("#fff4dc", 1.6); sonne.position.set(-6, 12, 4); szene.add(sonne);
+    szene.fog = new THREE.Fog("#dcedf6", 45, 120);
+    himmelKugel = W.himmel(); szene.add(himmelKugel);
+    wolkenGruppe = W.wolken(); szene.add(wolkenGruppe);
+    // Spiegelungen für Sterne, Ball und Pfützen kommen aus einem Abbild des Himmels
+    const pmrem = new THREE.PMREMGenerator(renderer), himmelSzene = new THREE.Scene();
+    himmelSzene.add(W.himmel());
+    szene.environment = pmrem.fromScene(himmelSzene, .02).texture;
+    kamera = new THREE.PerspectiveCamera(62, 1, .1, 400);
+    szene.add(new THREE.HemisphereLight("#d6ecff", "#6c8f3c", .9));
+    sonne = new THREE.DirectionalLight("#fff0d4", 2.6);
+    sonne.castShadow = true;
+    sonne.shadow.mapSize.set(handy ? 1024 : 2048, handy ? 1024 : 2048);
+    Object.assign(sonne.shadow.camera, { left: -22, right: 22, top: 22, bottom: -22, near: 1, far: 70 });
+    sonne.shadow.bias = -.0004; sonne.shadow.normalBias = .03;
+    szene.add(sonne, sonne.target);
     uhr = new THREE.Clock();
-
-    const m = (c) => new THREE.MeshLambertMaterial({ color: c });
-    Object.assign(mat, {
-      weg: m("#f1dcb0"), wegRand: m("#e4c88f"), hecke: m("#3f8f3f"), hecke2: m("#4aa04a"), gras: m("#8fcf5f"),
-      holz: m("#b97a45"), pfuetze: new THREE.MeshLambertMaterial({ color: "#5fb4e8", transparent: true, opacity: .85 }),
-      stern: new THREE.MeshLambertMaterial({ color: "#ffd23f", emissive: "#a07800" }),
-      stamm: m("#8b5a2b"), krone: m("#4c9a3a"), dach: m("#e2574c"),
-      bunt: ["#e53935", "#1e88e5", "#fdd835", "#43a047", "#8e24aa", "#fb8c00"].map(m),
-      haus: ["#fff3c4", "#d6ecff", "#ffe0e6"].map(m),
-    });
-    Object.assign(geo, { ball: new THREE.SphereGeometry(.45, 18, 14), ring: new THREE.TorusGeometry(.45, .05, 6, 24),
-      pfuetze: new THREE.CylinderGeometry(1, 1, .03, 24), krone: new THREE.SphereGeometry(1.4, 12, 10) });
-    boden = new THREE.Mesh(new THREE.PlaneGeometry(400, 400), mat.gras);
-    boden.rotation.x = -Math.PI / 2; boden.position.y = -.02; szene.add(boden);
-
-    // Stern zum Einsammeln
-    const form = new THREE.Shape();
-    for (let i = 0; i < 10; i++) { const r = i % 2 ? .14 : .32, w = i / 10 * Math.PI * 2; form[i ? "lineTo" : "moveTo"](Math.sin(w) * r, Math.cos(w) * r); }
-    sternGeo = new THREE.ExtrudeGeometry(form, { depth: .08, bevelEnabled: false }); sternGeo.center();
-
-    spieler = giraffeBauen(); szene.add(spieler.gruppe);
-    anja = anjaBauen(); szene.add(anja.gruppe);
+    boden = new THREE.Mesh(new THREE.PlaneGeometry(400, 400), W.mat.gras);
+    boden.rotation.x = -Math.PI / 2; boden.position.y = -.02; boden.receiveShadow = true; szene.add(boden);
+    spieler = W.giraffeBauen(); szene.add(spieler.gruppe);
+    anja = W.anjaBauen(); szene.add(anja.gruppe);
     neu();
     groesse(); new ResizeObserver(groesse).observe(huelle);
     renderer.setAnimationLoop(bild);
@@ -92,72 +89,7 @@ if (rahmen) {
     kamera.fov = w / h < .8 ? 72 : 62; kamera.updateProjectionMatrix();
   }
 
-  // Fröbelinchen: kleine Plüschgiraffe aus einfachen Formen, schaut nach -z
-  function giraffeBauen() {
-    const g = new THREE.Group(), o = new THREE.MeshLambertMaterial({ color: "#f28c1a" });
-    const od = new THREE.MeshLambertMaterial({ color: "#c9650a" }), hell = new THREE.MeshLambertMaterial({ color: "#ffd9a8" });
-    const braun = new THREE.MeshLambertMaterial({ color: "#8d4b12" }), schwarz = new THREE.MeshLambertMaterial({ color: "#2b1a0e" });
-    const kugel = new THREE.SphereGeometry(1, 18, 14);
-    const koerper = new THREE.Mesh(kugel, o); koerper.scale.set(.42, .38, .62); koerper.position.y = 1.0; g.add(koerper);
-    const bauch = new THREE.Mesh(kugel, hell); bauch.scale.set(.32, .2, .45); bauch.position.set(0, .82, 0); g.add(bauch);
-    for (const [x, y, z, r] of [[.3, 1.1, .1, .1], [-.32, 1.05, -.15, .09], [.25, 1.2, -.3, .08], [-.2, 1.25, .3, .09], [.05, 1.36, .05, .08], [-.36, .95, .25, .07]]) {
-      const f = new THREE.Mesh(kugel, od); f.scale.set(r, r * .7, r); f.position.set(x, y, z); g.add(f);
-    }
-    // Hals mit Kopf, dreht beim Ducken nach vorn
-    const hals = new THREE.Group(); hals.position.set(0, 1.18, -.42); g.add(hals);
-    const halsM = new THREE.Mesh(new THREE.CylinderGeometry(.12, .17, .95, 12), o); halsM.position.y = .45; halsM.rotation.x = -.2; hals.add(halsM);
-    for (let i = 0; i < 5; i++) { const m = new THREE.Mesh(kugel, braun); m.scale.set(.05, .07, .05); m.position.set(0, .15 + i * .17, .14 - i * .035); hals.add(m); }
-    const kopf = new THREE.Group(); kopf.position.set(0, .95, -.12); hals.add(kopf);
-    const kopfM = new THREE.Mesh(kugel, o); kopfM.scale.set(.2, .19, .28); kopf.add(kopfM);
-    const maul = new THREE.Mesh(kugel, hell); maul.scale.set(.15, .12, .14); maul.position.set(0, -.04, -.22); kopf.add(maul);
-    for (const s of [-1, 1]) {
-      const horn = new THREE.Mesh(new THREE.CylinderGeometry(.03, .035, .2, 8), od); horn.position.set(s * .08, .25, .05); kopf.add(horn);
-      const knopf = new THREE.Mesh(kugel, braun); knopf.scale.setScalar(.05); knopf.position.set(s * .08, .36, .05); kopf.add(knopf);
-      const ohr = new THREE.Mesh(kugel, od); ohr.scale.set(.1, .04, .05); ohr.position.set(s * .21, .12, .08); ohr.rotation.z = s * .4; kopf.add(ohr);
-      const auge = new THREE.Mesh(kugel, schwarz); auge.scale.setScalar(.035); auge.position.set(s * .12, .07, -.17); kopf.add(auge);
-    }
-    const beine = [];
-    for (const [x, z] of [[-.22, -.32], [.22, -.32], [-.22, .32], [.22, .32]]) {
-      const p = new THREE.Group(); p.position.set(x, .85, z); g.add(p);
-      const b = new THREE.Mesh(new THREE.CylinderGeometry(.08, .07, .78, 10), o); b.position.y = -.4; p.add(b);
-      const huf = new THREE.Mesh(new THREE.CylinderGeometry(.085, .09, .1, 10), braun); huf.position.y = -.8; p.add(huf);
-      beine.push(p);
-    }
-    const schwanz = new THREE.Mesh(new THREE.CylinderGeometry(.025, .03, .5, 6), od);
-    schwanz.position.set(0, 1.0, .68); schwanz.rotation.x = .6; g.add(schwanz);
-    return { gruppe: g, hals, beine, schwanz };
-  }
-
-  // Anja: Läuferin mit blondem Pferdeschwanz
-  function anjaBauen() {
-    const g = new THREE.Group(), kugel = new THREE.SphereGeometry(1, 16, 12);
-    const haut = new THREE.MeshLambertMaterial({ color: "#f3c6a0" }), haar = new THREE.MeshLambertMaterial({ color: "#f1cf5e" });
-    const shirt = new THREE.MeshLambertMaterial({ color: "#e8577a" }), hose = new THREE.MeshLambertMaterial({ color: "#2f4b7c" });
-    const schuh = new THREE.MeshLambertMaterial({ color: "#fafafa" });
-    const rumpf = new THREE.Mesh(new THREE.CylinderGeometry(.2, .17, .62, 12), shirt); rumpf.position.y = 1.18; rumpf.rotation.x = -.15; g.add(rumpf);
-    const kopf = new THREE.Mesh(kugel, haut); kopf.scale.setScalar(.17); kopf.position.set(0, 1.66, -.05); g.add(kopf);
-    const haarM = new THREE.Mesh(kugel, haar); haarM.scale.set(.185, .17, .18); haarM.position.set(0, 1.71, .0); g.add(haarM);
-    const zopf = new THREE.Mesh(kugel, haar); zopf.scale.set(.07, .07, .2); zopf.position.set(0, 1.7, .22); g.add(zopf);
-    const glied = (x, y, mat1, mat2, laenge) => {
-      const p = new THREE.Group(); p.position.set(x, y, 0); g.add(p);
-      const o = new THREE.Mesh(new THREE.CylinderGeometry(.065, .06, laenge, 8), mat1); o.position.y = -laenge / 2; p.add(o);
-      const e = new THREE.Mesh(kugel, mat2); e.scale.set(.07, .05, .12); e.position.set(0, -laenge, -.04); p.add(e);
-      return p;
-    };
-    const beine = [glied(-.1, .88, hose, schuh, .86), glied(.1, .88, hose, schuh, .86)];
-    const arme = [glied(-.26, 1.42, shirt, haut, .55), glied(.26, 1.42, shirt, haut, .55)];
-    return { gruppe: g, beine, arme, zopf };
-  }
-
   // ---------- Weg erzeugen ----------
-  const einheit = () => new THREE.BoxGeometry(1, 1, 1);
-  let kiste = null;
-  function kasten(gruppe, material, cx, cy, cz, sx, sy, sz, rotY = 0) {
-    kiste = kiste || einheit();
-    const k = new THREE.Mesh(kiste, material); k.position.set(cx, cy, cz); k.scale.set(sx, sy, sz); k.rotation.y = rotY;
-    gruppe.add(k); return k;
-  }
-
   function abschnittNeu() {
     const vor = abschnitte[abschnitte.length - 1];
     let ax = 0, az = 0, h = 0, nr = 0;
@@ -167,68 +99,56 @@ if (rahmen) {
     const ab = { nr, ax, az, h, L, dreh, gruppe: new THREE.Group() };
     abschnitte.push(ab); szene.add(ab.gruppe);
     const yaw = -h * Math.PI / 2;
-    const welt = (s, x, y = 0) => { const [px, pz] = punkt(ab, s, x); return [px, y, pz]; };
+    // Objekt an Wegposition s (entlang) / x (quer) setzen und in Laufrichtung drehen
+    const setze = (obj, s, x, y = 0, extra = 0) => {
+      const [px, pz] = punkt(ab, s, x); obj.position.set(px, y, pz); obj.rotation.y = yaw + extra; ab.gruppe.add(obj); return obj;
+    };
 
-    // Boden des Wegs inkl. Eckfeld
-    const [mx, , mz] = welt((L + H) / 2, 0);
-    kasten(ab.gruppe, mat.weg, mx, -.01, mz, 2 * H, .02, L + H, yaw);
-    for (const x of [-SPUR / 2, SPUR / 2]) {   // feine Spurlinien
-      const [lx, , lz] = welt(L / 2, x); kasten(ab.gruppe, mat.wegRand, lx, 0, lz, .06, .02, L, yaw);
+    // Pflasterweg inkl. Eckfeld, Randsteine
+    const von = nr === 0 ? -6 : 0;
+    setze(W.boden(L + H - von, 2 * H), (von + L + H) / 2, 0);
+    for (const seite of [-1, 1]) {       // Randsteine wie die Hecken: an der Abbiege-Seite offen
+      const bis = seite === ab.dreh ? L - H : L + H, anf = nr === 0 ? -6 : H;
+      setze(W.kante(bis - anf), (anf + bis) / 2, seite * (H - .09), .05);
     }
     // Hecken links und rechts; auf der Abbiege-Seite endet die Hecke vor der Ecke
     for (const seite of [-1, 1]) {
-      const bis = seite === ab.dreh ? L - H : L + H, von = nr === 0 ? -6 : H;
-      const [hx, , hz] = welt((von + bis) / 2, seite * (H + .35));
-      kasten(ab.gruppe, seite < 0 ? mat.hecke : mat.hecke2, hx, .85, hz, .7, 1.7, bis - von, yaw);
+      const bis = seite === ab.dreh ? L - H : L + H, anf = nr === 0 ? -6 : H;
+      setze(W.heckenStueck(bis - anf), (anf + bis) / 2, seite * (H + .4), .875);
     }
     // Hecke quer am Ende: hier muss man abbiegen
-    const [ex, , ez] = welt(L + H + .35, 0); kasten(ab.gruppe, mat.hecke, ex, .85, ez, 2 * H + 1.4, 1.7, .7, yaw);
-    if (nr === 0) { const [bx, , bz] = welt(-6.35, 0); kasten(ab.gruppe, mat.hecke, bx, .85, bz, 2 * H + 1.4, 1.7, .7, yaw); }
+    setze(W.heckenStueck(2 * H + 1.6), L + H + .4, 0, .875, Math.PI / 2);
+    if (nr === 0) setze(W.heckenStueck(2 * H + 1.6), -6.4, 0, .875, Math.PI / 2);
 
     // Hindernisse und Sterne
     let s = nr === 0 ? 24 : 12;
     while (s < L - 10) {
-      hindernisNeu(ab, s, welt, yaw);
+      hindernisNeu(ab, s, setze);
       s += zufall(10, 16) * Math.min(1.4, tempo / START_TEMPO * .9 + .2);
     }
     // Kita-Welt neben dem Weg
-    for (let d = 10; d < L - 10; d += zufall(9, 15)) {
-      const seite = Math.random() < .5 ? -1 : 1, abst = H + zufall(3, 9);
-      const [px, , pz] = welt(d, seite * abst);
-      dekoNeu(ab.gruppe, px, pz, yaw);
+    for (let d = 10; d < L - 10; d += zufall(10, 16)) {
+      const seite = Math.random() < .5 ? -1 : 1;
+      setze(W.dekoNeu(), d, seite * (H + zufall(4.5, 11)), 0, Math.floor(Math.random() * 4) * Math.PI / 2);
     }
   }
 
-  function hindernisNeu(ab, s, welt, yaw) {
-    const r = Math.random(), g = ab.gruppe;
+  function hindernisNeu(ab, s, setze) {
+    const r = Math.random();
     let typ, spuren = [-1, 0, 1];
     if (r < .3) {
       typ = "kloetze";
       spuren = [-1, 0, 1].sort(() => Math.random() - .5).slice(0, Math.random() < .5 ? 1 : 2);
-      for (const sp of spuren) {
-        for (let i = 0; i < 3; i++) {
-          const [x, y, z] = welt(s, sp * SPUR, .25 + i * .5);
-          kasten(g, mat.bunt[(i + sp + 3) % 6], x, y, z, .9 - i * .08, .5, .9 - i * .08, yaw + i * .25);
-        }
-      }
+      for (const sp of spuren) setze(W.hindernis("kloetze"), s, sp * SPUR);
     } else if (r < .55) {
       typ = "ball"; spuren = [[-1, 0, 1][Math.floor(Math.random() * 3)]];
-      const [x, y, z] = welt(s, spuren[0] * SPUR, .45);
-      const b = new THREE.Mesh(geo.ball, mat.bunt[Math.floor(Math.random() * 6)]); b.position.set(x, y, z); g.add(b);
-      const ring = new THREE.Mesh(geo.ring, mat.haus[0]); ring.position.set(x, y, z); ring.rotation.y = yaw; g.add(ring);
+      setze(W.hindernis("ball"), s, spuren[0] * SPUR);
     } else if (r < .7) {
-      typ = "balken";
-      const [x, y, z] = welt(s, 0, .22); kasten(g, mat.holz, x, y, z, 2 * H - .2, .44, .35, yaw);
-      for (const sp of [-1, 0, 1]) { const [bx, by, bz] = welt(s, sp * SPUR, .46); kasten(g, mat.bunt[sp + 1], bx, by, bz, .5, .04, .37, yaw); }
+      typ = "balken"; setze(W.hindernis("balken", 2 * H - .3), s, 0);
     } else if (r < .8) {
-      typ = "pfuetze";
-      const [x, , z] = welt(s, 0); const p = new THREE.Mesh(geo.pfuetze, mat.pfuetze);
-      p.scale.set(H - .2, 1, .9); p.position.set(x, .02, z); p.rotation.y = yaw; g.add(p);
+      typ = "pfuetze"; setze(W.hindernis("pfuetze", 2 * H), s, 0);
     } else {
-      typ = "stange";     // Kletterstange quer: ducken
-      const [x, , z] = welt(s, 0); kasten(g, mat.bunt[1], x, 1.42, z, 2 * H, .22, .22, yaw);
-      for (const sd of [-1, 1]) { const [px, , pz] = welt(s, sd * (H - .1)); kasten(g, mat.bunt[0], px, .75, pz, .2, 1.5, .2, yaw); }
-      const [fx, , fz] = welt(s, 0); kasten(g, mat.bunt[2], fx, 1.62, fz, .9, .3, .06, yaw);
+      typ = "stange"; setze(W.hindernis("stange", 2 * H - .2), s, 0);   // Turnstange quer: ducken
     }
     hindernisse.push({ nr: ab.nr, s, typ, spuren, getroffen: false });
     // Sterne in einer freien Spur hinter dem Hindernis
@@ -236,26 +156,8 @@ if (rahmen) {
     const sp = frei[Math.floor(Math.random() * frei.length)];
     for (let i = 0; i < 4; i++) {
       const ds = s + 3 + i * 1.3; if (ds > ab.L - 4) break;
-      const [x, , z] = welt(ds, sp * SPUR);
-      const m = new THREE.Mesh(sternGeo, mat.stern); m.position.set(x, .9, z); g.add(m);
+      const m = setze(W.stern(), ds, sp * SPUR, .9);
       sterne.push({ nr: ab.nr, s: ds, spur: sp, mesh: m, weg: false });
-    }
-  }
-
-  function dekoNeu(g, x, z, yaw) {
-    const r = Math.random();
-    if (r < .5) {           // Baum
-      kasten(g, mat.stamm, x, 1, z, .35, 2, .35);
-      const k = new THREE.Mesh(geo.krone, mat.krone); k.position.set(x, 2.8, z); g.add(k);
-    } else if (r < .8) {    // Kita-Häuschen mit Spitzdach
-      const b = zufall(3, 4.5), t = zufall(3, 4);
-      kasten(g, mat.haus[Math.floor(Math.random() * 3)], x, 1.3, z, b, 2.6, t, yaw);
-      const d = new THREE.Mesh(new THREE.ConeGeometry(Math.max(b, t) * .78, 1.6, 4), mat.dach);
-      d.position.set(x, 3.4, z); d.rotation.y = yaw + Math.PI / 4; g.add(d);
-      kasten(g, mat.bunt[Math.floor(Math.random() * 6)], x, .8, z, .9, 1.6, t + .04, yaw);
-    } else {                // Rutsche
-      kasten(g, mat.bunt[3], x, 1.1, z, .9, 2.2, .9, yaw);
-      const r2 = kasten(g, mat.bunt[2], x, .9, z, .7, .1, 3, yaw); r2.rotation.x = .55; r2.position.y = .95;
     }
   }
 
@@ -414,11 +316,17 @@ if (rahmen) {
     if (!kamPos) g.position.copy(ziel); else g.position.lerp(ziel, Math.min(1, dt * 18));
     g.rotation.y = winkel(g.rotation.y, yaw, Math.min(1, dt * 12));
     if (lauft) S.lauf += dt * tempo * (A.nah ? 1.5 : 1.1);
-    spieler.beine.forEach((b, i) => { b.rotation.x = S.y > 0 ? (i < 2 ? -.6 : .6) : Math.sin(S.lauf + (i === 0 || i === 3 ? 0 : Math.PI)) * .7; });
+    spieler.beine.forEach((b, i) => {      // diagonal gleiche Beine, Knie knicken nach hinten
+      const ph = S.lauf + (i === 0 || i === 3 ? 0 : Math.PI), vorn = i < 2;
+      if (S.y > 0) { b.oben.rotation.x = vorn ? .6 : -.5; b.unten.rotation.x = vorn ? -1.2 : -.5; return; }
+      b.oben.rotation.x = Math.sin(ph) * .55;
+      b.unten.rotation.x = -Math.max(0, Math.sin(ph + 1.5)) * .95;
+    });
+    spieler.koerper.position.y = S.y > 0 ? 0 : Math.abs(Math.sin(S.lauf)) * .04;
     spieler.hals.rotation.x = S.duck > 0 ? -1.15 : (S.stolper > 0 ? Math.sin(S.stolper * 30) * .3 : 0);
     // Ducken: Hals nach vorn und in die Hocke (von den Hufen aus gestaucht, damit sie auf dem Boden bleibt)
     g.scale.y += ((S.duck > 0 ? .8 : 1) - g.scale.y) * Math.min(1, dt * 20);
-    spieler.schwanz.rotation.z = Math.sin(S.lauf * .5) * .3;
+    spieler.schwanz.rotation.z = Math.sin(S.lauf * .5) * .3; spieler.schwanz.rotation.x = .25 + Math.sin(S.lauf) * .15;
 
     // Anja läuft hinter Fröbelinchen auf demselben Weg
     let aab = ab, as = S.s - A.abstand;
@@ -427,12 +335,21 @@ if (rahmen) {
     anja.gruppe.visible = A.abstand < 15;
     anja.gruppe.position.set(ax, 0, az); anja.gruppe.rotation.y = -aab.h * Math.PI / 2;
     if (lauft) A.lauf += dt * 11;
-    anja.beine.forEach((b, i) => { b.rotation.x = Math.sin(A.lauf + i * Math.PI) * .8; });
-    anja.arme.forEach((a, i) => { a.rotation.x = -Math.sin(A.lauf + i * Math.PI) * .9; });
-    anja.zopf.position.y = 1.7 + Math.sin(A.lauf * 2) * .03;
+    anja.beine.forEach((b, i) => {
+      const ph = A.lauf + i * Math.PI;
+      b.oben.rotation.x = Math.sin(ph) * .75; b.unten.rotation.x = -Math.max(0, Math.sin(ph + 1.6)) * 1.35;
+    });
+    anja.arme.forEach((a, i) => {
+      const ph = A.lauf + i * Math.PI;
+      a.oben.rotation.x = -Math.sin(ph) * .7; a.unten.rotation.x = 1.1 + Math.sin(ph) * .25;
+    });
+    anja.k.rotation.x = -.12; anja.k.position.y = Math.abs(Math.sin(A.lauf)) * .05;
+    anja.zopf.rotation.x = .2 + Math.sin(A.lauf * 2) * .3;
 
     for (const st of sterne) st.mesh.rotation.y += dt * 3;
     boden.position.set(px, -.02, pz);
+    W.gras.offset.set(px / (400 / 90), -pz / (400 / 90));   // Grasmuster bleibt am Ort, obwohl die Fläche mitwandert
+    sonne.position.set(px - 10, 18, pz + 6); sonne.target.position.set(px, 0, pz);
 
     // Kamera schräg hinter Fröbelinchen, dreht beim Abbiegen weich mit
     kamYaw = kamPos ? winkel(kamYaw, yaw, Math.min(1, dt * 5)) : yaw;
@@ -442,6 +359,7 @@ if (rahmen) {
     if (!kamPos) kamPos = ziel2.clone(); else kamPos.lerp(ziel2, Math.min(1, dt * 8));
     kamera.position.copy(kamPos);
     kamera.lookAt(px - sin * (hoch ? 5 : 7), hoch ? -.6 : .6, pz - cos * (hoch ? 5 : 7));
+    himmelKugel.position.copy(kamera.position); wolkenGruppe.position.set(kamera.position.x, 0, kamera.position.z);
     renderer.render(szene, kamera);
   }
 }
