@@ -31,7 +31,7 @@ if (rahmen) {
   function laden() {
     if (!bereit) {
       const text = losKnopf.textContent; losKnopf.disabled = true; losKnopf.textContent = "Lädt die 3D-Welt …";
-      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=7"), import("./lauf-ton.js?v=1")])
+      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=8"), import("./lauf-ton.js?v=1")])
         .then(([m, w, t]) => { THREE = m; T = t.ton(); aufbauen(w); losKnopf.disabled = false; losKnopf.textContent = text; });
     }
     return bereit;
@@ -153,7 +153,7 @@ if (rahmen) {
     };
 
     // Pflasterweg inkl. Eckfeld, Randsteine
-    const von = nr === 0 ? -6 : 0;
+    const von = nr === 0 ? -6 : H;   // das Eckfeld gehört schon zum vorigen Abschnitt, sonst liegen zwei Böden übereinander und flimmern
     setze(W.boden(L + H - von, 2 * H), (von + L + H) / 2, 0);
     for (const seite of [-1, 1]) {       // Randsteine wie die Hecken: an der Abbiege-Seite offen
       const bis = seite === ab.dreh ? L - H : L + H, anf = nr === 0 ? -6 : H;
@@ -166,10 +166,10 @@ if (rahmen) {
       setze(W.blumenFuer(bis - anf - .6, ab.zone), (anf + bis) / 2, seite * (H + .07), 0);
     }
     // Hecke quer am Ende, davor ein Pfeilschild und leuchtende Pfeile auf dem Weg: hier geht es ab
-    setze(W.heckeFuer(2 * H + 2, ab.zone), L + H + .55, 0, 0, Math.PI / 2);
+    setze(W.heckeFuer(2 * H + 2, ab.zone, 1.5, .9), L + H + .55, 0, 0, Math.PI / 2);   // etwas dicker und höher als die Seitenhecken: keine deckungsgleichen Flächen
     setze(W.pfeilSchild(ab.dreh), L + H - .1, 0);
     for (const d of [11, 7.5, 4]) setze(W.bodenPfeil(ab.dreh), L - d, 0);
-    if (nr === 0) setze(W.heckeFuer(2 * H + 2, ab.zone), -6.55, 0, 0, Math.PI / 2);
+    if (nr === 0) setze(W.heckeFuer(2 * H + 2, ab.zone, 1.5, .9), -6.55, 0, 0, Math.PI / 2);
 
     hindernisseVerteilen(ab, setze);
 

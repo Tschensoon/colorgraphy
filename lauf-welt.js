@@ -315,11 +315,11 @@ export function welt(T, handy) {
     const k = new T.Mesh(uvSkala(new T.PlaneGeometry(breite, laenge), breite / 2.2, laenge / 2.2).rotateX(-Math.PI / 2), mat.weg);
     k.receiveShadow = true; return k;
   }
-  function heckenStueck(laenge, hoehe = 1.45) {
+  function heckenStueck(laenge, hoehe = 1.45, dicke = .8) {
     const g = new T.Group();
-    teil(uvSkala(new T.BoxGeometry(.8, hoehe, laenge), laenge / 1.3, hoehe / 1.3), mat.hecke, g, 0, hoehe / 2, 0);
+    teil(uvSkala(new T.BoxGeometry(dicke, hoehe, laenge), laenge / 1.3, hoehe / 1.3), mat.hecke, g, 0, hoehe / 2, 0);
     // gerundete Oberseite, damit sie wie geschnittener Buchs aussieht und nicht wie eine Kiste
-    const krone = teil(uvSkala(new T.CylinderGeometry(.4, .4, laenge, 14, 1, false, 0, Math.PI), laenge / 1.3, 1), mat.hecke, g, 0, hoehe, 0);
+    const krone = teil(uvSkala(new T.CylinderGeometry(dicke / 2, dicke / 2, laenge, 14, 1, false, 0, Math.PI), laenge / 1.3, 1), mat.hecke, g, 0, hoehe, 0);
     krone.rotation.set(Math.PI / 2, Math.PI / 2, 0);
     return g;
   }
@@ -894,8 +894,8 @@ export function welt(T, handy) {
 
   // Hecken je Welt: im Herbst bunt, im Winter mit Schnee auf der Krone
   const heckeHerbst = std({ map: hecke, color: "#ffc27a", roughness: 1, bumpMap: handy ? null : hecke, bumpScale: 4 });
-  function heckeFuer(laenge, z) {
-    const g = heckenStueck(laenge), art = ZONEN[z].hecke;
+  function heckeFuer(laenge, z, hoehe, dicke) {
+    const g = heckenStueck(laenge, hoehe, dicke), art = ZONEN[z].hecke;
     if (art === "herbst") g.children.forEach(k => { k.material = heckeHerbst; });
     if (art === "schnee") g.children[1].material = M.schneeKappe;
     return g;
