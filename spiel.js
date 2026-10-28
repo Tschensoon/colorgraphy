@@ -1,9 +1,43 @@
 (() => {
   const cv = document.getElementById("spiel-canvas"), ctx = cv.getContext("2d");
-  // Auf dem Handy ein schmaleres Spielfeld, damit Giraffe und Bälle groß genug bleiben
-  const W = cv.clientWidth < 600 ? 540 : 900, H = 300, BODEN = 248;
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  cv.width = W * dpr; cv.height = H * dpr; ctx.scale(dpr, dpr);
+  const rahmen = cv.closest(".spiel-rahmen"), zu = rahmen.querySelector(".spiel-zu");
+  const H = 300, BODEN = 248, dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const handy = matchMedia("(pointer: coarse)").matches;
+  let W = 900, vollbild = false;
+
+  // Spielfeldbreite passend zur Fläche: auf dem Handy schmaler, im Vollbild so breit wie der Bildschirm
+  function groesse() {
+    const gedreht = vollbild && innerHeight > innerWidth; // Hochformat ohne Drehsperre: Spiel per CSS quer legen
+    rahmen.classList.toggle("gedreht", gedreht);
+    if (vollbild) {
+      const b = gedreht ? innerHeight : innerWidth, h = gedreht ? innerWidth : innerHeight;
+      W = Math.round(Math.min(1200, Math.max(480, H * b / h)));
+    } else W = rahmen.clientWidth < 600 ? 540 : 900;
+    cv.width = W * dpr; cv.height = H * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  // Handy: beim ersten Tippen ins Vollbild und quer. Wo der Browser das nicht kann (iPhone),
+  // füllt der Rahmen trotzdem den Bildschirm und wird bei Hochformat gedreht.
+  async function vollbildAn() {
+    vollbild = true; rahmen.classList.add("vollbild"); document.body.classList.add("spiel-offen");
+    groesse();
+    try { await (rahmen.requestFullscreen || rahmen.webkitRequestFullscreen).call(rahmen); } catch (e) {}
+    // Drehsperre nicht abwarten: manche Browser antworten nie, die Größe folgt über "resize"
+    try { screen.orientation.lock("landscape").catch(() => {}); } catch (e) {}
+    groesse();
+  }
+  function vollbildAus() {
+    if (!vollbild) return;
+    vollbild = false; halten = false; rahmen.classList.remove("vollbild", "gedreht"); document.body.classList.remove("spiel-offen");
+    try { screen.orientation.unlock(); } catch (e) {}
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    if (zustand === "laeuft") ende();
+    groesse();
+  }
+  zu.addEventListener("click", vollbildAus);
+  document.addEventListener("fullscreenchange", () => { if (!document.fullscreenElement) vollbildAus(); });
+  addEventListener("resize", () => groesse());
+  groesse();
 
   // Logo im Hintergrund (fehlt die Datei, bleibt der Himmel einfach leer)
   const logo = new Image(); let logoOk = false;
@@ -37,7 +71,11 @@
     e.preventDefault(); if (!e.repeat) druck(true);
   });
   addEventListener("keyup", e => { if (["Space", "ArrowUp", "KeyW"].includes(e.code)) halten = false; });
-  cv.addEventListener("pointerdown", e => { e.preventDefault(); druck(true); });
+  cv.addEventListener("pointerdown", e => {
+    e.preventDefault();
+    if (handy && !vollbild) { vollbildAn(); return; }
+    druck(true);
+  });
   addEventListener("pointerup", () => { halten = false; });
 
   function ballNeu() {
@@ -216,7 +254,8 @@
       ctx.font = "700 26px Segoe UI, system-ui, sans-serif";
       ctx.fillText(zustand === "start" ? "Fröbelinchen springt!" : "Hoppla, ein Ball!", W / 2, 132);
       ctx.font = "16px Segoe UI, system-ui, sans-serif"; ctx.fillStyle = "#24332f";
-      ctx.fillText(zustand === "start" ? "Leertaste oder Tippen zum Starten" : `${p} Punkte · Leertaste oder Tippen für neue Runde`, W / 2, 164);
+      const los = handy ? (vollbild ? "Tippen" : "Tippen für Vollbild") : "Leertaste oder Tippen";
+      ctx.fillText(zustand === "start" ? `${los} zum Starten` : `${p} Punkte · ${los} für neue Runde`, W / 2, 164);
     }
   }
 

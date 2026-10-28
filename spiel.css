@@ -1,5 +1,16 @@
 .spiel-bereich { padding: 0 0 4rem; }
-.spiel-rahmen { max-width: 900px; margin: 0 auto; border-radius: 18px; overflow: hidden;
+.spiel-rahmen { position: relative; max-width: 900px; margin: 0 auto; border-radius: 18px; overflow: hidden;
   box-shadow: 0 10px 40px rgba(0, 0, 0, .35); touch-action: manipulation; }
 .spiel-rahmen canvas { display: block; width: 100%; height: auto; cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .spiel-hilfe { max-width: 900px; margin: .9rem auto 0; text-align: center; opacity: .75; font-size: .95rem; }
+.spiel-zu { display: none; position: absolute; top: 10px; left: 10px; width: 40px; height: 40px; border: 0; border-radius: 50%;
+  background: rgba(3, 74, 62, .75); color: #fff; font-size: 18px; line-height: 40px; cursor: pointer; z-index: 2; }
+
+/* Handy-Vollbild: Rahmen füllt den Bildschirm, im Hochformat wird er quer gedreht */
+.spiel-rahmen.vollbild { position: fixed; inset: 0; z-index: 1000; max-width: none; margin: 0; border-radius: 0;
+  background: #000; display: flex; align-items: center; justify-content: center; }
+.spiel-rahmen.vollbild canvas { width: 100%; height: 100%; }
+.spiel-rahmen.vollbild .spiel-zu { display: block; }
+.spiel-rahmen.vollbild.gedreht { inset: auto; top: 50%; left: 50%; width: 100vh; height: 100vw;
+  width: 100dvh; height: 100dvw; transform: translate(-50%, -50%) rotate(90deg); }
+body.spiel-offen { overflow: hidden; }
