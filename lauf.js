@@ -31,7 +31,7 @@ if (rahmen) {
   function laden() {
     if (!bereit) {
       const text = losKnopf.textContent; losKnopf.disabled = true; losKnopf.textContent = "Lädt die 3D-Welt …";
-      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=16"), import("./lauf-ton.js?v=2"), import("./lauf-flug.js?v=2"), import("./lauf-effekte.js?v=3")])
+      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=21"), import("./lauf-ton.js?v=2"), import("./lauf-flug.js?v=2"), import("./lauf-effekte.js?v=3")])
         .then(([m, w, t, f, e]) => { THREE = m; T = t.ton(); aufbauen(w, f, e); losKnopf.disabled = false; losKnopf.textContent = text; });
     }
     return bereit;
@@ -59,7 +59,7 @@ if (rahmen) {
   let zustand = "start", tempo, punkte, sternZahl, strecke, wackeln = 0, schlussSzene = null;
   const S = { idx: 0, s: 0, spur: 0, x: 0, y: 0, vy: 0, duck: 0, abbiegen: 0, stolper: 0, lauf: 0, sprungPuffer: 0, eis: 0, lande: 0 };
   const A = { nah: false, zeit: 0, abstand: 16, bis: 5, lauf: 0, schritt: 0 };
-  const R = { booster: 0, schubs: 0, welt: 0, zeit: 0, flug: 0, ringe: 0 };    // Werte dieser Runde für Aufgaben, Ergebnis und Bestenliste
+  const R = { booster: 0, schubs: 0, welt: 0, zeit: 0, flug: 0, ringe: 0, frauBei: 20 };    // Werte dieser Runde für Aufgaben, Ergebnis und Bestenliste
   const tipps = new Set();
 
   const richtung = (h) => h === 0 ? [0, -1] : [h, 0];           // Norden = -z, Osten = +x, Westen = -x
@@ -278,7 +278,7 @@ if (rahmen) {
   function sterneLegen(ab, s, setze, h) {
     const legen = (ds, sp, hoehe) => {
       if (ds > ab.L - 4 || ds < 2) return;
-      const m = setze(W.stern(), ds, sp * SPUR, hoehe);
+      const m = setze(W.toertchen(), ds, sp * SPUR, hoehe);
       sterne.push({ nr: ab.nr, s: ds, spur: sp, h: hoehe, mesh: m, weg: false });
     };
     const ganzBreit = h.spuren.length === 3 && !h.bew;
@@ -309,7 +309,7 @@ if (rahmen) {
     FL.ab = FLUG_AB; FL.rueck = 0;
     aktZone = 0; W.zoneWechsel(0, true); stimmungSetzen(true);
     Object.assign(B, { turbo: 0, schild: 0, ruhe: 0, magnet: 0, doppelt: 0, schubs: null });
-    Object.assign(R, { booster: 0, schubs: 0, welt: 0, zeit: 0, flug: 0, ringe: 0 });
+    Object.assign(R, { booster: 0, schubs: 0, welt: 0, zeit: 0, flug: 0, ringe: 0, frauBei: 20 });
     tempo = START_TEMPO; punkte = 0; sternZahl = 0; strecke = 0; wackeln = 0; schlussSzene = null;
     Object.assign(S, { idx: 0, s: 0, spur: 0, x: 0, y: 0, vy: 0, duck: 0, abbiegen: 0, stolper: 0, sprungPuffer: 0, eis: 0, lande: 0 });
     Object.assign(A, { nah: false, zeit: 0, abstand: 16, bis: 5 });
@@ -651,6 +651,21 @@ if (rahmen) {
     else if (!B.schubs) { B.schubs = { t: 0, umfallen: 0, getroffen: false }; A.nah = true; A.zeit = 99; meldung("Schubs-Booster!", "Hol sie dir, Fröbelinchen!"); }
   }
 
+  // Eine Frau mit schwarzen Haaren rennt Fröbelinchen auf ihrer Spur entgegen und sucht ihre Autoschlüssel: ausweichen!
+  function frauKommt(ab) {
+    let zab = ab, s = S.s + 42;
+    if (s > ab.L - 10) { zab = abschnitte.find(a => a.nr === S.idx + 1); s = 18; }
+    if (!zab || s > zab.L - 8) return false;
+    const sp = Math.max(-1, Math.min(1, Math.round(S.x / SPUR)));
+    const f = W.frauBauen(), blase = W.sprechblase(["Ich suche meine", "Autoschlüssel!"]);
+    blase.position.set(0, 2.95, 0); f.gruppe.add(blase); f.blase = blase;
+    const [x, z] = punkt(zab, s, sp * SPUR);
+    f.gruppe.position.set(x, 0, z); f.gruppe.rotation.y = -zab.h * Math.PI / 2 + Math.PI;   // schaut Fröbelinchen an
+    zab.gruppe.add(f.gruppe);
+    hindernisse.push({ nr: zab.nr, ab: zab, s, typ: "frau", art: "frau", hoehe: 9, tiefe: .5, spuren: [sp], mesh: f.gruppe, frau: f,
+      bew: { vs: 4.5, weg: 0, max: 70 }, getroffen: false });
+    return true;
+  }
   function funkeln(wo, farbe, n) {
     for (let i = 0; i < n; i++) {
       const f = teilchenHolen("funke", farbe); f.position.copy(wo); f.scale.setScalar(zufall(.15, .3)); szene.add(f);
@@ -678,7 +693,7 @@ if (rahmen) {
     if (tutorialFertig) return;
     const vor = hindernisse.find(o => o.nr === S.idx && o.s > S.s && o.s - S.s < 11);
     if (vor) {
-      const art = vor.art === "hoch" ? "runter" : vor.art === "block" ? "seite" : vor.art === "eis" ? null : "hoch";
+      const art = vor.art === "hoch" ? "runter" : vor.art === "block" || vor.art === "frau" ? "seite" : vor.art === "eis" ? null : "hoch";
       if (art)
       if (!tipps.has(art)) { tipps.add(art); meldung("Tipp", T_TEXT[art]); }
     }
@@ -736,13 +751,15 @@ if (rahmen) {
     S.sprungPuffer = Math.max(0, S.sprungPuffer - dt);
     S.duck = Math.max(0, S.duck - dt);
     tutorialSchritt(ab);
+    if (R.zeit >= R.frauBei && !B.schubs) R.frauBei = frauKommt(ab) ? Infinity : R.zeit + 2;   // nur einmal pro Runde (kein Platz: gleich nochmal versuchen)
 
     // Bewegte Hindernisse: rollen auf Fröbelinchen zu oder laufen quer über den Weg, sobald sie in Sicht kommen
     for (const h of hindernisse) {
       if (!h.bew || h.nr !== S.idx || h.s - S.s > 30 || h.s < S.s - 5) continue;
       if (h.bew.vs && h.bew.weg < h.bew.max) {
         const d = h.bew.vs * dt; h.s -= d; h.bew.weg += d;
-        h.mesh.userData.rolle.rotation.x += d / h.mesh.userData.radius;
+        if (h.mesh.userData.rolle) h.mesh.userData.rolle.rotation.x += d / h.mesh.userData.radius;
+        if (h.frau) h.frau.laeuft = true;
       }
       if (h.bew.vx) {
         h.bew.x += h.bew.vx * dt; if (Math.abs(h.bew.x) > H - .3) h.bew.vx *= -1;
@@ -765,13 +782,17 @@ if (rahmen) {
         continue;
       }
       if (unverwundbar) continue;
+      if (h.art === "frau") {                          // umgerannt: Fröbelinchen stolpert, die Frau ruft hinterher
+        h.getroffen = true; stolpern(); if (zustand !== "laeuft") return;
+        meldung("Huch, Zusammenstoß!", "„Hast du meine Schlüssel gesehen?“"); continue;
+      }
       if (h.art === "block") { h.getroffen = true; verlieren(h.typ === "heuballen" ? "Uff, ein Heuballen! Weich ihm aus." : "Bumm, Bauklötze! Wechsel die Spur.", "kloetze"); return; }
       const trifft = h.art === "hoch" ? S.duck <= 0 : S.y < h.hoehe;
       if (trifft) { h.getroffen = true; stolpern(); if (zustand !== "laeuft") return; }
     }
     // Sterne: hohe Sterne gibt es nur im Sprung, mit Magnet fliegen alle Sterne vor einem heran
     const einsammeln = (st) => {
-      st.weg = true; st.mesh.visible = false; sternZahl++; punkte += 10 * faktor; funkeln(st.mesh.position, "#ffe066", 8);
+      st.weg = true; st.mesh.visible = false; sternZahl++; punkte += 10 * faktor; funkeln(st.mesh.position, "#ffb3d1", 8);
       T.stern(sternZahl); GE.freude = .35; hud.classList.remove("hupf"); void hud.offsetWidth; hud.classList.add("hupf");
     };
     for (const st of sterne) {
@@ -918,6 +939,15 @@ if (rahmen) {
       if (st.zieht && !st.weg) st.mesh.position.lerp(new THREE.Vector3(g.position.x, g.position.y + 1, g.position.z), Math.min(1, dt * 9));
     }
     const tz = performance.now() / 1000;
+    for (const h of hindernisse) {                    // die Frau rennt mit schwingenden Armen und Beinen
+      const f = h.frau; if (!f) continue;
+      const ph = f.laeuft ? tz * 10 : 0;
+      f.beine.forEach((b, i) => { b.oben.rotation.x = Math.sin(ph + i * Math.PI) * .7; b.unten.rotation.x = -Math.max(0, Math.sin(ph + i * Math.PI + 1.6)) * 1.2; });
+      f.arme.forEach((a, i) => { a.oben.rotation.x = -Math.sin(ph + i * Math.PI) * .6; a.unten.rotation.x = 1.1; });
+      f.k.rotation.x = -.1; f.k.position.y = Math.abs(Math.sin(ph)) * .05;
+      f.blase.position.y = 2.95 + Math.sin(tz * 3) * .06;
+      f.zopf.rotation.x = .12 + Math.sin(ph * 2) * .1;    // die Haare schwingen beim Rennen
+    }
     for (const h of hindernisse) {                    // Huhn und Enten watscheln
       const hp = h.mesh && h.mesh.userData.huepf; if (!hp) continue;
       (Array.isArray(hp) ? hp : [hp]).forEach((k, i) => { k.position.y = Math.abs(Math.sin(tz * 11 + i)) * .06; k.rotation.z = Math.sin(tz * 11 + i) * .12; });
@@ -979,6 +1009,8 @@ if (rahmen) {
     ["turbo", "schild", "schubs", "magnet", "doppelt"].forEach(t => dazu(W.booster(t)));
     ["logo", "ohren", "kitas"].forEach(t => { dazu(W.froebelHeckenTafel(t)); dazu(W.froebelTafel(t)); });
     ["ohren", "kitas"].forEach(t => dazu(W.froebelSchild(t)));
+    dazu(W.toertchen());
+    { const f = W.frauBauen(); f.gruppe.add(W.sprechblase(["Ich suche meine", "Autoschlüssel!"])); dazu(f.gruppe); }
     [FW.ring(), FW.heissluftballon(), FW.gewitter(), FW.voegel(), FW.insel(), FW.regenbogen(), FW.wolkenBallen(), W.froebelBanner(2, .5)].forEach(dazu);
     for (const art of ["staub", "funke", "dampf"]) { const k = teilchenHolen(art); dazu(k); }
     const versteckt = [meer, flieger.gruppe, anjaFlieger.gruppe, strahlen, anja.gruppe, blase, schattenA, ...sternchen];   // auch was gerade unsichtbar ist
@@ -1128,7 +1160,7 @@ if (rahmen) {
     const o = { typ, mesh, x, y, z, y0: y, ph: Math.random() * 6, weg: false, getroffen: false, ...mehr };
     FL.objekte.push(o); return o;
   }
-  function flugStern(x, y, z) { const m = W.stern(); m.scale.setScalar(1.3); return flugObjekt("stern", m, x, y, z); }
+  function flugStern(x, y, z) { const m = W.toertchen(); m.scale.setScalar(1.3); return flugObjekt("stern", m, x, y, z); }
   function reiheNeu() {
     const z = FL.naechst, schwer = Math.min(1, FL.strecke / 3000 + (FL.naechst < -1500 ? .2 : 0));
     const rx = () => zufall(-FX + 1, FX - 1), ry = () => zufall(FY0 + .8, FY1 - .8);
@@ -1215,7 +1247,7 @@ if (rahmen) {
     while (FL.naechst > FL.z - 170) reiheNeu();
 
     const einsammeln = (o) => {
-      o.weg = true; o.mesh.visible = false; sternZahl++; punkte += 10 * faktor; funkeln(o.mesh.position, "#ffe066", 8);
+      o.weg = true; o.mesh.visible = false; sternZahl++; punkte += 10 * faktor; funkeln(o.mesh.position, "#ffb3d1", 8);
       T.stern(sternZahl); GE.freude = .35; hud.classList.remove("hupf"); void hud.offsetWidth; hud.classList.add("hupf");
     };
     for (const o of FL.objekte) {

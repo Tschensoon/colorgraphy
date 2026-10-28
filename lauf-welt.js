@@ -417,8 +417,8 @@ export function welt(T, handy) {
   }
 
   // ---------- Anja: Läuferin mit blondem Pferdeschwanz ----------
-  let anjaForm = null;
-  function anjaFormBauen() {
+  const koerperFormen = {};
+  function koerperFormBauen(SHIRT) {
     const feld = (x, y, z) => {
       const zs = z / .74;                                  // Oberkörper flacher als breit
       let d = F.ei(x, y, z, 0, .97, 0, .16, .13, .12);    // Hüfte
@@ -431,7 +431,7 @@ export function welt(T, handy) {
       for (const s of [-1, 1]) d = F.weich(d, F.ei(x, y, z, s * .098, 1.68, 0, .016, .03, .02), .015);   // Ohren
       return d;
     };
-    const HAUT = [.86, .55, .40], SHIRT = [.76, .10, .2], JEANS = [.045, .10, .27];
+    const HAUT = [.86, .55, .40], JEANS = [.045, .10, .27];
     // weiche Übergänge zwischen Jeans, Shirt und Haut, sonst würden die Farbgrenzen am Netz zackig
     const stufe = (a, b, t) => { const k = Math.max(0, Math.min(1, (t - a) / (b - a))); return k * k * (3 - 2 * k); };
     const farbe = (x, y, z) => {
@@ -440,20 +440,34 @@ export function welt(T, handy) {
       const jeans = stufe(1.045, 1.025, y);
       return [0, 1, 2].map(i => (SHIRT[i] * (1 - haut) + HAUT[i] * haut) * (1 - jeans) + JEANS[i] * jeans);
     };
-    anjaForm = formNetz(feld, [-.3, .8, -.2], [.3, 1.86, .2], handy ? .016 : .012, farbe);
+    return formNetz(feld, [-.3, .8, -.2], [.3, 1.86, .2], handy ? .016 : .012, farbe);
   }
-  function anjaBauen() {
-    if (!anjaForm) anjaFormBauen();
+  // Personen: Anja (blond, pinkes Shirt, Pferdeschwanz) und die Frau, die ihre Autoschlüssel sucht (lange schwarze Haare)
+  const PERSONEN = {
+    anja: { shirt: [.76, .10, .2], shirtMat: mat.shirt, haar: mat.haar, lang: false },
+    frau: { shirt: [.02, .32, .30], shirtMat: std({ color: "#1f9a8a", roughness: .9 }), haar: std({ color: "#17120f", roughness: .45 }), lang: true },
+  };
+  const anjaBauen = () => personBauen("anja"), frauBauen = () => personBauen("frau");
+  function personBauen(wer) {
+    const P = PERSONEN[wer];
+    if (!koerperFormen[wer]) koerperFormen[wer] = koerperFormBauen(P.shirt);
     const g = new T.Group(), k = gelenk(g, 0, 0, 0);
-    teil(anjaForm, anjaKoerperMat, k);
+    teil(koerperFormen[wer], anjaKoerperMat, k);
     const kopf = gelenk(k, 0, 1.69, -.01);
-    const haarKappe = teil(new T.SphereGeometry(1, 32, 22, 0, Math.PI * 2, 0, Math.PI * .62), mat.haar, kopf, 0, .012, .012);
-    haarKappe.scale.set(.108, .13, .118); haarKappe.rotation.x = .35;
+    const haarKappe = teil(new T.SphereGeometry(1, 32, 22, 0, Math.PI * 2, 0, Math.PI * .62), P.haar, kopf, 0, .012, .012);
+    haarKappe.scale.set(.108, .13, .118); haarKappe.rotation.x = P.lang ? .62 : .35;   // bei langen Haaren nur wenig Pony
     for (const s of [-1, 1]) teil(kugel, mat.auge, kopf, s * .036, .012, -.1).scale.set(.012, .014, .008);
     teil(kugel, mat.lippe, kopf, 0, -.062, -.1).scale.set(.022, .007, .006);
     const zopf = gelenk(kopf, 0, .04, .1);
-    teil(kugel, mat.haar, zopf, 0, 0, .02).scale.setScalar(.036);
-    teil(new T.CapsuleGeometry(.045, .16, 8, 16), mat.haar, zopf, 0, -.09, .045).rotation.x = .3;
+    if (P.lang) {                                       // lange offene Haare bis über die Schultern, vorn zwei Strähnen
+      teil(kugel, P.haar, zopf, 0, -.17, -.035).scale.set(.118, .25, .065);
+      for (const sx of [-1, 1]) {
+        const st = teil(new T.CapsuleGeometry(.032, .2, 6, 12), P.haar, zopf, sx * .088, -.17, -.13); st.rotation.z = sx * .08; st.scale.z = .7;
+      }
+    } else {
+      teil(kugel, P.haar, zopf, 0, 0, .02).scale.setScalar(.036);
+      teil(new T.CapsuleGeometry(.045, .16, 8, 16), P.haar, zopf, 0, -.09, .045).rotation.x = .3;
+    }
     const glied = (x, y, dickO, dickU, langO, langU, mO, mU, ende) => {
       const oben = gelenk(k, x, y, 0);
       teil(rundStab(dickO, dickO * .85, langO), mO, oben);
@@ -470,7 +484,7 @@ export function welt(T, handy) {
       teil(kugel, mat.haut, u, 0, -l - .03, 0).scale.set(.04, .05, .03);
     }));
     // kurze Ärmel über dem Oberarm
-    for (const a of arme) teil(rundStab(.056, .052, .12), mat.shirt, a.oben);
+    for (const a of arme) teil(rundStab(.056, .052, .12), P.shirtMat, a.oben);
     return { gruppe: g, k, beine, arme, zopf };
   }
 
@@ -608,6 +622,33 @@ export function welt(T, handy) {
   }
 
   function stern() { const k = new T.Mesh(geo.stern, mat.stern); k.castShadow = true; return k; }
+  // Törtchen zum Einsammeln: Mürbeteig-Schälchen mit Wellenrand, rosa Sahnehaube, Sahnetupfer und Kirsche.
+  // Alles ist eine einzige Form mit Farben je Punkt, damit viele Törtchen wenig Rechenzeit kosten.
+  const toertchenGeo = (() => {
+    const schale = new T.CylinderGeometry(.21, .15, .13, 36, 1), p = schale.attributes.position;
+    for (let i = 0; i < p.count; i++) { const x = p.getX(i), z = p.getZ(i), f = 1 + .07 * Math.cos(Math.atan2(z, x) * 12); p.setXYZ(i, x * f, p.getY(i), z * f); }
+    schale.computeVertexNormals();
+    const teile = [
+      [schale, "#e8ad66"],
+      [new T.SphereGeometry(.19, 28, 12, 0, Math.PI * 2, 0, Math.PI / 2).scale(1, .75, 1).translate(0, .06, 0), "#ffc4da"],
+      [new T.ConeGeometry(.08, .12, 20).translate(0, .25, 0), "#ffe0ec"],
+      [new T.SphereGeometry(.055, 18, 12).translate(0, .3, 0), "#e3263a"],
+    ];
+    const pos = [], nor = [], col = [], idx = [];
+    for (const [g, farbe] of teile) {
+      const c = new T.Color(farbe), start = pos.length / 3;
+      pos.push(...g.attributes.position.array); nor.push(...g.attributes.normal.array);
+      for (let i = 0; i < g.attributes.position.count; i++) col.push(c.r, c.g, c.b);
+      for (const n of g.index.array) idx.push(n + start);
+    }
+    const g = new T.BufferGeometry();
+    g.setAttribute("position", new T.Float32BufferAttribute(pos, 3)); g.setAttribute("normal", new T.Float32BufferAttribute(nor, 3));
+    g.setAttribute("color", new T.Float32BufferAttribute(col, 3)); g.setIndex(idx);
+    g.translate(0, -.14, 0); g.scale(1.4, 1.4, 1.4);
+    return geteilt(g);
+  })();
+  const toertchenMat = std({ vertexColors: true, roughness: .45 });
+  function toertchen() { const k = new T.Mesh(toertchenGeo, toertchenMat); k.castShadow = true; return k; }
 
   // Schildkrötenpanzer zum Einsammeln: gewölbt, Sechseck-Platten, heller Rand
   const panzerMuster = leinwand(256, 128, (g, w, h) => {
@@ -775,6 +816,28 @@ export function welt(T, handy) {
       if (k.geometry && !k.geometry.userData.geteilt) k.geometry.dispose();
       const m = k.material; if (m && !Array.isArray(m) && m.userData.einzel) m.dispose();
     });
+  }
+
+  // Sprechblase über einer Figur (eine Zeichnung für alle, wird nicht weggeräumt)
+  const blasenGeo = geteilt(new T.PlaneGeometry(1, 1));
+  const blasenMat = {};
+  function sprechblase(zeilen) {
+    const key = zeilen.join("|");
+    if (!blasenMat[key]) {
+      const t = froebelFlaeche(512, 230, (g, w, h) => {
+        g.fillStyle = "#ffffff"; g.strokeStyle = "#1d3a33"; g.lineWidth = 8;
+        g.beginPath(); g.roundRect(8, 8, w - 16, h - 64, 40); g.fill(); g.stroke();
+        g.beginPath(); g.moveTo(w / 2 - 34, h - 60); g.lineTo(w / 2 - 6, h - 10); g.lineTo(w / 2 + 22, h - 60); g.closePath(); g.fill();
+        g.beginPath(); g.moveTo(w / 2 - 34, h - 58); g.lineTo(w / 2 - 6, h - 10); g.lineTo(w / 2 + 22, h - 58); g.stroke();
+        g.fillStyle = "#1d3a33"; g.textAlign = "center"; g.textBaseline = "middle";
+        let px = 52; g.font = schrift(px);
+        while (Math.max(...zeilen.map(z => g.measureText(z).width)) > w - 70 && px > 24) g.font = schrift(px -= 2);
+        zeilen.forEach((z, i) => g.fillText(z, w / 2, 8 + (h - 72) / 2 + (i - (zeilen.length - 1) / 2) * px * 1.1));
+      });
+      blasenMat[key] = new T.SpriteMaterial({ map: t, transparent: true, depthWrite: false, fog: false });
+    }
+    const s = new T.Sprite(blasenMat[key]); s.geometry.userData.geteilt = true; s.scale.set(3.3, 3.3 * 230 / 512, 1);
+    return s;
   }
 
   // ---------- Fröbel: Banner, Werbetafeln und Schilder ----------
@@ -1439,6 +1502,6 @@ export function welt(T, handy) {
   }
   const luft = new T.Group(); luft.add(wetter, voegel);
 
-  return { froebelBanner, froebelHeckenTafel, froebelTafel, froebelSchild, kontaktSchatten, grasBueschel, dampf, weltHindernis, entsorgen, pfeilSchild, bodenPfeil, AUSSTATTUNG, ausstattungSetzen, zonen: ZONEN, zoneFuer, dekoFuer, heckeFuer, blumenFuer, bodenFlaeche, bodenFolgen, verbinden, zoneWechsel, zoneSchritt,
+  return { toertchen, frauBauen, sprechblase, froebelBanner, froebelHeckenTafel, froebelTafel, froebelSchild, kontaktSchatten, grasBueschel, dampf, weltHindernis, entsorgen, pfeilSchild, bodenPfeil, AUSSTATTUNG, ausstattungSetzen, zonen: ZONEN, zoneFuer, dekoFuer, heckeFuer, blumenFuer, bodenFlaeche, bodenFolgen, verbinden, zoneWechsel, zoneSchritt,
     animieren, wetterSchritt, voegelSchritt, luft, mat, geo, giraffeBauen, anjaBauen, boden, heckenStueck, blumen, ferne, sonnenScheibe, funke, staub, kante, dekoNeu, hindernis, stern, panzer, booster, blase, himmel, wolken, gras };
 }
