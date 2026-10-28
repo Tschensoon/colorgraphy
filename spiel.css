@@ -14,3 +14,5 @@
 .spiel-rahmen.vollbild.gedreht { inset: auto; top: 50%; left: 50%; width: 100vh; height: 100vw;
   width: 100dvh; height: 100dvw; transform: translate(-50%, -50%) rotate(90deg); }
 body.spiel-offen { overflow: hidden; }
+.spiel-teilen { display: flex; flex-wrap: wrap; gap: .75rem; justify-content: center; align-items: center; margin-top: 1.4rem; }
+.spiel-kopiert { flex-basis: 100%; text-align: center; font-size: .9rem; opacity: .8; min-height: 1.2em; }

@@ -78,6 +78,21 @@
   });
   addEventListener("pointerup", () => { halten = false; });
 
+  // Teilen: Text mit dem eigenen Rekord, falls schon gespielt
+  const LINK = "https://colorgraphy.de/spiel.html";
+  const teilText = () => (rekord > 0 ? `Ich habe ${rekord} Punkte bei Fröbelinchen springt geschafft. Schaffst du mehr?`
+                                     : "Schaffst du mehr Punkte als ich? Fröbelinchen springt:");
+  const wa = document.getElementById("spiel-whatsapp"), kopiert = document.getElementById("spiel-kopiert");
+  wa.addEventListener("click", () => { wa.href = "https://wa.me/?text=" + encodeURIComponent(teilText() + " " + LINK); });
+  document.getElementById("spiel-teilen").addEventListener("click", async () => {
+    if (navigator.share) {
+      try { await navigator.share({ title: "Fröbelinchen springt", text: teilText(), url: LINK }); return; }
+      catch (e) { if (e.name === "AbortError") return; }
+    }
+    try { await navigator.clipboard.writeText(teilText() + " " + LINK); kopiert.textContent = "Link kopiert, jetzt einfach einfügen und verschicken."; }
+    catch (e) { kopiert.textContent = LINK; }
+  });
+
   function ballNeu() {
     const r = 11 + Math.random() * 11;
     const huepft = strecke > 6000 && Math.random() < .35;
