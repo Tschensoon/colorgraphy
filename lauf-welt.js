@@ -427,10 +427,16 @@ export function welt(T, handy) {
 
   // ---------- Schildkröte Leo: Plüschschildkröte mit grünem Panzer ----------
   const FIGUR_INFO = {
-    giraffe: { name: "Fröbelinchen", blick: 1.35, rueckenY: 0, blaseY: 1.15, blaseS: 1, cockpit: [-.85, .3, 1],
+    giraffe: { name: "Fröbelinchen", blick: 1.35, rueckenY: 0, blaseY: 1.15, blaseS: 1, cockpit: [-.85, .3, 1], kopfSkala: 1, halsSkala: 1,
       fotoGanz: [[0, 1.35, -.15], [2.9, 2.2, -4.4]], fotoRuecken: [[0, 1.55, .1], [1.9, 2.6, 2.1]] },
-    leo: { name: "Leo", blick: .85, rueckenY: -.5, blaseY: .72, blaseS: 1, cockpit: [.12, .4, .55],
+    leo: { name: "Leo", kopfSkala: 1, halsSkala: 1, blick: .85, rueckenY: -.5, blaseY: .72, blaseS: 1, cockpit: [.12, .4, .55],
       fotoGanz: [[0, .75, -.1], [2.3, 1.6, -3.3]], fotoRuecken: [[0, 1.2, .1], [1.7, 2.3, 2.2]] },
+    hase: { name: "Rambo Rabbit", blick: .95, rueckenY: -.61, blaseY: .75, blaseS: 1, cockpit: [.05, .4, .6], kopfSkala: 1.1, halsSkala: .9,
+      fotoGanz: [[0, .85, -.1], [2.3, 1.6, -3.2]], fotoRuecken: [[0, 1.1, .1], [1.6, 2.1, 2.0]] },
+    baer: { name: "Bäralf", blick: 1.05, rueckenY: -.43, blaseY: .85, blaseS: 1.15, cockpit: [-.05, .35, .48], kopfSkala: 1.5, halsSkala: 1.35,
+      fotoGanz: [[0, .95, -.1], [2.7, 1.8, -3.7]], fotoRuecken: [[0, 1.25, .1], [1.9, 2.4, 2.3]] },
+    elefant: { name: "Dumbo", blick: 1.3, rueckenY: -.07, blaseY: 1.05, blaseS: 1.4, cockpit: [-.15, .35, .38], kopfSkala: 2, halsSkala: 1.8,
+      fotoGanz: [[0, 1.2, -.2], [3.4, 2.2, -4.6]], fotoRuecken: [[0, 1.55, .1], [2.4, 3, 2.8]] },
   };
   let leoFormen = null;
   function leoFormenBauen() {
@@ -485,6 +491,161 @@ export function welt(T, handy) {
     const sm = teil(rundStab(.06, .015, .2), leoHaut, schwanz); sm.rotation.x = .9;
     return { gruppe: g, koerper, hals, kopf, beine, schwanz, augen, ohren, ...FIGUR_INFO.leo };
   }
+
+  // ---------- Weitere Figuren zum Freischalten: Rambo Rabbit, Bäralf, Dumbo ----------
+  // Zwei Farben über das Attribut „hell“ (Bauch, Schnauze), ohne Muster
+  function zweiFarbenMat(name, haupt, hell, sheen) {
+    const m = new T.MeshPhysicalMaterial({ color: "#ffffff", roughness: 1, sheen: 1, sheenRoughness: .5, sheenColor: new T.Color(sheen) });
+    m.onBeforeCompile = (sh) => {
+      sh.vertexShader = "attribute float hell;\nvarying float vHell;\n" + sh.vertexShader.replace("#include <begin_vertex>", "#include <begin_vertex>\nvHell = hell;");
+      sh.fragmentShader = "varying float vHell;\n" + sh.fragmentShader.replace("#include <map_fragment>",
+        `diffuseColor.rgb *= mix(${glsl(linear(haupt))}, ${glsl(linear(hell))}, clamp(vHell, 0., 1.));`);
+    };
+    m.customProgramCacheKey = () => "zwei-" + name;
+    return m;
+  }
+  const pluesch = (farbe, sheen) => new T.MeshPhysicalMaterial({ color: farbe, roughness: 1, sheen: 1, sheenRoughness: .5, sheenColor: new T.Color(sheen) });
+  const klemme = (v) => Math.max(0, Math.min(1, v));
+  function augenSetzen(kopf, augen, x, y, z, gr) {
+    for (const s of [-1, 1]) {
+      const a = teil(kugel, mat.auge, kopf, s * x, y, z); a.scale.set(gr, gr * 1.1, gr * .75);
+      const gl = teil(kugel, mat.glanz, kopf, s * (x + gr * .25), y + gr * .35, z - gr * .6); gl.scale.setScalar(gr * .3);
+      for (const k of [a, gl]) { k.userData.y = k.scale.y; augen.push(k); }
+    }
+  }
+  // vier Beine: [x, y, z] des Ansatzes, Maße oben/unten [Radius oben, Radius unten, Länge], Pfote [Breite, Höhe, Länge]
+  function vierBeine(koerper, ansaetze, oben, unten, pfote, mBein, mPfote) {
+    return ansaetze.map(([x, y, z], i) => {
+      const o = oben[i] || oben[0], u = unten[i] || unten[0], p = pfote[i] || pfote[0];
+      const og = gelenk(koerper, x, y, z); teil(rundStab(...o), mBein, og);
+      const ug = gelenk(og, 0, -o[2], 0); teil(rundStab(...u), mBein, ug);
+      teil(kugel, mPfote, ug, 0, -u[2] - p[1] * .2, -p[2] * .25).scale.set(...p);
+      return { oben: og, unten: ug };
+    });
+  }
+
+  // --- Rambo Rabbit: Hase mit langen Ohren und rotem Stirnband ---
+  const haseFell = zweiFarbenMat("hase", "#c9b6a2", "#f8f2ea", "#fff4e6"), haseBein = pluesch("#c9b6a2", "#fff4e6"),
+    haseWeiss = pluesch("#f8f2ea", "#ffffff"), haseRosa = std({ color: "#f4a7b9", roughness: .7 }), ramboRot = std({ color: "#d32f2f", roughness: .7 });
+  let haseFormen = null;
+  function haseBauen() {
+    if (!haseFormen) {
+      const K = [0, .3, -.12];
+      haseFormen = {
+        rumpf: formNetz((x, y, z) => {
+          let d = F.ei(x, y, z, 0, .62, .06, .33, .32, .45);
+          d = F.weich(d, F.ei(x, y, z, 0, .68, -.24, .27, .28, .24), .1);
+          for (const s of [-1, 1]) d = F.weich(d, F.ei(x, y, z, s * .19, .5, .28, .16, .2, .24), .08);
+          return d;
+        }, [-.45, .2, -.62], [.45, 1.05, .62], handy ? .026 : .02, (x, y) => [klemme((.52 - y) / .1)]),
+        kopf: formNetz((x, y, z) => {
+          let d = F.stab(x, y, z, [0, -.05, .05], [0, .18, -.08], .14, .13);
+          d = F.weich(d, F.ei(x, y, z, K[0], K[1], K[2], .2, .19, .21), .06);
+          for (const s of [-1, 1]) d = F.weich(d, F.ei(x, y, z, s * .075, K[1] - .07, K[2] - .15, .09, .08, .07), .04);
+          return d;
+        }, [-.3, -.26, -.44], [.3, .55, .26], handy ? .02 : .015, (x, y, z) => [klemme(((K[2] - .1) - z) / .05) * (y < K[1] ? 1 : 0)]),
+      };
+    }
+    const g = new T.Group(), koerper = gelenk(g, 0, 0, 0); koerper.scale.setScalar(1.15);
+    teil(haseFormen.rumpf, haseFell, koerper);
+    const hals = gelenk(koerper, 0, .82, -.36); teil(haseFormen.kopf, haseFell, hals);
+    const kopf = gelenk(hals, 0, .3, -.12), augen = [], ohren = [];
+    augenSetzen(kopf, augen, .1, .05, -.165, .036);
+    teil(kugel, haseRosa, kopf, 0, -.035, -.225).scale.set(.03, .022, .02);
+    for (const s of [-1, 1]) {
+      const ohr = gelenk(kopf, s * .075, .15, .02); ohr.userData.s = s; ohr.userData.basis = -s * .15; ohren.push(ohr);
+      teil(new T.CapsuleGeometry(.07, .36, 8, 16), haseBein, ohr, 0, .24, 0).scale.z = .45;
+      teil(new T.CapsuleGeometry(.045, .3, 8, 12), haseRosa, ohr, 0, .24, -.026).scale.z = .3;
+    }
+    const band = teil(new T.TorusGeometry(.2, .028, 8, 36), ramboRot, kopf, 0, .1, .0); band.rotation.x = Math.PI / 2 + .32;   // vorn höher: über den Augen
+    for (const s of [-1, 1]) { const e = teil(kiste(.05, .2, .02), ramboRot, kopf, s * .04, .0, .21); e.rotation.set(.5, 0, s * .35); }
+    const beine = vierBeine(koerper, [[-.15, .5, -.3], [.15, .5, -.3], [-.2, .45, .3], [.2, .45, .3]],
+      [[.075, .065, .22], [.075, .065, .22], [.1, .085, .2], [.1, .085, .2]], [[.065, .06, .24], [.065, .06, .24], [.08, .06, .2], [.08, .06, .2]],
+      [[.075, .04, .11], [.075, .04, .11], [.08, .045, .16], [.08, .045, .16]], haseBein, haseWeiss);
+    const schwanz = gelenk(koerper, 0, .66, .5); teil(kugel, haseWeiss, schwanz, 0, 0, .04).scale.setScalar(.11);
+    return { gruppe: g, koerper, hals, kopf, beine, schwanz, augen, ohren, ...FIGUR_INFO.hase };
+  }
+
+  // --- Bäralf: brauner Teddybär mit heller Schnauze ---
+  const baerFell = zweiFarbenMat("baer", "#8a5a33", "#dcb88e", "#e8c39a"), baerBein = pluesch("#8a5a33", "#e8c39a"),
+    baerHell = pluesch("#dcb88e", "#fff0d8"), baerNase = std({ color: "#2b1d14", roughness: .3 });
+  let baerFormen = null;
+  function baerBauen() {
+    if (!baerFormen) {
+      const K = [0, .3, -.16];
+      baerFormen = {
+        rumpf: formNetz((x, y, z) => F.weich(F.ei(x, y, z, 0, .72, .05, .42, .4, .55), F.ei(x, y, z, 0, .78, -.3, .36, .36, .3), .12),
+          [-.5, .25, -.72], [.5, 1.2, .68], handy ? .03 : .022, (x, y) => [klemme((.6 - y) / .12)]),
+        kopf: formNetz((x, y, z) => {
+          let d = F.stab(x, y, z, [0, -.1, .08], [0, .16, -.08], .21, .2);
+          d = F.weich(d, F.ei(x, y, z, K[0], K[1], K[2], .26, .25, .25), .07);
+          return F.weich(d, F.ei(x, y, z, 0, K[1] - .08, K[2] - .2, .14, .11, .12), .05);
+        }, [-.34, -.36, -.56], [.34, .6, .34], handy ? .022 : .016, (x, y, z) => [klemme(((K[2] - .16) - z) / .05) * (y < K[1] + .02 ? 1 : 0)]),
+      };
+    }
+    const g = new T.Group(), koerper = gelenk(g, 0, 0, 0); koerper.scale.setScalar(1.1);
+    teil(baerFormen.rumpf, baerFell, koerper);
+    const hals = gelenk(koerper, 0, .98, -.48); teil(baerFormen.kopf, baerFell, hals);
+    const kopf = gelenk(hals, 0, .3, -.16), augen = [], ohren = [];
+    augenSetzen(kopf, augen, .11, .07, -.215, .036);
+    teil(kugel, baerNase, kopf, 0, -.04, -.35).scale.set(.055, .04, .035);
+    for (const s of [-1, 1]) {
+      const ohr = gelenk(kopf, s * .17, .19, 0); ohr.userData.s = s; ohr.userData.basis = 0; ohren.push(ohr);
+      teil(kugel, baerBein, ohr).scale.set(.09, .09, .05);
+      teil(kugel, baerHell, ohr, 0, 0, -.02).scale.set(.055, .055, .03);
+    }
+    const beine = vierBeine(koerper, [[-.22, .58, -.32], [.22, .58, -.32], [-.24, .58, .36], [.24, .58, .36]],
+      [[.14, .13, .28]], [[.13, .13, .24]], [[.13, .05, .15]], baerBein, baerHell);
+    const schwanz = gelenk(koerper, 0, .8, .6); teil(kugel, baerBein, schwanz).scale.setScalar(.08);
+    return { gruppe: g, koerper, hals, kopf, beine, schwanz, augen, ohren, ...FIGUR_INFO.baer };
+  }
+
+  // --- Dumbo: Plüschelefant mit großen Schlappohren und Rüssel ---
+  const elefantHaut = zweiFarbenMat("elefant", "#9aa8ba", "#cdd5e0", "#e6eef8"), elefantBein = pluesch("#9aa8ba", "#e6eef8"),
+    elefantHell = pluesch("#ece6da", "#ffffff"), elefantRosa = std({ color: "#f2b3c4", roughness: .7 });
+  let elefantFormen = null;
+  function elefantBauen() {
+    if (!elefantFormen) {
+      const K = [0, .22, -.2];
+      // Rüssel: Röhre entlang einer Kurve, zur Spitze hin dünner
+      const kurve = new T.CatmullRomCurve3([[0, -.02, -.28], [0, -.22, -.4], [0, -.45, -.44], [0, -.62, -.37], [0, -.7, -.25]].map(p => new T.Vector3(...p)));
+      const ruessel = new T.TubeGeometry(kurve, 24, .1, 14, false), pos = ruessel.attributes.position;
+      for (let i = 0; i <= 24; i++) {
+        const m = kurve.getPointAt(i / 24), f = 1 - .5 * i / 24;
+        for (let j = 0; j <= 14; j++) { const k = i * 15 + j; pos.setXYZ(k, m.x + (pos.getX(k) - m.x) * f, m.y + (pos.getY(k) - m.y) * f, m.z + (pos.getZ(k) - m.z) * f); }
+      }
+      ruessel.computeVertexNormals();
+      elefantFormen = {
+        rumpf: formNetz((x, y, z) => F.weich(F.ei(x, y, z, 0, .98, .05, .55, .5, .7), F.ei(x, y, z, 0, 1.02, -.38, .46, .46, .36), .14),
+          [-.62, .4, -.86], [.62, 1.56, .82], handy ? .034 : .026, (x, y) => [klemme((.72 - y) / .12)]),
+        kopf: formNetz((x, y, z) => F.weich(F.stab(x, y, z, [0, -.12, .12], [0, .12, -.06], .3, .28), F.ei(x, y, z, K[0], K[1], K[2], .36, .34, .32), .08),
+          [-.42, -.46, -.58], [.42, .6, .46], handy ? .026 : .02),
+        ruessel: geteilt(ruessel),
+      };
+    }
+    const g = new T.Group(), koerper = gelenk(g, 0, 0, 0);
+    teil(elefantFormen.rumpf, elefantHaut, koerper);
+    const hals = gelenk(koerper, 0, 1.18, -.62); teil(elefantFormen.kopf, elefantHaut, hals);
+    const kopf = gelenk(hals, 0, .22, -.2), augen = [], ohren = [];
+    augenSetzen(kopf, augen, .17, .1, -.27, .042);
+    teil(elefantFormen.ruessel, elefantBein, kopf);
+    for (const s of [-1, 1]) {
+      const ohr = gelenk(kopf, s * .3, .08, .02); ohr.userData.s = s; ohr.userData.flattern = true; ohren.push(ohr);
+      teil(kugel, elefantBein, ohr, s * .18, -.02, .04).scale.set(.26, .3, .045);
+      teil(kugel, elefantRosa, ohr, s * .18, -.02, .0).scale.set(.19, .23, .03);
+    }
+    const beine = vierBeine(koerper, [[-.3, .78, -.42], [.3, .78, -.42], [-.3, .78, .45], [.3, .78, .45]],
+      [[.18, .17, .4]], [[.17, .18, .33]], [[.18, .05, .19]], elefantBein, elefantHell);
+    const schwanz = gelenk(koerper, 0, 1.05, .74);
+    const sw = teil(rundStab(.03, .02, .35), elefantBein, schwanz); sw.rotation.x = .4;
+    teil(kugel, baerNase, schwanz, 0, -.33, .14).scale.set(.04, .06, .04);
+    return { gruppe: g, koerper, hals, kopf, beine, schwanz, augen, ohren, ...FIGUR_INFO.elefant };
+  }
+  const FIGUREN = {
+    giraffe: { bauen: () => giraffeBauen(), name: "Fröbelinchen" }, leo: { bauen: () => leoBauen(), name: "Leo" },
+    hase: { bauen: haseBauen, name: "Rambo Rabbit" }, baer: { bauen: baerBauen, name: "Bäralf" }, elefant: { bauen: elefantBauen, name: "Dumbo" },
+  };
+  const figurBauen = (id) => (FIGUREN[id] || FIGUREN.giraffe).bauen();
 
   // ---------- Anja: Läuferin mit blondem Pferdeschwanz ----------
   const koerperFormen = {};
@@ -1035,6 +1196,27 @@ export function welt(T, handy) {
     return g;
   }
 
+  // Rekord-Fahne am Wegrand: weiße Stange, goldenes Tuch mit „Dein Rekord“ und der Punktzahl (ein Tuch, wird neu beschriftet)
+  let fahnenText = 0;
+  const fahnenBild = froebelFlaeche(512, 256, (g, w, h) => {
+    const v = g.createLinearGradient(0, 0, 0, h); v.addColorStop(0, "#ffd54a"); v.addColorStop(1, "#ffb300");
+    g.fillStyle = v; g.fillRect(0, 0, w, h);
+    g.fillStyle = "#034a3e"; g.textAlign = "center"; g.textBaseline = "middle";
+    g.font = schrift(64); g.fillText("Dein Rekord", w / 2, h * .34);
+    g.font = schrift(92); g.fillText(fahnenText ? fahnenText.toLocaleString("de-DE") : "", w / 2, h * .7);
+  });
+  const fahnenMalen = neuMalen[neuMalen.length - 1];        // genau die Malfunktion dieses Tuchs merken
+  const fahnenMat = std({ map: fahnenBild, roughness: .6, side: T.DoubleSide, emissive: "#ffffff", emissiveMap: fahnenBild, emissiveIntensity: .2 });
+  const fahnenKnauf = std({ color: "#ffb300", metalness: .5, roughness: .3 });
+  const fahnenGeo = geteilt(new T.PlaneGeometry(1.6, .8, 12, 1));
+  function rekordFahne(punkte) {
+    fahnenText = punkte; fahnenMalen();                         // Tuch mit der aktuellen Zahl neu malen
+    const g = new T.Group();
+    teil(zyl(.05, .06, 3.6, 10), FM.weiss, g, 0, 1.8, 0);
+    teil(kugel, fahnenKnauf, g, 0, 3.65, 0).scale.setScalar(.09);
+    const tuch = teil(fahnenGeo, fahnenMat, g, .82, 3.1, 0); g.userData.tuch = tuch;
+    return g;
+  }
   // ---------- Abbiege-Hinweise: Schild auf der Hecke am Ende, leuchtende Pfeile auf dem Weg ----------
   const pfeilBild = leinwand(256, 128, (g, w, h) => {
     g.fillStyle = "#ffcc1f"; g.beginPath(); g.roundRect(4, 4, w - 8, h - 8, 22); g.fill();
@@ -1159,6 +1341,7 @@ export function welt(T, handy) {
       const a = AUSSTATTUNG[id]; if (!a) continue;
       const teilG = a.bauen(); teilG.userData.ausstattung = true;
       if (a.platz === "ruecken") teilG.position.y += sp.rueckenY || 0;
+      else teilG.scale.setScalar((a.platz === "hals" ? sp.halsSkala : sp.kopfSkala) || 1);   // große Köpfe bekommen große Mützen
       (a.platz === "hals" ? sp.hals : a.platz === "ruecken" ? sp.koerper : sp.kopf).add(teilG);
     }
   }
@@ -1583,6 +1766,6 @@ export function welt(T, handy) {
   }
   const luft = new T.Group(); luft.add(wetter, voegel);
 
-  return { leoBauen, FIGUR_INFO, toertchen, frauBauen, sprechblase, froebelBanner, froebelHeckenTafel, froebelTafel, froebelSchild, kontaktSchatten, grasBueschel, dampf, weltHindernis, entsorgen, pfeilSchild, bodenPfeil, AUSSTATTUNG, ausstattungSetzen, zonen: ZONEN, zoneFuer, dekoFuer, heckeFuer, blumenFuer, bodenFlaeche, bodenFolgen, verbinden, zoneWechsel, zoneSchritt,
+  return { rekordFahne, figurBauen, FIGUREN, leoBauen, FIGUR_INFO, toertchen, frauBauen, sprechblase, froebelBanner, froebelHeckenTafel, froebelTafel, froebelSchild, kontaktSchatten, grasBueschel, dampf, weltHindernis, entsorgen, pfeilSchild, bodenPfeil, AUSSTATTUNG, ausstattungSetzen, zonen: ZONEN, zoneFuer, dekoFuer, heckeFuer, blumenFuer, bodenFlaeche, bodenFolgen, verbinden, zoneWechsel, zoneSchritt,
     animieren, wetterSchritt, voegelSchritt, luft, mat, geo, giraffeBauen, anjaBauen, boden, heckenStueck, blumen, ferne, sonnenScheibe, funke, staub, kante, dekoNeu, hindernis, stern, panzer, booster, blase, himmel, wolken, gras };
 }

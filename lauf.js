@@ -31,7 +31,7 @@ if (rahmen) {
   function laden() {
     if (!bereit) {
       const text = losKnopf.textContent; losKnopf.disabled = true; losKnopf.textContent = "Lädt die 3D-Welt …";
-      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=23"), import("./lauf-ton.js?v=2"), import("./lauf-flug.js?v=2"), import("./lauf-effekte.js?v=3")])
+      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=26"), import("./lauf-ton.js?v=2"), import("./lauf-flug.js?v=2"), import("./lauf-effekte.js?v=3")])
         .then(([m, w, t, f, e]) => { THREE = m; T = t.ton(); aufbauen(w, f, e); losKnopf.disabled = false; losKnopf.textContent = text; });
     }
     return bereit;
@@ -45,8 +45,19 @@ if (rahmen) {
   let erledigt = lies("froebelinchen-rennt-aufgaben", []);
   let qualitaet = lies("froebelinchen-rennt-qualitaet", 0);
   let tutorialFertig = lies("froebelinchen-rennt-tutorial", false);
+  // Figuren: Fröbelinchen und Leo gibt es sofort, die anderen ab einer Fröbel-Stufe (eine Stufe je 5000 gesammelte Punkte)
+  const FIGUR_LISTE = [
+    { id: "giraffe", emoji: "🦒", name: "Fröbelinchen", stufe: 1 }, { id: "leo", emoji: "🐢", name: "Leo", stufe: 1 },
+    { id: "hase", emoji: "🐰", name: "Rambo Rabbit", stufe: 5 }, { id: "baer", emoji: "🐻", name: "Bäralf", stufe: 10 },
+    { id: "elefant", emoji: "🐘", name: "Dumbo", stufe: 20 },
+  ];
+  const EP_JE_STUFE = 5000;
+  let erfahrung = +lies("froebelinchen-rennt-erfahrung", 0) || 0;
+  const stufeVon = (ep) => Math.floor(ep / EP_JE_STUFE) + 1;
+  const frei = (id) => stufeVon(erfahrung) >= (FIGUR_LISTE.find(f => f.id === id) || { stufe: 99 }).stufe;
   let figur = lies("froebelinchen-rennt-figur", "giraffe");
-  const NAME = () => figur === "leo" ? "Leo" : "Fröbelinchen";
+  if (!frei(figur)) figur = "giraffe";
+  const NAME = () => (FIGUR_LISTE.find(f => f.id === figur) || FIGUR_LISTE[0]).name;
 
   // ---------- Spielwerte ----------
   const SPUR = 1.6, H = 2.9, ECKE = 12;           // Spurbreite, halbe Wegbreite, Abbiegezone vor der Ecke
@@ -61,7 +72,7 @@ if (rahmen) {
   let zustand = "start", tempo, punkte, sternZahl, strecke, wackeln = 0, schlussSzene = null;
   const S = { idx: 0, s: 0, spur: 0, x: 0, y: 0, vy: 0, duck: 0, abbiegen: 0, stolper: 0, lauf: 0, sprungPuffer: 0, eis: 0, lande: 0 };
   const A = { nah: false, zeit: 0, abstand: 16, bis: 5, lauf: 0, schritt: 0 };
-  const R = { booster: 0, schubs: 0, welt: 0, zeit: 0, flug: 0, ringe: 0, frauBei: 20 };    // Werte dieser Runde für Aufgaben, Ergebnis und Bestenliste
+  const R = { booster: 0, schubs: 0, welt: 0, zeit: 0, flug: 0, ringe: 0, frauBei: 20, kombo: 0, fahne: false, jubel: false };    // Werte dieser Runde für Aufgaben, Ergebnis und Bestenliste
   const tipps = new Set();
 
   const richtung = (h) => h === 0 ? [0, -1] : [h, 0];           // Norden = -z, Osten = +x, Westen = -x
@@ -106,7 +117,7 @@ if (rahmen) {
     uhr = new THREE.Clock();
     boden = W.bodenFlaeche(); szene.add(boden, W.luft);
     W.verbinden({ szene, himmelMat: himmelKugel.material, sonne });
-    spieler = figur === "leo" ? W.leoBauen() : W.giraffeBauen(); szene.add(spieler.gruppe);
+    spieler = W.figurBauen(figur); szene.add(spieler.gruppe);
     W.ausstattungSetzen(spieler, konto.an);
     anja = W.anjaBauen(); szene.add(anja.gruppe);
     blase = W.blase(); spieler.gruppe.add(blase); blasePassen(1);
@@ -311,7 +322,7 @@ if (rahmen) {
     FL.ab = FLUG_AB; FL.rueck = 0;
     aktZone = 0; W.zoneWechsel(0, true); stimmungSetzen(true);
     Object.assign(B, { turbo: 0, schild: 0, ruhe: 0, magnet: 0, doppelt: 0, schubs: null });
-    Object.assign(R, { booster: 0, schubs: 0, welt: 0, zeit: 0, flug: 0, ringe: 0, frauBei: 20 });
+    Object.assign(R, { booster: 0, schubs: 0, welt: 0, zeit: 0, flug: 0, ringe: 0, frauBei: 20, kombo: 0, fahne: false, jubel: false });
     tempo = START_TEMPO; punkte = 0; sternZahl = 0; strecke = 0; wackeln = 0; schlussSzene = null;
     Object.assign(S, { idx: 0, s: 0, spur: 0, x: 0, y: 0, vy: 0, duck: 0, abbiegen: 0, stolper: 0, sprungPuffer: 0, eis: 0, lande: 0 });
     Object.assign(A, { nah: false, zeit: 0, abstand: 16, bis: 5 });
@@ -438,6 +449,7 @@ if (rahmen) {
     if (neuerRekord) T.rekord(); else T.ende();
     if (!tutorialFertig) { tutorialFertig = true; schreib("froebelinchen-rennt-tutorial", true); }
     aufgabenZeigen();
+    stufeNachRunde(p);
     eintragenAnbieten(p, Math.ceil(R.zeit));
     losKnopf.textContent = "Nochmal";
     ueber.hidden = false;
@@ -484,16 +496,54 @@ if (rahmen) {
   aufgabenZeigen();
 
   // ---------- Figurenwahl: Fröbelinchen oder Schildkröte Leo ----------
-  const figurKnoepfe = [...rahmen.querySelectorAll(".lauf-figur button")];
-  const figurKnoepfeZeigen = () => figurKnoepfe.forEach(k => k.setAttribute("aria-pressed", String(k.dataset.figur === figur)));
+  const figurFeld = rahmen.querySelector(".lauf-figur");
+  const figurKnoepfe = FIGUR_LISTE.map(f => {
+    const k = document.createElement("button"); k.type = "button"; k.dataset.figur = f.id;
+    k.innerHTML = `<span class="lf-bild" aria-hidden="true">${f.emoji}</span><span class="lf-name"></span>`;
+    figurFeld.append(k); return k;
+  });
+  function figurKnoepfeZeigen() {
+    figurKnoepfe.forEach((k, i) => {
+      const f = FIGUR_LISTE[i], offen = frei(f.id);
+      k.disabled = !offen; k.setAttribute("aria-pressed", String(f.id === figur));
+      k.querySelector(".lf-name").textContent = offen ? f.name : `🔒 Stufe ${f.stufe}`;
+      k.title = offen ? f.name : `${f.name}: ab Fröbel-Stufe ${f.stufe}`;
+    });
+  }
   figurKnoepfeZeigen();
+  // Fröbel-Stufe mit Balken; nach einer Runde füllt er sich von alt nach neu
+  const stufeFeld = rahmen.querySelector(".lauf-stufe"), stufeBalken = stufeFeld.querySelector(".fs-balken i"), stufeNeu = stufeFeld.querySelector(".fs-neu");
+  const tausend = (n) => Math.floor(n).toLocaleString("de-DE");
+  function stufeZeigen(ep) {
+    const st = stufeVon(ep), rest = ep - (st - 1) * EP_JE_STUFE;
+    stufeFeld.querySelector(".fs-nr").textContent = st;
+    stufeFeld.querySelector(".fs-ep").textContent = `${tausend(rest)} / ${tausend(EP_JE_STUFE)} Punkte`;
+    stufeBalken.style.width = (rest / EP_JE_STUFE * 100).toFixed(1) + "%";
+  }
+  stufeZeigen(erfahrung);
+  function stufeNachRunde(p) {
+    const alt = erfahrung, altStufe = stufeVon(alt);
+    erfahrung += p; schreib("froebelinchen-rennt-erfahrung", erfahrung);
+    const neuStufe = stufeVon(erfahrung), texte = [];
+    if (neuStufe > altStufe) {
+      konto.sterne += 50 * (neuStufe - altStufe); schreib("froebelinchen-rennt-konto", konto);
+      texte.push(`Fröbel-Stufe ${neuStufe} erreicht! +${50 * (neuStufe - altStufe)} ★`);
+      for (const f of FIGUR_LISTE) if (f.stufe > altStufe && f.stufe <= neuStufe) texte.push(`${f.emoji} ${f.name} ist freigeschaltet!`);
+      // Balken erst voll laufen lassen, dann in der neuen Stufe von vorn
+      stufeBalken.style.width = "100%";
+      setTimeout(() => { stufeBalken.style.transition = "none"; stufeBalken.style.width = "0%"; void stufeBalken.offsetWidth; stufeBalken.style.transition = ""; stufeZeigen(erfahrung); }, 1250);
+      T.rekord();
+    } else { stufeZeigen(alt); requestAnimationFrame(() => stufeZeigen(erfahrung)); }
+    stufeNeu.textContent = texte.join(" "); stufeNeu.hidden = !texte.length;
+    figurKnoepfeZeigen();
+  }
   function blasePassen(f) { blase.scale.setScalar(spieler.blaseS * f); blase.position.y = spieler.blaseY; }
   function figurWechseln(neu) {
     if (neu === figur || (zustand !== "start" && zustand !== "aus")) return;
     figur = neu; schreib("froebelinchen-rennt-figur", figur); figurKnoepfeZeigen();
     if (!spieler) return;                                   // 3D noch nicht geladen: wird beim Aufbau gebaut
     const alt = spieler.gruppe;
-    spieler = figur === "leo" ? W.leoBauen() : W.giraffeBauen();
+    spieler = W.figurBauen(figur);
     const eltern = alt.parent || szene;                     // im Ergebnis nach einem Flug sitzt die Figur im Flugzeug
     eltern.remove(alt); alt.remove(blase); eltern.add(spieler.gruppe);
     spieler.gruppe.add(blase); blasePassen(1);
@@ -504,7 +554,7 @@ if (rahmen) {
     W.ausstattungSetzen(spieler, konto.an);
     T.booster();
   }
-  figurKnoepfe.forEach(k => k.addEventListener("click", async () => { await laden(); T.start(); figurWechseln(k.dataset.figur); }));
+  figurKnoepfe.forEach(k => k.addEventListener("click", async () => { if (k.disabled) return; await laden(); T.start(); figurWechseln(k.dataset.figur); }));
 
   // ---------- Sterne-Shop ----------
   // Vorschaubilder: eine eigene kleine Giraffe wird mit den Teilen fotografiert (eigener Renderer, nur solange der Laden offen ist)
@@ -519,14 +569,15 @@ if (rahmen) {
       foto = { r, sz, figuren: {}, kam: new THREE.PerspectiveCamera(30, 1, .05, 50) };
     }
     const { r, sz, kam } = foto;
-    if (!foto.figuren[figur]) { const f = figur === "leo" ? W.leoBauen() : W.giraffeBauen(); sz.add(f.gruppe); foto.figuren[figur] = f; }
+    if (!foto.figuren[figur]) { const f = W.figurBauen(figur); sz.add(f.gruppe); foto.figuren[figur] = f; }
     for (const [k, f] of Object.entries(foto.figuren)) f.gruppe.visible = k === figur;
     const gir = foto.figuren[figur];
     W.ausstattungSetzen(gir, ids);
     sz.updateMatrixWorld(true);
     const z = new THREE.Vector3();
-    if (art === "kopf") { gir.kopf.getWorldPosition(z); z.y += .08; kam.position.set(z.x + .62, z.y + .12, z.z - .92); }
-    else if (art === "hals") { gir.hals.getWorldPosition(z); z.y += .2; z.z -= .2; kam.position.set(z.x + .75, z.y + .25, z.z - 1.05); }
+    const ks = gir.kopfSkala || 1, hs = gir.halsSkala || 1;   // große Köpfe: Kamera weiter weg
+    if (art === "kopf") { gir.kopf.getWorldPosition(z); z.y += .08 * ks; kam.position.set(z.x + .62 * ks, z.y + .12 * ks, z.z - .92 * ks); }
+    else if (art === "hals") { gir.hals.getWorldPosition(z); z.y += .2 * hs; z.z -= .2 * hs; kam.position.set(z.x + .75 * hs, z.y + .25 * hs, z.z - 1.05 * hs); }
     else if (art === "ruecken") { z.set(...gir.fotoRuecken[0]); kam.position.set(...gir.fotoRuecken[1]); }
     else { z.set(...gir.fotoGanz[0]); kam.position.set(...gir.fotoGanz[1]); }
     kam.lookAt(z);
@@ -664,7 +715,17 @@ if (rahmen) {
     if (!A.nah) { meldung("Achtung, Anja kommt!", (FL.an ? wahl(ANJA_FLUG) : wahl(ANJA_RUFE)).replace("Fröbelinchen", NAME())); T.anja(); }
     A.nah = true; A.zeit = dauer;
   }
+  // Kombo: jedes eingesammelte Törtchen (bzw. jeder Stern) ohne Stolpern zählt mit; alle 10 steigt der Faktor, bis ×5
+  const komboFaktor = () => Math.min(5, 1 + Math.floor(R.kombo / 10));
+  function kombo() {
+    const vorher = komboFaktor(); R.kombo++;
+    const jetzt = komboFaktor();
+    if (jetzt > vorher) { T.booster(); hud.classList.remove("kombo"); void hud.offsetWidth; hud.classList.add("kombo"); }
+    return jetzt;
+  }
+  function komboWeg() { R.kombo = 0; }
   function stolpern() {
+    komboWeg();
     if (A.nah && A.abstand < 7) { verlieren("Anja hat dich erwischt!", "anja"); return; }
     S.stolper = .5; tempo = Math.max(START_TEMPO, tempo * .85);
     wackeln = .35; T.stolpern(); if (navigator.vibrate) navigator.vibrate(40);
@@ -694,6 +755,24 @@ if (rahmen) {
       bew: { vs: 4.5, weg: 0, max: 70 }, getroffen: false });
     return true;
   }
+  // Rekord-Fahne: steht ungefähr dort, wo man den alten Rekord einholt; beim Überholen gibt es Jubel und Konfetti
+  function fahneAufstellen(ab, meter) {
+    let zab = ab, s = S.s + meter;
+    if (s > ab.L - 1) { zab = abschnitte.find(a => a.nr === S.idx + 1); s = Math.max(3, s - ab.L); }
+    if (!zab || s > zab.L - 1) return;
+    const f = W.rekordFahne(rekord), [x, z] = punkt(zab, s, H - .15);
+    f.position.set(x, 0, z); f.rotation.y = -zab.h * Math.PI / 2;   // Tuch weht nach außen über die Hecke, lesbar für die Läuferin
+    zab.gruppe.add(f); fahne = f; fahneOrt = { nr: zab.nr, s };
+  }
+  let fahne = null, fahneOrt = null;
+  function rekordPruefen() {
+    if (R.jubel || rekord <= 0 || punkte <= rekord) return;
+    // steht eine Fahne am Weg, wird erst beim Vorbeilaufen gejubelt (Törtchen bringen einen manchmal etwas früher über den Rekord)
+    if (fahneOrt && !FL.an && fahne && fahne.parent && !(S.idx > fahneOrt.nr || (S.idx === fahneOrt.nr && S.s >= fahneOrt.s))) return;
+    R.jubel = true; T.rekord(); meldung("Neuer Rekord!", "Du bist weiter als je zuvor!");
+    const wo = spieler.gruppe.getWorldPosition(new THREE.Vector3()); wo.y += 1.5;
+    for (const farbe of ["#ffd54a", "#3baa35", "#ff7aa2", "#6ec6ff", "#a8c700"]) funkeln(wo, farbe, 10);
+  }
   function funkeln(wo, farbe, n) {
     for (let i = 0; i < n; i++) {
       const f = teilchenHolen("funke", farbe); f.position.copy(wo); f.scale.setScalar(zufall(.15, .3)); szene.add(f);
@@ -704,6 +783,7 @@ if (rahmen) {
 
   function hudZeigen() {
     let t = `${Math.floor(punkte)} Punkte · ★ ${sternZahl}`;
+    if (komboFaktor() > 1) t += ` · 🔥×${komboFaktor()}`;
     if (FL.an) t += ` · ✈ ${Math.max(0, Math.ceil(FLUG_ZEIT - FL.zeit))} s`;
     if (B.turbo > 0) t += ` · ⚡ ${Math.ceil(B.turbo)}`;
     if (B.magnet > 0) t += ` · 🧲 ${Math.ceil(B.magnet)}`;
@@ -779,6 +859,9 @@ if (rahmen) {
     S.sprungPuffer = Math.max(0, S.sprungPuffer - dt);
     S.duck = Math.max(0, S.duck - dt);
     tutorialSchritt(ab);
+    if (!R.fahne) fahneOrt = null;
+    if (!R.fahne && rekord > 0 && punkte < rekord && rekord - punkte < 60 * (B.doppelt > 0 ? 2 : 1)) { R.fahne = true; fahneAufstellen(ab, (rekord - punkte) / (B.doppelt > 0 ? 2 : 1)); }
+    rekordPruefen();
     if (R.zeit >= R.frauBei && !B.schubs) R.frauBei = frauKommt(ab) ? Infinity : R.zeit + 2;   // nur einmal pro Runde (kein Platz: gleich nochmal versuchen)
 
     // Bewegte Hindernisse: rollen auf Fröbelinchen zu oder laufen quer über den Weg, sobald sie in Sicht kommen
@@ -820,7 +903,7 @@ if (rahmen) {
     }
     // Sterne: hohe Sterne gibt es nur im Sprung, mit Magnet fliegen alle Sterne vor einem heran
     const einsammeln = (st) => {
-      st.weg = true; st.mesh.visible = false; sternZahl++; punkte += 10 * faktor; funkeln(st.mesh.position, "#ffb3d1", 8);
+      st.weg = true; st.mesh.visible = false; sternZahl++; punkte += 10 * faktor * kombo(); funkeln(st.mesh.position, "#ffb3d1", 8);
       T.stern(sternZahl); GE.freude = .35; hud.classList.remove("hupf"); void hud.offsetWidth; hud.classList.add("hupf");
     };
     for (const st of sterne) {
@@ -970,6 +1053,7 @@ if (rahmen) {
       if (st.zieht && !st.weg) st.mesh.position.lerp(new THREE.Vector3(g.position.x, g.position.y + 1, g.position.z), Math.min(1, dt * 9));
     }
     const tz = performance.now() / 1000;
+    if (fahne && fahne.parent) { const tu = fahne.userData.tuch; tu.rotation.y = Math.sin(tz * 3) * .25; tu.position.y = 3.1 + Math.sin(tz * 5) * .03; }
     for (const h of hindernisse) {                    // die Frau rennt mit schwingenden Armen und Beinen
       const f = h.frau; if (!f) continue;
       const ph = f.laeuft ? tz * 10 : 0;
@@ -1048,7 +1132,8 @@ if (rahmen) {
     ["turbo", "schild", "schubs", "magnet", "doppelt"].forEach(t => dazu(W.booster(t)));
     ["logo", "ohren", "kitas"].forEach(t => { dazu(W.froebelHeckenTafel(t)); dazu(W.froebelTafel(t)); });
     ["ohren", "kitas"].forEach(t => dazu(W.froebelSchild(t)));
-    dazu(W.toertchen()); dazu((figur === "leo" ? W.giraffeBauen() : W.leoBauen()).gruppe);
+    dazu(W.toertchen()); for (const f of FIGUR_LISTE) if (f.id !== figur) dazu(W.figurBauen(f.id).gruppe);
+    dazu(W.rekordFahne(1));
     { const f = W.frauBauen(); f.gruppe.add(W.sprechblase(["Ich suche meine", "Autoschlüssel!"])); dazu(f.gruppe); }
     [FW.ring(), FW.heissluftballon(), FW.gewitter(), FW.voegel(), FW.insel(), FW.regenbogen(), FW.wolkenBallen(), W.froebelBanner(2, .5)].forEach(dazu);
     for (const art of ["staub", "funke", "dampf"]) { const k = teilchenHolen(art); dazu(k); }
@@ -1099,7 +1184,9 @@ if (rahmen) {
     const t = performance.now() / 1000;
     for (const o of spieler.ohren) {
       const sd = o.userData.s;
-      o.rotation.z = -sd * (1.2 - GE.freude * 1.4 + angst * .35) + Math.sin(t * 9 + sd) * .08 * wippen;
+      if (o.userData.flattern) { o.rotation.y = sd * (.15 + Math.sin(t * 5 + sd) * .22 * (wippen + .3) + GE.freude); continue; }
+      const basis = o.userData.basis ?? -sd * 1.2;
+      o.rotation.z = basis + sd * (GE.freude * 1.4 - angst * .35) + Math.sin(t * 9 + sd) * .08 * wippen;
       o.rotation.x = angst * .5;
     }
   }
@@ -1253,6 +1340,7 @@ if (rahmen) {
   }
 
   function flugTreffer(o) {
+    komboWeg();
     if (A.nah && A.abstand < 7) { verlieren(o.typ === "gewitter" ? "Blitz und Donner, Anja hat dich!" : "Anja hat dich eingeholt!", "anja"); return; }
     FL.trudeln = .8; FL.v = Math.max(16, FL.v * .85);
     wackeln = .35; T.stolpern(); if (navigator.vibrate) navigator.vibrate(40);
@@ -1260,7 +1348,7 @@ if (rahmen) {
     anjaKommt(6);
   }
   function flugSchritt(dt) {
-    R.zeit += dt; FL.zeit += dt;
+    R.zeit += dt; FL.zeit += dt; rekordPruefen();
     if (!FL.gewarnt && FL.zeit >= FLUG_ZEIT - 4) { FL.gewarnt = true; meldung("Gleich wird gelandet!", "Noch ein paar Ringe mitnehmen"); }
     if (FL.zeit >= FLUG_ZEIT && !FL.landung) { FL.landung = .001; T.abflug(); }
     if (FL.landung) {
@@ -1288,7 +1376,7 @@ if (rahmen) {
     while (FL.naechst > FL.z - 170) reiheNeu();
 
     const einsammeln = (o) => {
-      o.weg = true; o.mesh.visible = false; sternZahl++; punkte += 10 * faktor; funkeln(o.mesh.position, "#ffe066", 8);
+      o.weg = true; o.mesh.visible = false; sternZahl++; punkte += 10 * faktor * kombo(); funkeln(o.mesh.position, "#ffe066", 8);
       T.stern(sternZahl); GE.freude = .35; hud.classList.remove("hupf"); void hud.offsetWidth; hud.classList.add("hupf");
     };
     for (const o of FL.objekte) {
