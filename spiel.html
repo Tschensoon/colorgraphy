@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Fröbelinchen springt: kleines Browserspiel | Colorgraphy</title>
-<meta name="description" content="Fröbelinchen, die kleine orange Plüschgiraffe, muss über Bälle springen. Ein kostenloses Endlos-Spiel für Browser und Handy.">
+<title>Fröbelinchen spielt: zwei kleine Browserspiele | Colorgraphy</title>
+<meta name="description" content="Zwei kostenlose Spiele mit Fröbelinchen, der kleinen orangen Plüschgiraffe: über Bälle springen oder in 3D durch die Kita-Welt rennen. Für Browser und Handy.">
 <meta name="robots" content="index, follow, max-image-preview:large">
 <link rel="canonical" href="https://colorgraphy.de/spiel.html">
 <meta name="theme-color" content="#000000">
@@ -15,8 +15,8 @@
 <meta property="og:type" content="website">
 <meta property="og:locale" content="de_DE">
 <meta property="og:site_name" content="Colorgraphy">
-<meta property="og:title" content="Fröbelinchen springt">
-<meta property="og:description" content="Hilf der Plüschgiraffe Fröbelinchen über die Bälle. Kostenlos im Browser.">
+<meta property="og:title" content="Fröbelinchen spielt">
+<meta property="og:description" content="Zwei kleine Spiele mit der Plüschgiraffe Fröbelinchen. Kostenlos im Browser.">
 <meta property="og:url" content="https://colorgraphy.de/spiel.html">
 <meta property="og:image" content="https://colorgraphy.de/og-image.jpg">
 <meta name="twitter:card" content="summary_large_image">
@@ -64,7 +64,7 @@
 </script>
 <link rel="stylesheet" href="style.css?v=3">
 <link rel="stylesheet" href="tools.css?v=8">
-<link rel="stylesheet" href="spiel.css?v=6">
+<link rel="stylesheet" href="spiel.css?v=7">
 </head>
 <body>
 
@@ -93,10 +93,27 @@
   <div class="hero tools-hero">
     <div class="wrap center">
       <span class="eyebrow">Fröbel-Spiel</span>
-      <h1>Fröbelinchen <span class="grad">springt.</span></h1>
-      <p class="sub">Hilf der kleinen Plüschgiraffe Fröbelinchen über die Bälle. Je länger du durchhältst, desto schneller wird es.</p>
+      <h1>Fröbelinchen <span class="grad">spielt.</span></h1>
+      <p class="sub">Zwei kleine Spiele mit der Plüschgiraffe Fröbelinchen. Such dir eins aus.</p>
     </div>
   </div>
+
+  <section class="spiel-wahl" aria-label="Spiel auswählen">
+    <div class="wrap">
+      <div class="wahl-raster">
+        <button type="button" class="wahl-karte" data-spiel="springen">
+          <img src="spiel/vorschau-springen.jpg" alt="" width="640" height="360">
+          <span class="wahl-text"><strong>Fröbelinchen springt</strong><span>Spring über die Bälle und lauf Anja davon. Schnell erklärt, schnell gespielt.</span></span>
+          <span class="pill small">Spielen</span>
+        </button>
+        <button type="button" class="wahl-karte" data-spiel="rennen">
+          <img src="spiel/vorschau-rennen.jpg" alt="" width="640" height="360">
+          <span class="wahl-text"><strong>Fröbelinchen rennt <em>3D</em></strong><span>Renn durch die Kita-Welt, bieg ab, spring und duck dich unter Stangen.</span></span>
+          <span class="pill small">Spielen</span>
+        </button>
+      </div>
+    </div>
+  </section>
 
   <section class="spiel-bereich">
     <div class="wrap">
@@ -163,8 +180,8 @@
   </div>
 </footer>
 
-<script src="spiel.js?v=7" defer></script>
-<script type="module" src="lauf.js?v=3"></script>
+<script src="spiel.js?v=8" defer></script>
+<script type="module" src="lauf.js?v=4"></script>
 <script src="seite.js?v=11" defer></script>
 <script src="ziehen.js?v=2" defer></script>
 <script data-goatcounter="https://colorgraphy.goatcounter.com/count" async src="vendor/goatcounter/count.js"></script>

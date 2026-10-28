@@ -217,6 +217,8 @@ if (rahmen) {
     if (zustand === "laeuft") ende("Pause gemacht");
   }
   zu.addEventListener("click", vollbildAus);
+  // Aufruf aus der Spielauswahl: am Handy Vollbild mit Anleitung, gestartet wird erst mit „Los geht’s“
+  window.froebelRennen = { oeffnen() { if (handy) { vollbildAn(); if (kannWebGL) laden(); } else rahmen.scrollIntoView({ behavior: "smooth", block: "center" }); } };
   document.addEventListener("fullscreenchange", () => { if (!document.fullscreenElement && vollbild) vollbildAus(); });
 
   losKnopf.addEventListener("click", async () => {

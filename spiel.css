@@ -104,3 +104,24 @@ body.spiel-offen { overflow: hidden; }
   .lauf-anleitung li { padding: .35rem .5rem; font-size: .82rem; }
   .la-taste { min-width: 2.6rem; font-size: 1.15rem; }
 }
+
+/* Spielauswahl */
+.spiel-wahl { padding: 0 0 2.5rem; }
+.wahl-raster { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.2rem; max-width: 900px; margin: 0 auto; }
+.wahl-karte { display: flex; flex-direction: column; align-items: flex-start; gap: .7rem; padding: 0 0 1rem; border: 1px solid var(--line);
+  border-radius: 18px; overflow: hidden; background: var(--surface); color: var(--fg); font: inherit; text-align: left; cursor: pointer;
+  transition: transform .2s, border-color .2s; }
+@media (hover: hover) { .wahl-karte:hover { transform: translateY(-3px); border-color: var(--accent); } }
+.wahl-karte img { width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; display: block; }
+.wahl-text { display: flex; flex-direction: column; gap: .25rem; padding: 0 1rem; }
+.wahl-text strong { font-size: 1.15rem; }
+.wahl-text em { font-style: normal; font-size: .75rem; padding: .1rem .45rem; margin-left: .3rem; border-radius: 999px; background: var(--accent); color: #fff; vertical-align: middle; }
+.wahl-text span { opacity: .8; font-size: .92rem; }
+.wahl-karte .pill { margin: 0 1rem; pointer-events: none; }
+@media (max-width: 640px) { .wahl-raster { grid-template-columns: 1fr; } }
+
+/* Handy: Spiele nur über die Auswahl im Vollbild, nicht eingebettet (sonst löst Scrollen über dem Spielfeld es aus) */
+@media (pointer: coarse) {
+  .spiel-rahmen:not(.vollbild), .lauf-rahmen:not(.vollbild), .spiel-hilfe, .lauf-bereich > :not(.lauf-rahmen) { display: none; }
+  .lauf-bereich { margin-top: 0; }
+}

@@ -175,6 +175,13 @@
   });
   bestenlisteLaden();
 
+  // Spielauswahl oben: am Handy öffnet die Karte das Spiel im Vollbild, am PC springt die Seite zum Spiel
+  window.froebelSpringen = { oeffnen() { if (handy) vollbildAn(); else rahmen.scrollIntoView({ behavior: "smooth", block: "center" }); } };
+  document.querySelectorAll(".wahl-karte").forEach(k => k.addEventListener("click", () => {
+    const spiel = k.dataset.spiel === "springen" ? window.froebelSpringen : window.froebelRennen;
+    if (spiel) spiel.oeffnen();
+  }));
+
   function ballNeu() {
     const r = 11 + Math.random() * 11;
     const huepft = strecke > 6000 && Math.random() < .35;
