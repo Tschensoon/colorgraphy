@@ -280,3 +280,13 @@ body.spiel-offen { overflow: hidden; }
 /* Am Handy startet ein großer Knopf das Spiel im Vollbild (eingebettet ist es dort ausgeblendet); am PC steht das Spiel direkt da */
 .lauf-handy-start { display: none; }
 @media (pointer: coarse) { .lauf-handy-start { display: inline-flex; margin: .5rem auto 0; padding: 1rem 2.2rem; font-size: 1.2rem; } }
+
+/* kurze Anleitung: drei Steuer-Kacheln nebeneinander und ein Satz */
+.lauf-overlay .lauf-anleitung { display: grid; grid-template-columns: repeat(3, 1fr); gap: .4rem; }
+.lauf-overlay .lauf-anleitung li { flex-direction: column; justify-content: center; gap: .25rem; padding: .45rem .3rem; text-align: center; font-size: .78rem; font-weight: 700; color: #034a3e; }
+.lauf-overlay .lauf-anleitung b { font-size: 1.1rem; }
+.lauf-overlay .lauf-anleitung kbd { display: inline-block; min-width: 1.6rem; margin: 0 .1rem; padding: .05rem .3rem; border: 1px solid #b9c7c2; border-bottom-width: 3px;
+  border-radius: 6px; background: #fff; font: 700 .9rem/1.3 system-ui, sans-serif; color: #034a3e; }
+.lauf-tipp { margin: 0; font-size: .85rem; color: #4b5b56; }
+.lauf-overlay.ergebnis .lauf-tipp { display: none; }
+.lauf-rahmen.touch .lauf-anleitung b.nur-touch { display: inline; }
