@@ -31,7 +31,7 @@ if (rahmen) {
   function laden() {
     if (!bereit) {
       const text = losKnopf.textContent; losKnopf.disabled = true; losKnopf.textContent = "Lädt die 3D-Welt …";
-      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=21"), import("./lauf-ton.js?v=2"), import("./lauf-flug.js?v=2"), import("./lauf-effekte.js?v=3")])
+      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=22"), import("./lauf-ton.js?v=2"), import("./lauf-flug.js?v=2"), import("./lauf-effekte.js?v=3")])
         .then(([m, w, t, f, e]) => { THREE = m; T = t.ton(); aufbauen(w, f, e); losKnopf.disabled = false; losKnopf.textContent = text; });
     }
     return bereit;
@@ -934,8 +934,10 @@ if (rahmen) {
     schattenF.scale.setScalar(1 / (1 + S.y * .5)); schattenF.material.opacity = 1 / (1 + S.y * .8);
     schattenA.visible = anja.gruppe.visible && !fall; schattenA.position.set(ax, .035, az);
 
+    const tz0 = performance.now() / 1000;
     for (const st of sterne) {
       st.mesh.rotation.y += dt * 3;
+      if (!st.zieht) st.mesh.position.y = st.h + Math.sin(tz0 * 4 + st.s) * .09;   // Törtchen schweben auf und ab, Bälle liegen am Boden
       if (st.zieht && !st.weg) st.mesh.position.lerp(new THREE.Vector3(g.position.x, g.position.y + 1, g.position.z), Math.min(1, dt * 9));
     }
     const tz = performance.now() / 1000;

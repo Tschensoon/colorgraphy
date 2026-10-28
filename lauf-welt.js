@@ -647,8 +647,18 @@ export function welt(T, handy) {
     g.translate(0, -.14, 0); g.scale(1.4, 1.4, 1.4);
     return geteilt(g);
   })();
-  const toertchenMat = std({ vertexColors: true, roughness: .45 });
-  function toertchen() { const k = new T.Mesh(toertchenGeo, toertchenMat); k.castShadow = true; return k; }
+  const toertchenMat = std({ vertexColors: true, roughness: .45, emissive: "#ffffff", emissiveIntensity: .14 });
+  // goldener Schein hinter jedem Törtchen: so sind sie auf einen Blick von den bunten Bällen zu unterscheiden
+  const toertchenSchein = new T.SpriteMaterial({ map: leinwand(64, 64, (g) => {
+    const v = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+    v.addColorStop(0, "rgba(255,236,160,1)"); v.addColorStop(.45, "rgba(255,200,120,.55)"); v.addColorStop(1, "rgba(255,180,200,0)");
+    g.fillStyle = v; g.fillRect(0, 0, 64, 64);
+  }, false), transparent: true, opacity: .9, depthWrite: false, blending: T.AdditiveBlending });
+  function toertchen() {
+    const g = new T.Group(), k = new T.Mesh(toertchenGeo, toertchenMat); k.castShadow = true; g.add(k);
+    const s = new T.Sprite(toertchenSchein); s.geometry.userData.geteilt = true; s.scale.setScalar(1.3); s.position.y = .05; g.add(s);
+    return g;
+  }
 
   // Schildkrötenpanzer zum Einsammeln: gewölbt, Sechseck-Platten, heller Rand
   const panzerMuster = leinwand(256, 128, (g, w, h) => {
