@@ -19,9 +19,9 @@ export function flugWelt(T, W) {
     rumpf: std({ color: "#e53935", roughness: .35, metalness: .2 }), rumpfAnja: std({ color: "#f48fb1", roughness: .35, metalness: .2 }),
     fluegel: std({ color: "#fdd835", roughness: .4 }), fluegelAnja: std({ color: "#ffffff", roughness: .4 }),
     dunkel: std({ color: "#2b2b2b", roughness: .5 }), glas: std({ color: "#9fd3f2", roughness: .05, metalness: .3, transparent: true, opacity: .6 }),
-    ring: std({ color: "#ffcc33", roughness: .25, metalness: .6, emissive: "#a87400", emissiveIntensity: .6 }),
+    ring: std({ color: "#ffcc33", roughness: .25, metalness: .6, emissive: "#ffb000", emissiveIntensity: 1.1 }),
     korb: std({ color: "#9c6b3a", roughness: .9 }), seil: new T.LineBasicMaterial({ color: "#5a4632" }),
-    gewitter: std({ color: "#5f6875", roughness: 1 }), blitz: new T.MeshBasicMaterial({ color: "#fff6a8" }),
+    gewitter: std({ color: "#8a93a3", roughness: 1 }), blitz: new T.MeshBasicMaterial({ color: "#fff6a8" }),
     fels: std({ color: "#8a7a66", roughness: 1 }), gras: std({ color: "#7cc04f", roughness: 1 }), vogel: new T.MeshBasicMaterial({ color: "#2d3340", side: T.DoubleSide }),
   };
   const ballonBild = (farben) => leinwand(256, 128, (g, w, h) => { farben.forEach((c, i) => { g.fillStyle = c; g.fillRect(i * w / farben.length, 0, w / farben.length + 1, h); }); });
@@ -104,9 +104,34 @@ export function flugWelt(T, W) {
     });
     return g;
   }
+  // Wolkenballen mitten im Flugweg: man fliegt durch und sieht kurz nur Weiß
+  function wolkenBallen() {
+    const g = new T.Group();
+    for (let i = 0; i < 7; i++) {
+      const s = new T.Sprite(W.mat.wolke); s.geometry.userData.geteilt = true;
+      const b = zufall(7, 12); s.scale.set(b, b * .6, 1); s.position.set(zufall(-3, 3), zufall(-1.5, 1.5), zufall(-3, 3)); g.add(s);
+    }
+    return g;
+  }
+  // Lichtstrahlen, die von der tief stehenden Sonne durch den Dunst fallen
+  const strahlBild = leinwand(32, 256, (g, w, h) => {
+    const v = g.createLinearGradient(0, 0, 0, h); v.addColorStop(0, "rgba(255,236,200,.9)"); v.addColorStop(1, "rgba(255,236,200,0)");
+    g.fillStyle = v; g.fillRect(0, 0, w, h);
+    const q = g.createLinearGradient(0, 0, w, 0); q.addColorStop(0, "rgba(0,0,0,1)"); q.addColorStop(.5, "rgba(0,0,0,0)"); q.addColorStop(1, "rgba(0,0,0,1)");
+    g.globalCompositeOperation = "destination-out"; g.fillStyle = q; g.fillRect(0, 0, w, h);
+  });
+  function strahlen() {
+    const g = new T.Group();
+    for (let i = 0; i < 6; i++) {
+      const m = new T.SpriteMaterial({ map: strahlBild, transparent: true, opacity: zufall(.1, .2), depthWrite: false, fog: false, blending: T.AdditiveBlending });
+      m.rotation = -.32 + i * .13 + zufall(-.04, .04);     // fächerförmig, oben an der Sonne
+      const s = new T.Sprite(m); s.scale.set(zufall(5, 11), 150, 1); s.position.set(Math.sin(m.rotation) * 75, -Math.cos(m.rotation) * 75, 0); g.add(s);
+    }
+    return g;
+  }
   function wolkenMeer() {
     const k = new T.Mesh(new T.PlaneGeometry(500, 500).rotateX(-Math.PI / 2), std({ map: wolkenBild, roughness: 1, color: "#ffffff" }));
     k.receiveShadow = true; return k;
   }
-  return { flieger, ring, heissluftballon, gewitter, voegel, insel, regenbogen, wolkenMeer, wolkenBild };
+  return { flieger, ring, heissluftballon, gewitter, voegel, insel, regenbogen, wolkenMeer, wolkenBild, wolkenBallen, strahlen };
 }

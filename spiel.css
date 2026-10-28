@@ -201,3 +201,11 @@ body.spiel-offen { overflow: hidden; }
 .lauf-top-seite li:first-child { border-top: 0; }
 .lauf-top-seite li.eigen { color: #24332f; }
 @media (pointer: coarse) { #lauf-bestenliste { margin-top: 1rem; } }
+
+/* Turbo: Geschwindigkeitslinien am Bildrand */
+.lauf-tempo { position: absolute; inset: -15%; pointer-events: none; opacity: 0; transition: opacity .35s;
+  background: repeating-conic-gradient(from 0deg at 50% 45%, rgba(255, 255, 255, 0) 0deg 2.4deg, rgba(255, 255, 255, .6) 2.6deg 2.9deg, rgba(255, 255, 255, 0) 3.1deg 7deg);
+  -webkit-mask: radial-gradient(ellipse at 50% 45%, transparent 30%, #000 72%); mask: radial-gradient(ellipse at 50% 45%, transparent 30%, #000 72%); }
+.lauf-tempo.an { opacity: .65; animation: lauf-tempo .3s linear infinite; }
+@keyframes lauf-tempo { 50% { transform: rotate(1.2deg) scale(1.04); } }
+@media (prefers-reduced-motion: reduce) { .lauf-tempo.an { animation: none; opacity: .35; } }

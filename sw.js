@@ -1,7 +1,7 @@
 // Offline-Hilfe für die Spielseite: Online wird immer zuerst die frische Version aus dem Netz geholt
 // und nebenbei gemerkt. Nur ohne Netz kommt die gemerkte Fassung, so ist die Seite nie veraltet.
 const SPEICHER = "colorgraphy-v1";
-const VORAB = ["spiel.html", "spiel.css", "spiel.js", "lauf.js", "lauf-welt.js", "lauf-ton.js", "lauf-flug.js", "style.css", "tools.css", "seite.js", "ziehen.js",
+const VORAB = ["spiel.html", "spiel.css", "spiel.js", "lauf.js", "lauf-welt.js", "lauf-ton.js", "lauf-flug.js", "lauf-effekte.js", "style.css", "tools.css", "seite.js", "ziehen.js",
   "vendor/three/three.module.min.js", "spiel/vorschau-springen.jpg", "spiel/vorschau-rennen.jpg", "favicon.svg"];
 
 self.addEventListener("install", (e) => {

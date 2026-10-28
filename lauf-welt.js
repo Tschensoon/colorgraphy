@@ -13,6 +13,20 @@ export function welt(T, handy) {
     if (wiederholen) t.wrapS = t.wrapT = T.RepeatWrapping;
     return t;
   }
+  // Normalenkarte aus einer Zeichnung (hell = hoch): gibt Oberflächen Relief, ohne zusätzliche Dreiecke
+  function normalAus(quelle, staerke = 2) {
+    const c = quelle.image || quelle, w = c.width, h = c.height, d = c.getContext("2d").getImageData(0, 0, w, h).data;
+    const aus = document.createElement("canvas"); aus.width = w; aus.height = h;
+    const g = aus.getContext("2d"), bild = g.createImageData(w, h), o = bild.data;
+    const H = (x, y) => { const k = ((((y + h) % h) * w + ((x + w) % w)) * 4); return (d[k] + d[k + 1] + d[k + 2]) / 765; };
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const nx = (H(x - 1, y) - H(x + 1, y)) * staerke, ny = (H(x, y + 1) - H(x, y - 1)) * staerke, l = Math.hypot(nx, ny, 1), k = (y * w + x) * 4;
+      o[k] = (nx / l * .5 + .5) * 255; o[k + 1] = (ny / l * .5 + .5) * 255; o[k + 2] = (1 / l * .5 + .5) * 255; o[k + 3] = 255;
+    }
+    g.putImageData(bild, 0, 0);
+    const t = new T.CanvasTexture(aus); t.wrapS = t.wrapT = T.RepeatWrapping; t.anisotropy = 8;
+    return t;
+  }
   const rauschen = (g, w, h, n, farben, groesse = 1) => {
     for (let i = 0; i < n; i++) { g.fillStyle = wahl(farben); g.fillRect(Math.random() * w, Math.random() * h, groesse, groesse); }
   };
@@ -38,19 +52,26 @@ export function welt(T, handy) {
       g.restore();
     }
   });
+  const pflasterHoehe = document.createElement("canvas"); pflasterHoehe.width = pflasterHoehe.height = 256;
   const pflaster = leinwand(256, 256, (g, w, h) => {
-    g.fillStyle = "#a89a86"; g.fillRect(0, 0, w, h);
+    const hg = pflasterHoehe.getContext("2d"); hg.fillStyle = "#000"; hg.fillRect(0, 0, w, h);
+    g.fillStyle = "#8d806d"; g.fillRect(0, 0, w, h);                       // Fugen
     const sh = 32, sb = 64;
     for (let r = 0; r < h / sh; r++) {
       for (let c = -1; c < w / sb + 1; c++) {
-        const x = c * sb + (r % 2) * sb / 2, y = r * sh;
-        const l = zufall(-12, 12);
+        const x = c * sb + (r % 2) * sb / 2, y = r * sh, l = zufall(-12, 12);
         g.fillStyle = `hsl(${zufall(28, 38)}, ${zufall(14, 22)}%, ${70 + l}%)`;
-        g.fillRect(x + 2, y + 2, sb - 4, sh - 4);
-        rauschen(g, 0, 0, 0, ["#000"]);
+        g.beginPath(); g.roundRect(x + 2, y + 2, sb - 4, sh - 4, 5); g.fill();
+        const v = g.createLinearGradient(x, y, x + sb * .4, y + sh);      // Licht von oben links
+        v.addColorStop(0, "rgba(255,255,255,.12)"); v.addColorStop(1, "rgba(0,0,0,.12)"); g.fillStyle = v; g.fill();
+        [[2, 90], [4, 170], [7, 215]].forEach(([e, hell], i) => {           // Höhe: Kanten abgerundet
+          const t = hell + zufall(-10, 10) * i; hg.fillStyle = `rgb(${t},${t},${t})`;
+          hg.beginPath(); hg.roundRect(x + e, y + e, sb - 2 * e, sh - 2 * e, 6 - i); hg.fill();
+        });
       }
     }
     rauschen(g, w, h, 4000, ["rgba(0,0,0,.06)", "rgba(255,255,255,.08)"], 2);
+    rauschen(hg, w, h, 2500, ["rgba(0,0,0,.25)", "rgba(255,255,255,.2)"], 2);
   });
   const holz = leinwand(256, 64, (g, w, h) => {
     g.fillStyle = "#b5824f"; g.fillRect(0, 0, w, h);
@@ -96,6 +117,15 @@ export function welt(T, handy) {
     }
     g.putImageData(bild, 0, 0);
   });
+  const fell = leinwand(256, 256, (g, w, h) => {
+    g.fillStyle = "#808080"; g.fillRect(0, 0, w, h);
+    for (let i = 0; i < 5000; i++) {
+      const x = Math.random() * w, y = Math.random() * h, l = zufall(3, 7), a = Math.PI / 2 + zufall(-.5, .5), t = Math.round(zufall(60, 200));
+      g.strokeStyle = `rgb(${t},${t},${t})`; g.lineWidth = zufall(.6, 1.4);
+      for (const dx of [-w, 0, w]) for (const dy of [-h, 0, h]) { g.beginPath(); g.moveTo(x + dx, y + dy); g.lineTo(x + dx + Math.cos(a) * l, y + dy + Math.sin(a) * l); g.stroke(); }
+    }
+  });
+  const fellNormal = normalAus(fell, 1.6); fellNormal.repeat.set(4, 3);
   const stoff = (farbe, linien) => leinwand(128, 128, (g, w, h) => {
     g.fillStyle = farbe; g.fillRect(0, 0, w, h);
     g.strokeStyle = linien; g.lineWidth = 1;
@@ -151,15 +181,15 @@ export function welt(T, handy) {
 
   // ---------- Materialien ----------
   const std = (o) => new T.MeshStandardMaterial(o);
-  const plueschBasis = { roughness: 1, sheen: 1, sheenRoughness: .55 };
+  const plueschBasis = { roughness: 1, sheen: 1, sheenRoughness: .5, normalMap: fellNormal, normalScale: new T.Vector2(.8, .8) };
   const mat = {
     gras: std({ map: gras, roughness: 1 }),
-    weg: std({ map: pflaster, roughness: .95, bumpMap: handy ? null : pflaster, bumpScale: 1.5 }),
+    weg: std({ map: pflaster, roughness: .9, normalMap: handy ? null : normalAus(pflasterHoehe, 4), normalScale: new T.Vector2(1.2, 1.2) }),
     kante: std({ color: "#cfcac0", roughness: .9 }),
-    hecke: std({ map: hecke, roughness: 1, bumpMap: handy ? null : hecke, bumpScale: 4 }),
+    hecke: std({ map: hecke, roughness: 1, normalMap: handy ? null : normalAus(hecke, 5) }),
     holz: std({ map: holz, roughness: .8 }),
-    rinde: std({ map: rinde, roughness: 1, bumpMap: rinde, bumpScale: 3 }),
-    laub: std({ map: laub, roughness: .95, bumpMap: handy ? null : laub, bumpScale: 3 }),
+    rinde: std({ map: rinde, roughness: 1, normalMap: normalAus(rinde, 4) }),
+    laub: std({ map: laub, roughness: .95, normalMap: handy ? null : normalAus(laub, 4) }),
     dach: std({ map: dach, roughness: .8 }),
     sand: std({ color: "#e9d29a", roughness: 1 }),
     pfuetze: std({ color: "#6f9fc4", roughness: .04, metalness: .2, transparent: true, opacity: .82, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }),
@@ -167,7 +197,7 @@ export function welt(T, handy) {
     metallRot: std({ color: "#d84a3a", roughness: .35, metalness: .5 }),
     plastikGelb: std({ color: "#ffcd2e", roughness: .35 }),
     plastikRot: std({ color: "#e94b3c", roughness: .35 }),
-    stern: std({ color: "#ffc928", roughness: .3, metalness: .55, emissive: "#a87400", emissiveIntensity: .6 }),
+    stern: std({ color: "#ffc928", roughness: .3, metalness: .55, emissive: "#ffb000", emissiveIntensity: 1.1 }),
     ball: new T.MeshPhysicalMaterial({ map: ballMuster, roughness: .3, clearcoat: 1, clearcoatRoughness: .15 }),
     giraffe: new T.MeshPhysicalMaterial({ map: giraffe, ...plueschBasis, sheenColor: new T.Color("#ffd29a") }),
     giraffeHell: new T.MeshPhysicalMaterial({ color: "#fbe2b8", ...plueschBasis, sheenColor: new T.Color("#fff1d8") }),
@@ -227,86 +257,220 @@ export function welt(T, handy) {
   };
   const gelenk = (eltern, x, y, z) => { const g = new T.Group(); g.position.set(x, y, z); eltern.add(g); return g; };
 
+  // ---------- Weiche Körper aus einem Stück ----------
+  // Ein Formfeld gibt für jeden Punkt den Abstand zur Oberfläche an (negativ = innen). Mehrere Grundformen werden
+  // weich ineinander geblendet, das Feld wird in einem Gitter abgetastet und daraus ein glattes Netz gebaut
+  // (Surface Nets). So gibt es keine harten Kanten, wo Rumpf, Brust und Hals aufeinandertreffen.
+  const F = {
+    weich(a, b, k) { const h = Math.max(k - Math.abs(a - b), 0) / k; return Math.min(a, b) - h * h * k * .25; },
+    ei(x, y, z, cx, cy, cz, rx, ry, rz) {                // Ellipsoid (Näherung, für weiches Mischen genau genug)
+      const l = Math.hypot((x - cx) / rx, (y - cy) / ry, (z - cz) / rz); return (l - 1) * Math.min(rx, ry, rz);
+    },
+    stab(x, y, z, a, b, ra, rb) {                        // Kapsel von a nach b mit Radius ra → rb
+      const bx = b[0] - a[0], by = b[1] - a[1], bz = b[2] - a[2], px = x - a[0], py = y - a[1], pz = z - a[2];
+      const h = Math.max(0, Math.min(1, (px * bx + py * by + pz * bz) / (bx * bx + by * by + bz * bz)));
+      return Math.hypot(px - bx * h, py - by * h, pz - bz * h) - (ra + (rb - ra) * h);
+    },
+  };
+  function formNetz(feld, [x0, y0, z0], [x1, y1, z1], s, extra) {
+    const nx = Math.ceil((x1 - x0) / s) + 1, ny = Math.ceil((y1 - y0) / s) + 1, nz = Math.ceil((z1 - z0) / s) + 1;
+    const w = new Float32Array(nx * ny * nz), id = (i, j, k) => i + nx * (j + ny * k);
+    for (let k = 0; k < nz; k++) for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) w[id(i, j, k)] = feld(x0 + i * s, y0 + j * s, z0 + k * s);
+    const zelle = new Int32Array(nx * ny * nz).fill(-1), pos = [], nor = [], ext = [];
+    const KANTEN = [[0, 1], [2, 3], [4, 5], [6, 7], [0, 2], [1, 3], [4, 6], [5, 7], [0, 4], [1, 5], [2, 6], [3, 7]];
+    const c = new Float32Array(8), e = s * .5;
+    for (let k = 0; k < nz - 1; k++) for (let j = 0; j < ny - 1; j++) for (let i = 0; i < nx - 1; i++) {
+      let innen = 0;
+      for (let n = 0; n < 8; n++) { c[n] = w[id(i + (n & 1), j + ((n >> 1) & 1), k + ((n >> 2) & 1))]; if (c[n] < 0) innen++; }
+      if (innen === 0 || innen === 8) continue;
+      let sx = 0, sy = 0, sz = 0, anz = 0;
+      for (const [a, b] of KANTEN) {
+        if ((c[a] < 0) === (c[b] < 0)) continue;
+        const t = c[a] / (c[a] - c[b]);
+        sx += (a & 1) + ((b & 1) - (a & 1)) * t; sy += ((a >> 1) & 1) + (((b >> 1) & 1) - ((a >> 1) & 1)) * t; sz += ((a >> 2) & 1) + (((b >> 2) & 1) - ((a >> 2) & 1)) * t; anz++;
+      }
+      const x = x0 + (i + sx / anz) * s, y = y0 + (j + sy / anz) * s, z = z0 + (k + sz / anz) * s;
+      const gx = feld(x + e, y, z) - feld(x - e, y, z), gy = feld(x, y + e, z) - feld(x, y - e, z), gz = feld(x, y, z + e) - feld(x, y, z - e), gl = Math.hypot(gx, gy, gz) || 1;
+      zelle[id(i, j, k)] = pos.length / 3; pos.push(x, y, z); nor.push(gx / gl, gy / gl, gz / gl);
+      if (extra) ext.push(...extra(x, y, z));
+    }
+    // je Gitterkante mit Vorzeichenwechsel ein Viereck aus den vier anliegenden Zellen; Richtung am Feld ausrichten
+    const idx = [], A = [0, 0, 0], B = [0, 0, 0];
+    const viereck = (q) => {
+      if (q.some(v => v < 0)) return;
+      const [a, b, cc, d] = q;
+      for (let n = 0; n < 3; n++) { A[n] = pos[b * 3 + n] - pos[a * 3 + n]; B[n] = pos[cc * 3 + n] - pos[a * 3 + n]; }
+      const fx = A[1] * B[2] - A[2] * B[1], fy = A[2] * B[0] - A[0] * B[2], fz = A[0] * B[1] - A[1] * B[0];
+      const dot = fx * (nor[a * 3] + nor[cc * 3]) + fy * (nor[a * 3 + 1] + nor[cc * 3 + 1]) + fz * (nor[a * 3 + 2] + nor[cc * 3 + 2]);
+      if (dot >= 0) idx.push(a, b, cc, a, cc, d); else idx.push(a, cc, b, a, d, cc);
+    };
+    for (let k = 0; k < nz - 1; k++) for (let j = 0; j < ny - 1; j++) for (let i = 0; i < nx - 1; i++) {
+      const v0 = w[id(i, j, k)] < 0;
+      if (j > 0 && k > 0 && v0 !== (w[id(i + 1, j, k)] < 0)) viereck([zelle[id(i, j - 1, k - 1)], zelle[id(i, j, k - 1)], zelle[id(i, j, k)], zelle[id(i, j - 1, k)]]);
+      if (i > 0 && k > 0 && v0 !== (w[id(i, j + 1, k)] < 0)) viereck([zelle[id(i - 1, j, k - 1)], zelle[id(i, j, k - 1)], zelle[id(i, j, k)], zelle[id(i - 1, j, k)]]);
+      if (i > 0 && j > 0 && v0 !== (w[id(i, j, k + 1)] < 0)) viereck([zelle[id(i - 1, j - 1, k)], zelle[id(i, j - 1, k)], zelle[id(i, j, k)], zelle[id(i - 1, j, k)]]);
+    }
+    const geo = new T.BufferGeometry();
+    geo.setAttribute("position", new T.Float32BufferAttribute(pos, 3)); geo.setAttribute("normal", new T.Float32BufferAttribute(nor, 3));
+    if (extra) { const n = ext.length / (pos.length / 3); geo.setAttribute(n === 1 ? "hell" : "color", new T.Float32BufferAttribute(ext, n)); }
+    geo.setIndex(idx); geo.computeBoundingSphere();
+    return geteilt(geo);
+  }
+  // runder Stab für Beine und Arme: oben am Gelenk (y = 0), nach unten verjüngt, beide Enden abgerundet
+  function rundStab(ro, ru, l) {
+    const key = `rs${ro},${ru},${l}`;
+    if (!formCache.has(key)) {
+      const p = [[0, -l - ru * .55], [ru * .6, -l - ru * .45], [ru * .92, -l - ru * .12], [ru, -l + ru * .3]];
+      for (let i = 1; i < 6; i++) { const t = i / 6; p.push([ru + (ro - ru) * t + Math.sin(t * Math.PI) * ro * .06, -l + ru * .3 + (l - ru * .3 - ro * .3) * t]); }
+      p.push([ro, -ro * .3], [ro * .92, ro * .12], [ro * .6, ro * .45], [0, ro * .55]);
+      formCache.set(key, geteilt(new T.LatheGeometry(p.map(([x, y]) => new T.Vector2(x, y)), 22)));
+    }
+    return formCache.get(key);
+  }
+
+  // Giraffenfell direkt im Shader: Flecken aus einem räumlichen Zellmuster, helle Netzlinien dazwischen,
+  // heller Bauch und helle Schnauze über ein eigenes Attribut. So passt das Muster auch auf das nahtlose Netz.
+  const fleck = new T.MeshPhysicalMaterial({ color: "#ffffff", roughness: 1, sheen: 1, sheenRoughness: .5, sheenColor: new T.Color("#ffd29a") });
+  fleck.onBeforeCompile = (sh) => {
+    sh.vertexShader = "attribute float hell;\nvarying float vHell;\nvarying vec3 vOrt;\n" + sh.vertexShader.replace("#include <begin_vertex>", "#include <begin_vertex>\nvOrt = position; vHell = hell;");
+    sh.fragmentShader = "varying float vHell;\nvarying vec3 vOrt;\nvec3 zufall3(vec3 p) { return fract(sin(vec3(dot(p, vec3(127.1, 311.7, 74.7)), dot(p, vec3(269.5, 183.3, 246.1)), dot(p, vec3(113.5, 271.9, 124.6)))) * 43758.5453); }\n"
+      + sh.fragmentShader.replace("#include <map_fragment>", `
+      vec3 q = vOrt * 7.2, zelle = floor(q), fq = fract(q);
+      float f1 = 9., f2 = 9., ton = 0.;
+      for (int x = -1; x <= 1; x++) for (int y = -1; y <= 1; y++) for (int z = -1; z <= 1; z++) {
+        vec3 o = vec3(float(x), float(y), float(z)), h = zufall3(zelle + o), r = o + h * .85 - fq;
+        float d = dot(r, r);
+        if (d < f1) { f2 = f1; f1 = d; ton = h.y; } else if (d < f2) f2 = d;
+      }
+      float linie = 1. - smoothstep(.07, .15, sqrt(f2) - sqrt(f1));
+      vec3 fell = mix(mix(vec3(.74, .19, .012), vec3(.86, .26, .02), ton), vec3(.96, .72, .40), linie);
+      diffuseColor.rgb *= mix(fell, vec3(.96, .76, .48), clamp(vHell, 0., 1.));`);
+  };
+  fleck.customProgramCacheKey = () => "giraffe-fleck";
+  // Haut, Shirt und Jeans über Farben je Punkt (Anjas Körper ist ein einziges Netz)
+  const anjaKoerperMat = new T.MeshPhysicalMaterial({ vertexColors: true, roughness: .75, sheen: .3, sheenColor: new T.Color("#ffe0d0") });
+
+  let giraffeFormen = null;
+  function giraffeFormenBauen() {
+    // Rumpf: Schulter etwas höher als die Hüfte, kräftige Brust, Ansätze der Beine weich angeformt
+    const rumpf = (x, y, z) => {
+      let d = F.stab(x, y, z, [0, 1.24, -.34], [0, 1.17, .36], .33, .31);
+      d = F.weich(d, F.ei(x, y, z, 0, 1.28, -.4, .3, .33, .28), .12);
+      for (const [bx, bz] of [[-.17, -.38], [.17, -.38], [-.17, .4], [.17, .4]]) d = F.weich(d, F.stab(x, y, z, [bx, 1.15, bz], [bx * 1.05, .98, bz], .12, .09), .1);
+      d = F.weich(d, F.stab(x, y, z, [0, 1.36, .62], [0, 1.32, .76], .05, .03), .08);     // Schwanzansatz
+      return d;
+    };
+    const rumpfHell = (x, y) => [Math.max(0, Math.min(1, (1.03 - y) / .12))];
+    // Hals und Kopf (im Hals-Gelenk): unten breit, oben schmal, der Kopf mit Schnauze weich angesetzt
+    const K = [0, 1.02, -.27];
+    const maulA = [0, K[1] - .045, K[2] - .1], maulB = [0, K[1] - .085, K[2] - .2];
+    const halsKopf = (x, y, z) => {
+      let d = F.stab(x, y, z, [0, -.06, .03], [0, .97, -.24], .2, .095);
+      d = F.weich(d, F.ei(x, y, z, K[0], K[1], K[2], .155, .16, .19), .08);
+      d = F.weich(d, F.stab(x, y, z, maulA, maulB, .088, .082), .06);
+      return d;
+    };
+    const kopfHell = (x, y, z) => {
+      const m = F.stab(x, y, z, maulA, maulB, .088, .082);
+      return [Math.max(0, Math.min(1, (.035 - m) / .05)) * (z < K[2] - .07 ? 1 : 0)];
+    };
+    giraffeFormen = {
+      rumpf: formNetz(rumpf, [-.42, .78, -.82], [.42, 1.72, .86], handy ? .03 : .022, rumpfHell),
+      hals: formNetz(halsKopf, [-.25, -.3, -.55], [.25, 1.26, .3], handy ? .024 : .017, kopfHell),
+    };
+  }
+
   // ---------- Fröbelinchen: Plüschgiraffe ----------
   function giraffeBauen() {
+    if (!giraffeFormen) giraffeFormenBauen();
     const g = new T.Group(), koerper = gelenk(g, 0, 0, 0);
-    const rumpf = teil(new T.CapsuleGeometry(.34, .72, 10, 24), mat.giraffe, koerper, 0, 1.2, .02);
-    rumpf.rotation.x = Math.PI / 2 - .1; rumpf.scale.set(1, 1, .95);        // Schulter etwas höher als Hüfte
-    teil(kugel, mat.giraffe, koerper, 0, 1.28, -.38).scale.set(.33, .36, .3);  // Brust
-    teil(kugel, mat.giraffeHell, koerper, 0, .98, -.02).scale.set(.24, .12, .5); // heller Bauch
-
+    teil(giraffeFormen.rumpf, fleck, koerper);
     // Hals mit Mähne, Kopf am Ende; der Hals kippt beim Ducken nach vorn
     const hals = gelenk(koerper, 0, 1.42, -.48);
-    const halsM = teil(zyl(.1, .19, 1.05, 20, 4), mat.giraffe, hals, 0, .48, -.12); halsM.rotation.x = -.26;
-    const maehne = teil(kiste(.05, .95, .07), mat.giraffeDunkel, hals, 0, .5, .02); maehne.rotation.x = -.26;
-    const kopf = gelenk(hals, 0, 1.02, -.27);
-    teil(kugel, mat.giraffe, kopf).scale.set(.16, .165, .2);
-    const maul = teil(new T.CapsuleGeometry(.085, .07, 8, 16), mat.giraffeHell, kopf, 0, -.07, -.17); maul.rotation.x = Math.PI / 2 + .55;
+    teil(giraffeFormen.hals, fleck, hals);
+    const maehne = teil(new T.CapsuleGeometry(.035, .82, 6, 12), mat.giraffeDunkel, hals, 0, .46, .03); maehne.rotation.x = -.26; maehne.scale.x = .7;
+    const kopf = gelenk(hals, 0, 1.02, -.27), augen = [], ohren = [];
     for (const s of [-1, 1]) {
-      const horn = teil(zyl(.022, .03, .17, 10), mat.giraffe, kopf, s * .06, .18, .04); horn.rotation.z = -s * .15;
-      teil(kugel, mat.giraffeDunkel, kopf, s * .073, .27, .04).scale.setScalar(.042);
-      const ohr = teil(kegel(.05, .19, 12), mat.giraffeHell, kopf, s * .19, .1, .07);
-      ohr.rotation.z = -s * 1.2; ohr.scale.z = .5;
-      teil(kugel, mat.auge, kopf, s * .1, .05, -.12).scale.setScalar(.03);
-      teil(kugel, mat.glanz, kopf, s * .108, .062, -.145).scale.setScalar(.009);
-      teil(kugel, mat.giraffeDunkel, kopf, s * .03, -.1, -.26).scale.set(.013, .009, .01);  // Nasenlöcher
+      const horn = teil(rundStab(.026, .03, .15), mat.giraffeHell, kopf, s * .06, .26, .04); horn.rotation.z = -s * .15;
+      teil(kugel, mat.giraffeDunkel, kopf, s * .073, .27, .04).scale.setScalar(.045);
+      const ohr = teil(kegel(.05, .19, 16), mat.giraffeHell, kopf, s * .19, .1, .07);
+      ohr.rotation.z = -s * 1.2; ohr.scale.z = .5; ohr.userData.s = s; ohren.push(ohr);
+      const auge = teil(kugel, mat.auge, kopf, s * .1, .05, -.12); auge.scale.setScalar(.032);
+      const glanzP = teil(kugel, mat.glanz, kopf, s * .109, .064, -.148); glanzP.scale.setScalar(.01);
+      for (const a of [auge, glanzP]) { a.userData.y = a.scale.y; augen.push(a); }
+      teil(kugel, mat.giraffeDunkel, kopf, s * .032, -.1, -.285).scale.set(.014, .01, .01);  // Nasenlöcher
     }
-    // Beine mit Knie: oben schwingt, unten knickt
+    // Beine mit Knie: oben schwingt, unten knickt; runde, sich verjüngende Glieder
     const beine = [];
     for (const [x, z] of [[-.17, -.38], [.17, -.38], [-.17, .4], [.17, .4]]) {
       const oben = gelenk(koerper, x, 1.12, z);
-      teil(zyl(.085, .065, .56, 14), mat.giraffe, oben, 0, -.28, 0);
+      teil(rundStab(.088, .066, .56), fleck, oben);
       const unten = gelenk(oben, 0, -.56, 0);
-      teil(kugel, mat.giraffe, unten).scale.setScalar(.068);
-      teil(zyl(.06, .05, .46, 14), mat.giraffeHell, unten, 0, -.23, 0);
-      teil(zyl(.062, .07, .08, 14), mat.giraffeDunkel, unten, 0, -.5, 0);
+      teil(rundStab(.063, .05, .44), mat.giraffeHell, unten);
+      teil(rundStab(.064, .072, .06), mat.giraffeDunkel, unten, 0, -.44, 0);   // Huf
       beine.push({ oben, unten });
     }
     const schwanz = gelenk(koerper, 0, 1.3, .75);
-    const sm = teil(zyl(.018, .026, .5, 8), mat.giraffe, schwanz, 0, -.24, .05); sm.rotation.x = .2;
-    teil(kugel, mat.giraffeDunkel, schwanz, 0, -.5, .1).scale.set(.04, .08, .04);
-    return { gruppe: g, koerper, hals, kopf, beine, schwanz };
+    const sm = teil(rundStab(.026, .016, .48), fleck, schwanz, 0, 0, .02); sm.rotation.x = .2;
+    teil(kugel, mat.giraffeDunkel, schwanz, 0, -.5, .1).scale.set(.045, .085, .045);
+    return { gruppe: g, koerper, hals, kopf, beine, schwanz, augen, ohren };
   }
 
   // ---------- Anja: Läuferin mit blondem Pferdeschwanz ----------
+  let anjaForm = null;
+  function anjaFormBauen() {
+    const feld = (x, y, z) => {
+      const zs = z / .74;                                  // Oberkörper flacher als breit
+      let d = F.ei(x, y, z, 0, .97, 0, .16, .13, .12);    // Hüfte
+      d = F.weich(d, F.stab(x, y, zs, [0, 1.02, 0], [0, 1.26, 0], .135, .15) * .8, .08);   // Taille
+      d = F.weich(d, F.ei(x, y, z, 0, 1.36, -.01, .18, .14, .125), .08);                     // Brust
+      d = F.weich(d, F.stab(x, y, z, [-.16, 1.46, 0], [.16, 1.46, 0], .062, .062), .07);      // Schultern
+      d = F.weich(d, F.stab(x, y, z, [0, 1.46, 0], [0, 1.62, -.005], .05, .045), .04);      // Hals
+      d = F.weich(d, F.ei(x, y, z, 0, 1.69, -.01, .098, .12, .108), .04);                   // Kopf
+      d = F.weich(d, F.ei(x, y, z, 0, 1.655, -.112, .015, .022, .018), .015);               // Nase
+      for (const s of [-1, 1]) d = F.weich(d, F.ei(x, y, z, s * .098, 1.68, 0, .016, .03, .02), .015);   // Ohren
+      return d;
+    };
+    const HAUT = [.86, .55, .40], SHIRT = [.76, .10, .2], JEANS = [.045, .10, .27];
+    // weiche Übergänge zwischen Jeans, Shirt und Haut, sonst würden die Farbgrenzen am Netz zackig
+    const stufe = (a, b, t) => { const k = Math.max(0, Math.min(1, (t - a) / (b - a))); return k * k * (3 - 2 * k); };
+    const farbe = (x, y, z) => {
+      const halsR = Math.hypot(x, (z + .01) * 1.3);
+      const haut = Math.max(stufe(1.545, 1.575, y), stufe(.075, .06, halsR) * stufe(1.4, 1.43, y));   // Hals und runder Ausschnitt
+      const jeans = stufe(1.045, 1.025, y);
+      return [0, 1, 2].map(i => (SHIRT[i] * (1 - haut) + HAUT[i] * haut) * (1 - jeans) + JEANS[i] * jeans);
+    };
+    anjaForm = formNetz(feld, [-.3, .8, -.2], [.3, 1.86, .2], handy ? .016 : .012, farbe);
+  }
   function anjaBauen() {
+    if (!anjaForm) anjaFormBauen();
     const g = new T.Group(), k = gelenk(g, 0, 0, 0);
-    // Oberkörper als gedrehte Kontur: Taille, Brust, Schultern
-    const kontur = [[0, 0], [.15, 0], [.14, .12], [.165, .3], [.18, .42], [.16, .5], [.07, .55], [0, .55]].map(([x, y]) => new T.Vector2(x, y));
-    const rumpf = teil(new T.LatheGeometry(kontur, 24), mat.shirt, k, 0, .96, 0); rumpf.scale.z = .72;
-    teil(zyl(.155, .16, .18, 20), mat.jeans, k, 0, .95, 0).scale.z = .75;   // Hüfte
-    teil(zyl(.045, .05, .1, 12), mat.haut, k, 0, 1.55, 0);                  // Hals
-    const kopf = gelenk(k, 0, 1.68, -.01);
-    teil(kugel, mat.haut, kopf).scale.set(.1, .122, .11);
-    const haarKappe = teil(new T.SphereGeometry(1, 28, 20, 0, Math.PI * 2, 0, Math.PI * .62), mat.haar, kopf, 0, .015, .01);
+    teil(anjaForm, anjaKoerperMat, k);
+    const kopf = gelenk(k, 0, 1.69, -.01);
+    const haarKappe = teil(new T.SphereGeometry(1, 32, 22, 0, Math.PI * 2, 0, Math.PI * .62), mat.haar, kopf, 0, .012, .012);
     haarKappe.scale.set(.108, .13, .118); haarKappe.rotation.x = .35;
-    for (const s of [-1, 1]) {
-      teil(kugel, mat.auge, kopf, s * .036, .015, -.098).scale.set(.012, .014, .008);
-      teil(kugel, mat.haut, kopf, s * .1, 0, 0).scale.set(.018, .03, .02);                        // Ohren
-    }
-    teil(kugel, mat.haut, kopf, 0, -.015, -.11).scale.set(.014, .02, .016);                         // Nase
-    teil(kugel, mat.lippe, kopf, 0, -.06, -.098).scale.set(.022, .007, .006);
+    for (const s of [-1, 1]) teil(kugel, mat.auge, kopf, s * .036, .012, -.1).scale.set(.012, .014, .008);
+    teil(kugel, mat.lippe, kopf, 0, -.062, -.1).scale.set(.022, .007, .006);
     const zopf = gelenk(kopf, 0, .04, .1);
-    teil(kugel, mat.haar, zopf, 0, 0, .02).scale.setScalar(.035);
-    teil(new T.CapsuleGeometry(.045, .16, 6, 12), mat.haar, zopf, 0, -.1, .07).rotation.x = .5;
+    teil(kugel, mat.haar, zopf, 0, 0, .02).scale.setScalar(.036);
+    teil(new T.CapsuleGeometry(.045, .16, 8, 16), mat.haar, zopf, 0, -.09, .045).rotation.x = .3;
     const glied = (x, y, dickO, dickU, langO, langU, mO, mU, ende) => {
       const oben = gelenk(k, x, y, 0);
-      teil(zyl(dickO, dickO * .85, langO, 12), mO, oben, 0, -langO / 2, 0);
+      teil(rundStab(dickO, dickO * .85, langO), mO, oben);
       const unten = gelenk(oben, 0, -langO, 0);
-      teil(kugel, mO, unten).scale.setScalar(dickO * .85);
-      teil(zyl(dickU, dickU * .8, langU, 12), mU, unten, 0, -langU / 2, 0);
+      teil(rundStab(dickU, dickU * .8, langU), mU, unten);
       ende(unten, langU);
       return { oben, unten };
     };
-    const beine = [-1, 1].map(s => glied(s * .085, .9, .075, .058, .44, .42, mat.jeans, mat.jeans, (u, l) => {
-      teil(new T.CapsuleGeometry(.05, .12, 6, 12), mat.schuh, u, 0, -l - .02, -.05).rotation.x = Math.PI / 2;
-      teil(kiste(.1, .025, .22), mat.sohle, u, 0, -l - .065, -.05);
+    const beine = [-1, 1].map(s => glied(s * .085, .92, .075, .058, .44, .42, mat.jeans, mat.jeans, (u, l) => {
+      teil(new T.CapsuleGeometry(.05, .12, 8, 16), mat.schuh, u, 0, -l - .02, -.05).rotation.x = Math.PI / 2;
+      teil(new T.CapsuleGeometry(.045, .14, 4, 16), mat.sohle, u, 0, -l - .06, -.05).rotation.x = Math.PI / 2;
     }));
-    const arme = [-1, 1].map(s => glied(s * .2, 1.45, .045, .036, .28, .26, mat.shirt, mat.haut, (u, l) => {
+    const arme = [-1, 1].map(s => glied(s * .2, 1.45, .045, .037, .28, .26, mat.haut, mat.haut, (u, l) => {
       teil(kugel, mat.haut, u, 0, -l - .03, 0).scale.set(.04, .05, .03);
     }));
-    // kurze Ärmel: oberes Stück Shirt, darunter Haut
-    for (const a of arme) teil(zyl(.04, .036, .14, 12), mat.haut, a.oben, 0, -.21, 0);
+    // kurze Ärmel über dem Oberarm
+    for (const a of arme) teil(rundStab(.056, .052, .12), mat.shirt, a.oben);
     return { gruppe: g, k, beine, arme, zopf };
   }
 
@@ -535,7 +699,16 @@ export function welt(T, handy) {
       const w = Math.random() * Math.PI * 2, r = zufall(125, 140), s = zufall(2.5, 4.5);
       m.compose(new T.Vector3(Math.cos(w) * r, s * .8, Math.sin(w) * r), q, new T.Vector3(s, s * 1.2, s)); kronen.setMatrixAt(i, m);
     }
-    g.add(kronen); fernMat = [huegelMat, huegel2, kronenMat]; return g;
+    g.add(kronen);
+    // dahinter blaue Berge mit Schneekuppen (ohne Nebel, damit sie als Silhouette stehen)
+    const bergMat = new T.MeshLambertMaterial({ color: "#a9c0dc", fog: false }), kuppeMat = new T.MeshLambertMaterial({ color: "#f4f8fc", fog: false });
+    const bergGeo = new T.ConeGeometry(1, 1, 7);
+    for (let i = 0; i < 14; i++) {
+      const w = i / 14 * Math.PI * 2 + zufall(-.15, .15), r = zufall(180, 194), b = zufall(26, 40), hh = zufall(12, 24);
+      const berg = new T.Mesh(bergGeo, bergMat); berg.scale.set(b, hh, b); berg.position.set(Math.cos(w) * r, hh / 2 - 4, Math.sin(w) * r); g.add(berg);
+      const kuppe = new T.Mesh(bergGeo, kuppeMat); kuppe.scale.set(b * .3, hh * .3, b * .3); kuppe.position.set(berg.position.x, hh - 4 - hh * .15 + .3, berg.position.z); g.add(kuppe);
+    }
+    fernMat = [huegelMat, huegel2, kronenMat]; return g;
   }
   function sonnenScheibe() {
     const bild = leinwand(128, 128, (g) => {
@@ -557,6 +730,22 @@ export function welt(T, handy) {
   }, false);
   const funke = (farbe) => new T.Sprite(new T.SpriteMaterial({ map: funkenBild, color: farbe, transparent: true, depthWrite: false, blending: T.AdditiveBlending }));
   const staub = () => new T.Sprite(new T.SpriteMaterial({ map: staubBild, transparent: true, depthWrite: false }));
+  const dampfBild = leinwand(64, 64, (g) => {
+    const v = g.createRadialGradient(32, 32, 0, 32, 32, 32); v.addColorStop(0, "rgba(255,255,255,.9)"); v.addColorStop(1, "rgba(255,255,255,0)");
+    g.fillStyle = v; g.fillRect(0, 0, 64, 64);
+  }, false);
+  const dampf = () => new T.Sprite(new T.SpriteMaterial({ map: dampfBild, transparent: true, depthWrite: false }));
+  const schattenBild = leinwand(128, 128, (g) => {
+    const v = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+    v.addColorStop(0, "rgba(0,0,0,.6)"); v.addColorStop(.55, "rgba(0,0,0,.28)"); v.addColorStop(1, "rgba(0,0,0,0)");
+    g.fillStyle = v; g.fillRect(0, 0, 128, 128);
+  }, false);
+  // weicher dunkler Fleck direkt unter einer Figur: sie steht sichtbar auf dem Boden
+  function kontaktSchatten(b, l) {
+    const k = new T.Mesh(new T.PlaneGeometry(b, l).rotateX(-Math.PI / 2), new T.MeshBasicMaterial({ map: schattenBild, transparent: true, depthWrite: false,
+      polygonOffset: true, polygonOffsetFactor: -6, polygonOffsetUnits: -6 }));
+    k.renderOrder = 1; return k;
+  }
 
   // ---------- Himmel und Umgebungslicht ----------
   function himmel() {
@@ -763,6 +952,16 @@ export function welt(T, handy) {
     g.fillStyle = "#1f1b18";
     for (let i = 0; i < 9; i++) { g.beginPath(); g.ellipse(Math.random() * w, Math.random() * h, zufall(6, 14), zufall(5, 10), Math.random() * 3, 0, 7); g.fill(); }
   });
+  const wellenHoehe = leinwand(128, 128, (g, w, h) => {
+    const bild = g.createImageData(w, h), d = bild.data;
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const a = Math.PI * 2 / w;
+      const v = Math.sin(x * a * 3 + Math.sin(y * a * 2) * 1.5) + Math.sin(y * a * 4 + x * a) * .7 + Math.sin((x + y) * a * 6) * .3;
+      const t = 128 + v * 50, k = (y * w + x) * 4; d[k] = d[k + 1] = d[k + 2] = t; d[k + 3] = 255;
+    }
+    g.putImageData(bild, 0, 0);
+  });
+  const wellen = normalAus(wellenHoehe, 3); wellen.repeat.set(3, 3);
   const pilzKappe = leinwand(128, 64, (g, w, h) => {
     g.fillStyle = "#d7262b"; g.fillRect(0, 0, w, h);
     g.fillStyle = "#fff"; for (let i = 0; i < 14; i++) { g.beginPath(); g.arc(Math.random() * w, Math.random() * h * .8, zufall(3, 6), 0, 7); g.fill(); }
@@ -772,7 +971,7 @@ export function welt(T, handy) {
     heu: std({ map: heu, roughness: 1 }), kuh: std({ map: kuhFell, roughness: .8 }), rosa: mStd("#f2a7a8", .7), schwarz: mStd("#222", .6),
     sonnenblume: mStd("#ffcc1f", .7), blumenMitte: mStd("#5a3a1a", .9), stiel: mStd("#4a8a2e", .9),
     uferRand: mStd("#d9c89a", 1),
-    wasser: std({ color: "#3d8fc4", roughness: .05, metalness: .25, transparent: true, opacity: .9 }),
+    wasser: std({ color: "#3b8cc2", roughness: .08, metalness: .3, transparent: true, opacity: .92, normalMap: wellen, normalScale: new T.Vector2(.6, .6), envMapIntensity: 1.4 }),
     boot: mStd("#e2574c", .5), segel: mStd("#ffffff", .6, { side: T.DoubleSide }), steg: std({ map: holz, roughness: .85 }), schilf: mStd("#7a8f3a", .9),
     pilzKappe: std({ map: pilzKappe, roughness: .6 }), pilzStiel: mStd("#f2ead8", .8), kuerbis: mStd("#f08a1c", .55), kuerbisStiel: mStd("#4f6b2a", .8),
     tanne: mStd("#2f6b3a", .9), schneeKappe: mStd("#ffffff", .9), karotte: mStd("#f07b1c", .6), hut: mStd("#222", .5),
@@ -784,6 +983,7 @@ export function welt(T, handy) {
   const bewegt = [];
   const bewege = (obj, fn) => { bewegt.push({ obj, fn, t0: Math.random() * 10 }); return obj; };
   function animieren(t) {
+    windZeit.value = t; wellen.offset.set(t * .03, t * .018);
     for (let i = bewegt.length - 1; i >= 0; i--) {
       const b = bewegt[i];
       let o = b.obj; while (o.parent) o = o.parent;
@@ -954,16 +1154,79 @@ export function welt(T, handy) {
     { name: "Winterland", unter: "Brrr, es schneit!", huegel: "#e6edf3", kronen: "#cfdbe3", boden: schnee, nebel: "#e9eef4", himmel: "#dfe8f2", sonne: "#f2f6ff",
       deko: [tanne, tanne, tanne, schneemann], wetter: "schnee", hecke: "schnee" },
   ];
+  const STIMMUNG = [
+    { farbe: "#fff2e0", saett: 1.12, kontrast: 1.04, glanz: .55, licht: 2.9, himmel: .85 },   // warmer Morgen
+    { farbe: "#fffaf0", saett: 1.16, kontrast: 1.06, glanz: .5, licht: 3.2, himmel: .9 },     // Mittagssonne
+    { farbe: "#eef6ff", saett: 1.1, kontrast: 1.04, glanz: .7, licht: 3.0, himmel: .9 },      // glitzernder See
+    { farbe: "#ffdcb4", saett: 1.2, kontrast: 1.08, glanz: .6, licht: 2.6, himmel: .75 },     // goldener Abend
+    { farbe: "#e4eeff", saett: .9, kontrast: 1.06, glanz: .55, licht: 2.4, himmel: 1.0 },     // kühles Blau
+  ];
+  ZONEN.forEach((z, i) => { z.stimmung = STIMMUNG[i]; });
   const zoneFuer = (nr) => Math.floor(nr / 3) % ZONEN.length;
   const dekoFuer = (z) => wahl(ZONEN[z].deko)();
 
   // Hecken je Welt: im Herbst bunt, im Winter mit Schnee auf der Krone
-  const heckeHerbst = std({ map: hecke, color: "#ffc27a", roughness: 1, bumpMap: handy ? null : hecke, bumpScale: 4 });
+  const heckeHerbst = std({ map: hecke, color: "#ffc27a", roughness: 1, normalMap: mat.hecke.normalMap });
   function heckeFuer(laenge, z, hoehe, dicke) {
     const g = heckenStueck(laenge, hoehe, dicke), art = ZONEN[z].hecke;
     if (art === "herbst") g.children.forEach(k => { k.material = heckeHerbst; });
     if (art === "schnee") g.children[1].material = M.schneeKappe;
     return g;
+  }
+  const windZeit = { value: 0 };
+  const grasBild = leinwand(128, 128, (g, w, h) => {
+    for (let i = 0; i < 28; i++) {
+      const x = zufall(12, w - 12), hh = zufall(h * .45, h * .97), b = zufall(-16, 16);
+      g.fillStyle = wahl(["#ffffff", "#eef6e4", "#dcebc8"]);
+      g.beginPath(); g.moveTo(x - 3.5, h); g.quadraticCurveTo(x + b * .3, h - hh * .6, x + b, h - hh); g.quadraticCurveTo(x + b * .3 + 1.5, h - hh * .6, x + 3.5, h); g.fill();
+    }
+    g.globalCompositeOperation = "source-atop";                     // unten dunkler, oben hell
+    const v = g.createLinearGradient(0, h, 0, 0); v.addColorStop(0, "rgba(0,0,0,.45)"); v.addColorStop(1, "rgba(0,0,0,0)"); g.fillStyle = v; g.fillRect(0, 0, w, h);
+  }, false);
+  // drei gekreuzte Flächen, jede doppelt (Vorder- und Rückseite); alle Normalen zeigen nach oben,
+  // dann wirkt das Gras von beiden Seiten gleich hell und weich beleuchtet
+  const grasGeo = (() => {
+    const teile = [0, 1, 2].map(i => new T.PlaneGeometry(.9, .55).translate(0, .275, 0).rotateY(i * Math.PI / 3));
+    const pos = [], uv = [], idx = [];
+    teile.forEach((t, i) => {
+      pos.push(...t.attributes.position.array); uv.push(...t.attributes.uv.array);
+      const a = [...t.index.array].map(n => n + i * t.attributes.position.count);
+      idx.push(...a);
+      for (let k = 0; k < a.length; k += 3) idx.push(a[k], a[k + 2], a[k + 1]);   // Rückseite
+    });
+    const g = new T.BufferGeometry();
+    g.setAttribute("position", new T.Float32BufferAttribute(pos, 3)); g.setAttribute("uv", new T.Float32BufferAttribute(uv, 2));
+    g.setAttribute("normal", new T.Float32BufferAttribute(new Array(pos.length).fill(0).map((_, k) => k % 3 === 1 ? 1 : 0), 3));
+    g.setIndex(idx); return geteilt(g);
+  })();
+  const windEinbauen = (m) => {
+    m.onBeforeCompile = (sh) => {
+      sh.uniforms.zeit = windZeit;
+      sh.vertexShader = "uniform float zeit;\n" + sh.vertexShader.replace("#include <begin_vertex>", `#include <begin_vertex>
+        float spitze = max(position.y, 0.) / .55; spitze *= spitze;
+        #ifdef USE_INSTANCING
+          vec2 ort = instanceMatrix[3].xz;
+        #else
+          vec2 ort = vec2(0.);
+        #endif
+        float wind = sin(zeit * 2.1 + ort.x * .35 + ort.y * .27) * .55 + sin(zeit * 3.7 + ort.x * .9 + ort.y * .4) * .2;
+        transformed.x += wind * .16 * spitze; transformed.z += wind * .08 * spitze;`);
+    };
+    return m;
+  };
+  const grasMat = ["#82c24f", "#97c757", "#74b86a", "#c9a24a", "#e3ecf2"].map(c =>
+    windEinbauen(std({ map: grasBild, color: c, alphaTest: .45, roughness: 1 })));
+  function grasBueschel(laenge, z, breite) {
+    const dichte = (handy ? .7 : 1.5) * (z === 4 ? .35 : 1);
+    const n = Math.max(1, Math.round(laenge * breite * dichte)), k = new T.InstancedMesh(grasGeo, grasMat[z], n);
+    const m = new T.Matrix4(), q = new T.Quaternion(), e = new T.Euler();
+    for (let i = 0; i < n; i++) {
+      const sk = zufall(.7, 1.45);
+      q.setFromEuler(e.set(0, Math.random() * Math.PI, 0));
+      m.compose(new T.Vector3(zufall(-breite / 2, breite / 2), 0, zufall(-laenge / 2, laenge / 2)), q, new T.Vector3(sk, sk * zufall(.8, 1.2), sk));
+      k.setMatrixAt(i, m);
+    }
+    k.receiveShadow = true; return k;
   }
   const blumenFuer = (laenge, z) => ZONEN[z].hecke === "schnee" ? new T.Group() : blumen(laenge);
 
@@ -1061,6 +1324,6 @@ export function welt(T, handy) {
   }
   const luft = new T.Group(); luft.add(wetter, voegel);
 
-  return { weltHindernis, entsorgen, pfeilSchild, bodenPfeil, AUSSTATTUNG, ausstattungSetzen, zonen: ZONEN, zoneFuer, dekoFuer, heckeFuer, blumenFuer, bodenFlaeche, bodenFolgen, verbinden, zoneWechsel, zoneSchritt,
+  return { kontaktSchatten, grasBueschel, dampf, weltHindernis, entsorgen, pfeilSchild, bodenPfeil, AUSSTATTUNG, ausstattungSetzen, zonen: ZONEN, zoneFuer, dekoFuer, heckeFuer, blumenFuer, bodenFlaeche, bodenFolgen, verbinden, zoneWechsel, zoneSchritt,
     animieren, wetterSchritt, voegelSchritt, luft, mat, geo, giraffeBauen, anjaBauen, boden, heckenStueck, blumen, ferne, sonnenScheibe, funke, staub, kante, dekoNeu, hindernis, stern, panzer, booster, blase, himmel, wolken, gras };
 }
