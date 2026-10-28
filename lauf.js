@@ -31,8 +31,8 @@ if (rahmen) {
   function laden() {
     if (!bereit) {
       const text = losKnopf.textContent; losKnopf.disabled = true; losKnopf.textContent = "Lädt die 3D-Welt …";
-      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=8"), import("./lauf-ton.js?v=1")])
-        .then(([m, w, t]) => { THREE = m; T = t.ton(); aufbauen(w); losKnopf.disabled = false; losKnopf.textContent = text; });
+      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=8"), import("./lauf-ton.js?v=2"), import("./lauf-flug.js?v=1")])
+        .then(([m, w, t, f]) => { THREE = m; T = t.ton(); aufbauen(w, f); losKnopf.disabled = false; losKnopf.textContent = text; });
     }
     return bereit;
   }
@@ -58,7 +58,7 @@ if (rahmen) {
   let zustand = "start", tempo, punkte, sternZahl, strecke, wackeln = 0, schlussSzene = null;
   const S = { idx: 0, s: 0, spur: 0, x: 0, y: 0, vy: 0, duck: 0, abbiegen: 0, stolper: 0, lauf: 0, sprungPuffer: 0, eis: 0, lande: 0 };
   const A = { nah: false, zeit: 0, abstand: 16, bis: 5, lauf: 0, schritt: 0 };
-  const R = { booster: 0, schubs: 0, welt: 0, zeit: 0 };    // Werte dieser Runde für Aufgaben, Ergebnis und Bestenliste
+  const R = { booster: 0, schubs: 0, welt: 0, zeit: 0, flug: 0, ringe: 0 };    // Werte dieser Runde für Aufgaben, Ergebnis und Bestenliste
   const tipps = new Set();
 
   const richtung = (h) => h === 0 ? [0, -1] : [h, 0];           // Norden = -z, Osten = +x, Westen = -x
@@ -73,7 +73,7 @@ if (rahmen) {
   // ---------- Aufbau ----------
   let W, sonne, himmelKugel, wolkenGruppe, ferneGruppe, sonnenBild, aktZone = 0;
   let teilchen = [], staubTakt = 0;               // kleine Partikel (Funken, Staub)
-  function aufbauen(weltModul) {
+  function aufbauen(weltModul, flugModul) {
     renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
@@ -107,6 +107,7 @@ if (rahmen) {
     anja = W.anjaBauen(); szene.add(anja.gruppe);
     blase = W.blase(); spieler.gruppe.add(blase);
     sternchen = [0, 1, 2].map(() => { const st = W.stern(); st.scale.setScalar(.45); st.visible = false; szene.add(st); return st; });
+    flugAufbauen(flugModul);
     qualitaetSetzen(qualitaet);
     neu();
     groesse(); new ResizeObserver(groesse).observe(huelle);
@@ -125,7 +126,7 @@ if (rahmen) {
     qualitaet = stufe;
     renderer.setPixelRatio(Math.min(devicePixelRatio || 1, stufe >= 2 ? 1 : (handy ? 1.5 : 2)));
     sonne.castShadow = stufe < 1;
-    W.luft.visible = stufe < 3;
+    W.luft.visible = stufe < 3 && !FL.an;
     if (kamera) groesse();
   }
   let messZeit = 0, messBilder = 0;
@@ -275,13 +276,14 @@ if (rahmen) {
   }
 
   function neu() {
+    flugAus();
     for (const ab of abschnitte) { szene.remove(ab.gruppe); W.entsorgen(ab.gruppe); }
     for (const p of teilchen) { szene.remove(p.k); p.k.material.dispose(); }
     teilchen = [];
     abschnitte = []; hindernisse = []; sterne = []; booster = [];
     aktZone = 0; W.zoneWechsel(0, true);
     Object.assign(B, { turbo: 0, schild: 0, ruhe: 0, magnet: 0, doppelt: 0, schubs: null });
-    Object.assign(R, { booster: 0, schubs: 0, welt: 0, zeit: 0 });
+    Object.assign(R, { booster: 0, schubs: 0, welt: 0, zeit: 0, flug: 0, ringe: 0 });
     tempo = START_TEMPO; punkte = 0; sternZahl = 0; strecke = 0; wackeln = 0; schlussSzene = null;
     Object.assign(S, { idx: 0, s: 0, spur: 0, x: 0, y: 0, vy: 0, duck: 0, abbiegen: 0, stolper: 0, sprungPuffer: 0, eis: 0, lande: 0 });
     Object.assign(A, { nah: false, zeit: 0, abstand: 16, bis: 5 });
@@ -294,7 +296,7 @@ if (rahmen) {
 
   // ---------- Steuerung ----------
   function eingabe(art) {
-    if (zustand !== "laeuft") return;
+    if (zustand !== "laeuft" || FL.an) return;
     const ab = abschnitte.find(a => a.nr === S.idx);
     if (art === "links" || art === "rechts") {
       const d = art === "links" ? -1 : 1;
@@ -314,13 +316,29 @@ if (rahmen) {
     if ((e.code === "KeyP" || e.code === "Escape") && (zustand === "laeuft" || zustand === "pause")) { e.preventDefault(); pauseUm(); return; }
     const art = TASTEN[e.code];
     if (!art || zustand !== "laeuft") return;
-    e.preventDefault(); if (!e.repeat) eingabe(art);
+    e.preventDefault(); gedrueckt.add(art); flugTasten();
+    if (!e.repeat) eingabe(art);
   });
+  // im Flug zählt, welche Tasten gerade gehalten werden
+  const gedrueckt = new Set();
+  const flugTasten = () => {
+    FL.tasten.x = (gedrueckt.has("rechts") ? 1 : 0) - (gedrueckt.has("links") ? 1 : 0);
+    FL.tasten.y = (gedrueckt.has("hoch") ? 1 : 0) - (gedrueckt.has("runter") ? 1 : 0);
+  };
+  addEventListener("keyup", (e) => { const art = TASTEN[e.code]; if (art) { gedrueckt.delete(art); flugTasten(); } });
+  addEventListener("blur", () => { gedrueckt.clear(); flugTasten(); });
   let wisch = null;
-  huelle.addEventListener("touchstart", (e) => { const t = e.touches[0]; wisch = { x: t.clientX, y: t.clientY, fertig: false }; }, { passive: true });
+  huelle.addEventListener("touchstart", (e) => { const t = e.touches[0]; wisch = { x: t.clientX, y: t.clientY, lx: t.clientX, ly: t.clientY, fertig: false }; }, { passive: true });
   huelle.addEventListener("touchmove", (e) => {
     if (zustand === "laeuft") e.preventDefault();
-    if (!wisch || wisch.fertig) return;
+    if (!wisch) return;
+    if (FL.an) {                      // im Flug folgt das Flugzeug dem Finger (relativ, egal wo man hinfasst)
+      const t = e.touches[0], k = 18 / Math.max(300, huelle.clientWidth);
+      FL.zx = Math.max(-FX, Math.min(FX, FL.zx + (t.clientX - wisch.lx) * k));
+      FL.zy = Math.max(FY0, Math.min(FY1, FL.zy - (t.clientY - wisch.ly) * k));
+      wisch.lx = t.clientX; wisch.ly = t.clientY; return;
+    }
+    if (wisch.fertig) return;
     const t = e.touches[0], dx = t.clientX - wisch.x, dy = t.clientY - wisch.y;
     if (Math.hypot(dx, dy) < 28) return;
     wisch.fertig = true;   // schon während des Wischens auslösen, das fühlt sich schneller an
@@ -331,7 +349,7 @@ if (rahmen) {
   // ---------- Pause und Ton ----------
   function pauseUm() {
     if (zustand === "laeuft") { zustand = "pause"; pauseFeld.hidden = false; T.musikStop(); }
-    else if (zustand === "pause") { zustand = "laeuft"; pauseFeld.hidden = true; uhr.getDelta(); T.musik(aktZone); }
+    else if (zustand === "pause") { zustand = "laeuft"; pauseFeld.hidden = true; uhr.getDelta(); T.musik(FL.an ? 5 : aktZone); }
   }
   pauseKnopf.addEventListener("click", () => { if (zustand === "laeuft" || zustand === "pause") pauseUm(); });
   $(".lauf-weiter").addEventListener("click", pauseUm);
@@ -387,7 +405,7 @@ if (rahmen) {
     ergebnis.querySelector(".le-punkte b").textContent = p;
     ergebnis.querySelector(".le-sterne").textContent = sternZahl;
     ergebnis.querySelector(".le-meter").textContent = Math.round(strecke);
-    ergebnis.querySelector(".le-welt").textContent = W.zonen[Math.min(R.welt, W.zonen.length - 1)].name;
+    ergebnis.querySelector(".le-welt").textContent = R.flug ? "Luftwelt" : W.zonen[Math.min(R.welt, W.zonen.length - 1)].name;
     ergebnis.querySelector(".le-rekord").hidden = !neuerRekord;
     if (neuerRekord) T.rekord(); else T.ende();
     if (!tutorialFertig) { tutorialFertig = true; schreib("froebelinchen-rennt-tutorial", true); }
@@ -409,6 +427,8 @@ if (rahmen) {
     { id: "herbst", text: "Lauf bis in den Herbstwald", lohn: 40, ok: () => R.welt >= 3 },
     { id: "winter", text: "Lauf bis ins Winterland", lohn: 60, ok: () => R.welt >= 4 },
     { id: "meter2500", text: "Lauf 2500 Meter", lohn: 80, ok: () => strecke >= 2500 },
+    { id: "luftwelt", text: "Schaff 5000 Punkte und flieg in die Luftwelt", lohn: 100, ok: () => R.flug >= 1 },
+    { id: "ringe10", text: "Flieg durch 10 Ringe in einer Runde", lohn: 60, ok: () => R.ringe >= 10 },
   ];
   const aktiveAufgaben = () => {
     if (erledigt.length >= AUFGABEN.length) { erledigt = []; schreib("froebelinchen-rennt-aufgaben", erledigt); }   // alle geschafft: von vorn
@@ -539,9 +559,10 @@ if (rahmen) {
     warnung.classList.remove("an"); void warnung.offsetWidth; warnung.classList.add("an");
   }
   const ANJA_RUFE = ["Lauf schneller!", "„Fröbelinchen, bleib stehen!“", "„Ich krieg dich!“", "„Warte doch mal!“"];
+  const ANJA_FLUG = ["Flieg schneller!", "„Ich flieg dir hinterher!“", "„Warte, Fröbelinchen!“"];
   function anjaKommt(dauer) {
     if (B.ruhe > 0 || B.schubs) return;           // nach dem Schubser hat man Ruhe
-    if (!A.nah) { meldung("Achtung, Anja kommt!", wahl(ANJA_RUFE)); T.anja(); }
+    if (!A.nah) { meldung("Achtung, Anja kommt!", FL.an ? wahl(ANJA_FLUG) : wahl(ANJA_RUFE)); T.anja(); }
     A.nah = true; A.zeit = dauer;
   }
   function stolpern() {
@@ -606,15 +627,23 @@ if (rahmen) {
 
   // ---------- Spielschritt ----------
   function schritt(dt) {
+    if (FL.an) { flugSchritt(dt); return; }
     tempo = Math.min(MAX_TEMPO, tempo + BESCHL * dt); R.zeit += dt;
     const v = tempo * (S.stolper > 0 ? .6 : 1) * (B.turbo > 0 ? 1.35 : 1);
     for (const k of ["turbo", "schild", "ruhe", "magnet", "doppelt"]) B[k] = Math.max(0, B[k] - dt);
     const faktor = B.doppelt > 0 ? 2 : 1;
-    const unverwundbar = B.schild > 0 || !!B.schubs;
+    const unverwundbar = B.schild > 0 || !!B.schubs || FL.abflug > 0;
     S.s += v * dt; strecke += v * dt; punkte += v * dt * faktor;
     S.stolper = Math.max(0, S.stolper - dt);
+    // 5000 Punkte: weiß überblenden, dann geht es im Flugzeug weiter (Level 2)
+    if (!FL.abflug && punkte >= FLUG_AB) { FL.abflug = .001; T.abflug(); meldung("5000 Punkte!", "Fröbelinchen steigt ins Flugzeug …"); }
+    if (FL.abflug) {
+      FL.abflug += dt; blende.style.opacity = Math.min(1, FL.abflug / .9);
+      if (FL.abflug >= .9) { flugStart(); return; }
+    }
 
     let ab = abschnitte.find(a => a.nr === S.idx);
+    if (FL.abflug && !S.abbiegen && ab.L - S.s < ECKE) S.abbiegen = ab.dreh;   // während der Blende biegt sie von selbst ab
     if (S.abbiegen && S.s >= ab.L - .2) {             // an der Ecke: in den nächsten Abschnitt wechseln
       const weiter = abschnitte.find(a => a.nr === S.idx + 1);
       S.s = Math.max(0, S.s - ab.L); S.idx++; S.abbiegen = 0; ab = weiter;
@@ -730,6 +759,7 @@ if (rahmen) {
     if (zustand === "pause") { renderer.render(szene, kamera); return; }
     if (zustand === "laeuft") { schritt(dt); leistungMessen(echt); }
     else if (zustand === "fang") schlussSchritt(dt);
+    if (FL.an) { flugBild(dt); return; }
     const ab = abschnitte.find(a => a.nr === S.idx);
     const [px, pz] = punkt(ab, S.s, S.x), yaw = -ab.h * Math.PI / 2;
     const lauft = zustand === "laeuft", fang = zustand === "fang" && schlussSzene && schlussSzene.art === "anja";
@@ -836,6 +866,10 @@ if (rahmen) {
       const st = W.staub(); st.position.set(g.position.x + (Math.random() - .5) * .4, .12, g.position.z + (Math.random() - .5) * .4);
       st.scale.setScalar(.25); szene.add(st); teilchen.push({ k: st, v: new THREE.Vector3(0, .25, 0), t: 0, dauer: .7, wachsen: 1.1 });
     }
+    teilchenSchritt(dt);
+    renderer.render(szene, kamera);
+  }
+  function teilchenSchritt(dt) {
     teilchen = teilchen.filter(p => {
       p.t += dt; const f = p.t / p.dauer;
       if (f >= 1) { szene.remove(p.k); p.k.material.dispose(); return false; }
@@ -843,6 +877,230 @@ if (rahmen) {
       p.k.material.opacity = 1 - f; if (p.wachsen) p.k.scale.setScalar(.25 + f * p.wachsen);
       return true;
     });
+  }
+
+  // ---------- Level 2: Luftwelt ----------
+  // Ab 5000 Punkten fliegt Fröbelinchen in ihrem Spielzeug-Flugzeug nach Norden (-z). Finger ziehen bzw. Pfeiltasten lenken
+  // frei nach links, rechts, oben und unten. Durch Ringe fliegen gibt Punkte; Ballons, Gewitterwolken und Vögel bringen sie
+  // ins Trudeln, dann holt Anja in ihrem eigenen Flieger auf (wie das Stolpern am Boden).
+  const FLUG_AB = 5000, FX = 7, FY0 = 3, FY1 = 13;
+  const FL = { an: false, abflug: 0, x: 0, y: 7, z: 0, zx: 0, zy: 7, v: 18, neig: 0, nick: 0, naechst: 0, strecke: 0, trudeln: 0,
+    regenbogen: 0, objekte: [], tasten: { x: 0, y: 0 }, ax: 0, ay: 7 };
+  let FW, flieger, anjaFlieger, meer, flugGruppe, blende;
+  function flugAufbauen(modul) {
+    FW = modul.flugWelt(THREE, W);
+    flieger = FW.flieger(false); anjaFlieger = FW.flieger(true); meer = FW.wolkenMeer(); flugGruppe = new THREE.Group();
+    meer.position.y = -1.5;
+    for (const o of [flieger.gruppe, anjaFlieger.gruppe, meer, flugGruppe]) { o.visible = false; szene.add(o); }
+    blende = document.createElement("div");
+    blende.style.cssText = "position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none";
+    renderer.domElement.after(blende);                  // direkt über dem Bild, Anzeigen und Meldungen bleiben darüber sichtbar
+  }
+  function flugStart() {
+    FL.an = true; R.flug = 1;
+    for (const ab of abschnitte) ab.gruppe.visible = false;
+    for (const o of [boden, ferneGruppe, W.luft]) o.visible = false;
+    for (const o of [flieger.gruppe, anjaFlieger.gruppe, meer, flugGruppe]) o.visible = true;
+    Object.assign(FL, { x: 0, y: 7, z: 0, zx: 0, zy: 7, v: Math.max(18, tempo), neig: 0, nick: 0, naechst: -45, strecke: 0, trudeln: 0, regenbogen: 250, ax: 0, ay: 7 });
+    // Fröbelinchen sitzt im Cockpit (Beine im Rumpf versteckt), Anja genauso in ihrem rosa Flieger
+    flieger.sitz.add(spieler.gruppe); spieler.gruppe.position.set(0, -.85, .3); spieler.gruppe.rotation.set(0, 0, 0); spieler.gruppe.scale.setScalar(1);
+    spieler.koerper.position.y = 0; spieler.beine.forEach(b => { b.oben.visible = false; });
+    blase.scale.setScalar(2.3); blase.position.y = .6;
+    anjaFlieger.sitz.add(anja.gruppe); anja.gruppe.position.set(0, -.75, .25); anja.gruppe.rotation.set(0, 0, 0);
+    anja.k.rotation.x = 0; anja.k.position.y = 0; anja.beine.forEach(b => { b.oben.visible = false; });
+    sternchen.forEach(st => { st.visible = false; });
+    B.schubs = null; Object.assign(A, { nah: false, zeit: 0, abstand: 18, bis: 8 });
+    szene.fog.color.set("#e2f0fa"); szene.fog.near = 55; szene.fog.far = 165;
+    himmelKugel.material.color.set("#ffffff"); sonne.color.set("#fff4dc");
+    while (FL.naechst > -170) reiheNeu();
+    kamPos = null; wackeln = 0;
+    T.welt(); T.musik(5);
+    meldung("Level 2: Luftwelt", handy ? "Zieh mit dem Finger, um zu fliegen" : "Lenk mit den Pfeiltasten");
+  }
+  function flugAus() {
+    if (!FW) return;
+    if (FL.an) {
+      szene.add(spieler.gruppe, anja.gruppe);
+      spieler.gruppe.position.set(0, 0, 0); spieler.gruppe.rotation.set(0, 0, 0); spieler.beine.forEach(b => { b.oben.visible = true; });
+      anja.gruppe.position.set(0, 0, 0); anja.gruppe.rotation.set(0, 0, 0); anja.beine.forEach(b => { b.oben.visible = true; });
+      blase.scale.setScalar(1); blase.position.y = 1.15;
+      for (const o of [boden, ferneGruppe]) o.visible = true;
+      W.luft.visible = qualitaet < 3;
+      szene.fog.near = 45; szene.fog.far = 120;
+    }
+    for (const o of FL.objekte) { flugGruppe.remove(o.mesh); W.entsorgen(o.mesh); }
+    for (const o of [flieger.gruppe, anjaFlieger.gruppe, meer, flugGruppe]) o.visible = false;
+    FL.objekte = []; FL.an = false; FL.abflug = 0; blende.style.opacity = 0;
+  }
+
+  // Eine „Reihe“ im Himmel: Ring mit Sternenspur, Sternenbogen oder Hindernisse; dazu Inseln und Wolken am Rand
+  function flugObjekt(typ, mesh, x, y, z, mehr = {}) {
+    mesh.position.set(x, y, z); flugGruppe.add(mesh);
+    const o = { typ, mesh, x, y, z, y0: y, ph: Math.random() * 6, weg: false, getroffen: false, ...mehr };
+    FL.objekte.push(o); return o;
+  }
+  function flugStern(x, y, z) { const m = W.stern(); m.scale.setScalar(1.3); return flugObjekt("stern", m, x, y, z); }
+  function reiheNeu() {
+    const z = FL.naechst, schwer = Math.min(1, FL.strecke / 3000 + (FL.naechst < -1500 ? .2 : 0));
+    const rx = () => zufall(-FX + 1, FX - 1), ry = () => zufall(FY0 + .8, FY1 - .8);
+    const r = Math.random();
+    if (r < .32) {                                       // Ring, davor eine Sternenspur, die hineinführt
+      const x = rx(), y = ry();
+      flugObjekt("ring", FW.ring(), x, y, z);
+      for (let i = 1; i <= 4; i++) flugStern(x, y, z + i * 3.2);
+    } else if (r < .5) {                                 // geschwungene Sternenspur
+      const x0 = rx(), y0 = ry(), w = zufall(0, 6);
+      for (let i = 0; i < 8; i++) flugStern(Math.max(-FX, Math.min(FX, x0 + Math.sin(w + i * .6) * 2.5)), Math.max(FY0, Math.min(FY1, y0 + Math.cos(w + i * .5) * 1.5)), z - i * 2.6);
+    } else {                                             // Hindernisse, mit der Zeit mehr auf einmal
+      const n = 1 + (Math.random() < schwer ? 1 : 0) + (Math.random() < schwer * .5 ? 1 : 0);
+      for (let i = 0; i < n; i++) {
+        const a = Math.random(), dz = z - i * 5;
+        if (a < .45) flugObjekt("ballon", FW.heissluftballon(), rx(), ry(), dz, { r: 1.9, tiefe: 1.9 });
+        else if (a < .75) flugObjekt("gewitter", FW.gewitter(), rx(), ry(), dz, { r: 2.4, tiefe: 1.8 });
+        else {                                           // Vogelschwarm kreuzt von der Seite
+          const von = wahl([-1, 1]);
+          const o = flugObjekt("voegel", FW.voegel(), -von * (FX + 6), ry(), dz, { r: 1.6, tiefe: 1.2, vx: von * zufall(3.5, 5.5) });
+          o.mesh.rotation.y = von > 0 ? -Math.PI / 2 : Math.PI / 2;
+        }
+      }
+    }
+    if (Math.random() < .14) {                           // Booster (kein Schubser in der Luft)
+      const typ = wahl(["turbo", "schild", "magnet", "doppelt"]), m = W.booster(typ); m.scale.setScalar(1.5);
+      flugObjekt("booster", m, rx(), ry(), z - 9, { art: typ });
+    }
+    // Deko: schwebende Inseln und Wolken am Rand, ab und zu ein Regenbogen
+    for (const seite of [-1, 1]) {
+      if (Math.random() < .45) flugObjekt("deko", FW.insel(), seite * zufall(13, 34), zufall(-5, 3), z + zufall(-8, 8));
+      if (Math.random() < .55) {
+        const w = new THREE.Sprite(W.mat.wolke); w.geometry.userData.geteilt = true;
+        const b = zufall(10, 22); w.scale.set(b, b / 2, 1);
+        flugObjekt("deko", w, seite * zufall(10 + b / 2, 40), zufall(b / 4, 18), z + zufall(-10, 10));   // ganz über dem Wolkenmeer, sonst schneidet es die Wolke ab
+      }
+    }
+    if (-z > FL.regenbogen) { FL.regenbogen += 1600; flugObjekt("deko", FW.regenbogen(), 0, -8, z - 60); }
+    FL.naechst -= Math.max(16, FL.v * 1.05) + zufall(2, 9) * (1.2 - schwer);
+  }
+
+  function flugTreffer(o) {
+    if (A.nah && A.abstand < 7) { verlieren(o.typ === "gewitter" ? "Blitz und Donner, Anja hat dich!" : "Anja hat dich eingeholt!", "anja"); return; }
+    FL.trudeln = .8; FL.v = Math.max(16, FL.v * .85);
+    wackeln = .35; T.stolpern(); if (navigator.vibrate) navigator.vibrate(40);
+    if (A.nah) meldung({ ballon: "Bumm, ein Ballon!", gewitter: "Blitz und Donner!", voegel: "Huch, Vögel!" }[o.typ], "Pass auf, Anja ist ganz nah!");
+    anjaKommt(6);
+  }
+  function flugSchritt(dt) {
+    R.zeit += dt;
+    FL.v = Math.min(30, FL.v + .15 * dt);
+    for (const k of ["turbo", "schild", "ruhe", "magnet", "doppelt"]) B[k] = Math.max(0, B[k] - dt);
+    const faktor = B.doppelt > 0 ? 2 : 1, unverwundbar = B.schild > 0 || FL.abflug > 0;
+    const v = FL.v * (B.turbo > 0 ? 1.3 : 1) * (FL.trudeln > 0 ? .75 : 1);
+    const zAlt = FL.z;
+    FL.z -= v * dt; strecke += v * dt; FL.strecke += v * dt; punkte += v * dt * faktor;
+    if (FL.abflug) {                                     // Blende wieder ausblenden
+      FL.abflug += dt; blende.style.opacity = Math.max(0, 1 - (FL.abflug - .9) / .8);
+      if (FL.abflug > 1.7) FL.abflug = 0;
+    }
+    // Lenken: das Ziel wandert mit den Tasten (der Finger setzt es direkt), das Flugzeug gleitet hinterher und legt sich in die Kurve
+    FL.zx = Math.max(-FX, Math.min(FX, FL.zx + FL.tasten.x * 10 * dt));
+    FL.zy = Math.max(FY0, Math.min(FY1, FL.zy + FL.tasten.y * 8 * dt));
+    const ax = FL.x, ay = FL.y, k = Math.min(1, dt * (FL.trudeln > 0 ? 2.5 : 5));
+    FL.x += (FL.zx - FL.x) * k; FL.y += (FL.zy - FL.y) * k;
+    FL.neig += (Math.max(-.5, Math.min(.5, -(FL.x - ax) / dt * .09)) - FL.neig) * Math.min(1, dt * 6);
+    FL.nick += (Math.max(-.4, Math.min(.4, (FL.y - ay) / dt * .06)) - FL.nick) * Math.min(1, dt * 6);
+    FL.trudeln = Math.max(0, FL.trudeln - dt);
+    while (FL.naechst > FL.z - 170) reiheNeu();
+
+    const einsammeln = (o) => {
+      o.weg = true; o.mesh.visible = false; sternZahl++; punkte += 10 * faktor; funkeln(o.mesh.position, "#ffe066", 8);
+      T.stern(sternZahl); hud.classList.remove("hupf"); void hud.offsetWidth; hud.classList.add("hupf");
+    };
+    for (const o of FL.objekte) {
+      if (o.vx) { o.x += o.vx * dt; o.mesh.position.x = o.x; }
+      if (o.typ === "ballon") { o.y = o.y0 + Math.sin(R.zeit * .8 + o.ph) * .6; o.mesh.position.y = o.y; }
+      if (o.weg || o.typ === "deko") continue;
+      const dz = o.z - FL.z, abst = Math.hypot(o.x - FL.x, o.y - FL.y);
+      if (o.typ === "stern") {
+        if (B.magnet > 0 && dz > -12 && dz < 1) { if (dz > -1.5) einsammeln(o); else o.zieht = true; continue; }
+        if (Math.abs(dz) < 1.2 && abst < 1.5) einsammeln(o);
+      } else if (o.typ === "ring") {
+        if (o.z <= zAlt && o.z > FL.z) {                 // genau beim Durchfliegen prüfen
+          o.weg = true;
+          if (abst < 1.55) { R.ringe++; punkte += 25 * faktor; T.ring(); funkeln(o.mesh.position, "#ffcc33", 16); o.puls = .4; meldung("Durch den Ring!", `+${25 * faktor} Punkte`); }
+        }
+      } else if (o.typ === "booster") {
+        if (Math.abs(dz) < 1.3 && abst < 1.7) {
+          o.weg = true; o.mesh.visible = false; boosterNehmen(o.art);
+          funkeln(o.mesh.position, { turbo: "#ffcc33", schild: "#6ec6ff", magnet: "#ff6b6b", doppelt: "#c58cff" }[o.art], 18);
+        }
+      } else if (!o.getroffen && !unverwundbar && Math.abs(dz) < o.tiefe && abst < o.r) {
+        o.getroffen = true; flugTreffer(o); if (zustand !== "laeuft") return;
+      }
+    }
+    // weit hinter der Kamera: wegräumen
+    FL.objekte = FL.objekte.filter(o => {
+      if (o.z - FL.z < 20) return true;
+      flugGruppe.remove(o.mesh); W.entsorgen(o.mesh); return false;
+    });
+    // Anja kommt auch in der Luft immer wieder hinterhergeflogen
+    A.bis -= dt;
+    if (!A.nah && A.bis <= 0) anjaKommt(5);
+    if (A.nah) { A.zeit -= dt; if (A.zeit <= 0) { A.nah = false; A.bis = zufall(15, 22); } }
+    A.abstand += ((A.nah ? 6 : 22) - A.abstand) * Math.min(1, dt * (A.nah ? 1.4 : .5));
+    hudZeigen();
+  }
+
+  function flugBild(dt) {
+    const fang = zustand === "fang" && schlussSzene && schlussSzene.art === "anja", t = performance.now() / 1000;
+    const fg = flieger.gruppe;
+    fg.position.set(FL.x, FL.y + Math.sin(t * 2) * .08, FL.z);
+    fg.rotation.set(FL.nick, 0, FL.neig + (FL.trudeln > 0 ? Math.sin(FL.trudeln * 22) * .45 : 0));
+    flieger.propeller.rotation.z += dt * (B.turbo > 0 ? 55 : 38);
+    spieler.hals.rotation.x = Math.sin(t * 1.6) * .07 + (B.turbo > 0 ? -.25 : 0);
+    spieler.schwanz.rotation.z = Math.sin(t * 3) * .3;
+    blase.visible = B.schild > 0 && (B.schild > 1 || Math.floor(B.schild * 8) % 2 === 0);
+    // Anjas Flieger folgt mit etwas Verzögerung, beim Fangen fliegt sie direkt daneben
+    FL.ax += ((fang ? FL.x + 3 : FL.x + (FL.x > 2 ? -3.6 : 3.6)) - FL.ax) * Math.min(1, dt * 1.5);
+    FL.ay += ((fang ? FL.y : FL.y - .9) - FL.ay) * Math.min(1, dt * 1.5);
+    const ag = anjaFlieger.gruppe;
+    const hinten = 1.6 + A.abstand * .55;               // gestaucht, damit ihr Flieger nie direkt vor der Kamera hängt
+    ag.visible = hinten < 10;
+    ag.position.set(FL.ax, FL.ay + Math.sin(t * 2.3) * .1, FL.z + hinten);
+    ag.rotation.set(0, 0, (FL.x - FL.ax) * -.08);
+    anjaFlieger.propeller.rotation.z += dt * 40;
+    anja.arme.forEach((a, i) => {                       // ein Arm winkt drohend, beim Fangen beide Arme hoch
+      const winkt = fang || i === 0;
+      a.oben.rotation.x = winkt ? 2.7 + Math.sin(t * 9 + i) * .25 : .2; a.unten.rotation.x = winkt ? .4 : .9; a.oben.rotation.z = 0;
+    });
+    anja.zopf.rotation.x = .9 + Math.sin(t * 12) * .15;  // Zopf flattert im Fahrtwind
+
+    for (const o of FL.objekte) {
+      if (o.typ === "stern") { o.mesh.rotation.y += dt * 3; if (o.zieht && !o.weg) o.mesh.position.lerp(fg.position, Math.min(1, dt * 9)); }
+      else if (o.typ === "booster") o.mesh.userData.innen.rotation.y += dt * 3;
+      else if (o.typ === "ring") {
+        o.mesh.rotation.z += dt * .6;
+        if (o.puls) { o.puls = Math.max(0, o.puls - dt); o.mesh.scale.setScalar(1 + Math.sin(o.puls / .4 * Math.PI) * .35); }
+      } else if (o.typ === "voegel") o.mesh.userData.flattern.forEach(([l, r], i) => { const f = Math.sin(t * 10 + i) * .7; l.rotation.z = f; r.rotation.z = -f; });
+      else if (o.typ === "gewitter") o.mesh.userData.blitz.visible = Math.sin(t * 7 + o.ph * 3) > .93;
+    }
+    // Wolkenmeer und Himmel wandern mit, das Muster bleibt am Ort
+    meer.position.set(FL.x, -1.5, FL.z);
+    FW.wolkenBild.offset.set(FL.x * 12 / 500, -FL.z * 12 / 500);
+    schattenNachfuehren(FL.x, FL.z);
+
+    // Kamera hinter dem Flugzeug, etwas erhöht; beim Fangen langsam herum
+    if (fang) kamYaw += dt * .9; else kamYaw = 0;
+    const sin = Math.sin(kamYaw), cos = Math.cos(kamYaw), hoch = kamera.aspect < .8;
+    const rad = fang ? 13 : 10;
+    const ziel = new THREE.Vector3(FL.x * .75 + sin * rad, FL.y + (hoch ? 3.8 : 2.9), FL.z + cos * (hoch ? rad + 2 : rad + .5));
+    if (!kamPos) kamPos = ziel.clone(); else kamPos.lerp(ziel, Math.min(1, dt * 6));
+    kamera.position.copy(kamPos);
+    if (wackeln > 0) { wackeln = Math.max(0, wackeln - dt); kamera.position.x += (Math.random() - .5) * wackeln * .6; kamera.position.y += (Math.random() - .5) * wackeln * .4; }
+    kamera.lookAt(FL.x * .85 - sin * 10, FL.y + .4, FL.z - cos * 10);
+    kamera.fov += (((hoch ? 72 : 62) + (B.turbo > 0 ? 10 : 0)) - kamera.fov) * Math.min(1, dt * 3); kamera.updateProjectionMatrix();
+    himmelKugel.position.copy(kamera.position); wolkenGruppe.position.set(kamera.position.x, 0, kamera.position.z);
+    sonnenBild.position.set(kamera.position.x - 85, 95, kamera.position.z + 50);
+    W.animieren(t);
+    teilchenSchritt(dt);
     renderer.render(szene, kamera);
   }
 }

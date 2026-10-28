@@ -55,6 +55,8 @@ export function ton() {
     anja() { const t = jetzt(); for (let i = 0; i < 2; i++) { note(hz(81), t + i * .36, .16, { typ: "square", laut: .07 }); note(hz(76), t + i * .36 + .18, .16, { typ: "square", laut: .07 }); } },
     schritt(laut) { const t = jetzt(); rauschen(t, .05, { laut: .12 * laut, filter: 600, typ: "lowpass" }); note(90, t, .06, { typ: "sine", laut: .12 * laut }); },
     schubs() { const t = jetzt(); note(220, t, .45, { typ: "sine", laut: .3, gleit: 3 }); note(160, t + .25, .35, { typ: "triangle", laut: .2, gleit: .4 }); },
+    ring() { const t = jetzt(); rauschen(t, .25, { laut: .08, filter: 1800, typ: "bandpass" }); [79, 84, 88].forEach((m, i) => note(hz(m), t + i * .05, .3, { typ: "sine", laut: .11 })); },
+    abflug() { const t = jetzt(); note(140, t, 1.4, { typ: "sawtooth", laut: .05, gleit: 2.5 }); rauschen(t, 1.2, { laut: .07, filter: 900, typ: "lowpass" }); },
     welt() { const t = jetzt(); [79, 83, 86, 91].forEach((m, i) => note(hz(m), t + i * .09, .5, { typ: "sine", laut: .09 })); },
     ende() { const t = jetzt(); [72, 67, 64, 60].forEach((m, i) => note(hz(m), t + i * .14, .3, { typ: "triangle", laut: .14 })); },
     rekord() { const t = jetzt(); [72, 76, 79, 84, 79, 84, 88].forEach((m, i) => note(hz(m), t + i * .1, .25, { typ: "square", laut: .06 })); },
@@ -69,6 +71,7 @@ export function ton() {
     { bpm: 100, mel: [77, _, _, 76, 74, _, 72, _, 74, _, _, _, 69, _, _, _, 72, _, _, 74, 76, _, 77, _, 79, _, _, _, 77, _, _, _], bass: [41, 46, 48, 41], klang: "sine", trommel: false },
     { bpm: 108, mel: [69, _, 72, _, 76, _, 74, 72, 71, _, 72, _, 69, _, _, _, 67, _, 71, _, 74, _, 72, 71, 69, _, _, _, 69, _, _, _], bass: [45, 41, 43, 45], klang: "triangle", trommel: true },
     { bpm: 96, mel: [74, _, 77, _, 81, _, 79, 77, 76, _, 74, _, 73, _, _, _, 74, _, 77, _, 79, _, 81, _, 82, _, 81, _, 74, _, _, _], bass: [38, 46, 45, 38], klang: "glocke", trommel: false },
+    { bpm: 132, mel: [76, _, 79, 81, 83, _, 81, _, 79, _, 76, _, 74, _, 76, _, 78, _, 81, 83, 86, _, 83, _, 81, _, 79, 78, 76, _, _, _], bass: [40, 45, 47, 45], klang: "triangle", trommel: true },   // Luftwelt
   ];
   let stueck = null, schrittNr = 0, naechste = 0, takt = null;
   function planen() {
