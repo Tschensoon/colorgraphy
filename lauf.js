@@ -10,6 +10,7 @@ if (rahmen) {
   const losKnopf = rahmen.querySelector(".lauf-los"), ueberTitel = rahmen.querySelector(".lauf-titel");
   const ueberText = rahmen.querySelector(".lauf-text"), zu = rahmen.querySelector(".lauf-zu");
   const handy = matchMedia("(pointer: coarse)").matches;
+  rahmen.classList.toggle("touch", handy);
   let THREE = null, bereit = null;
 
   const kannWebGL = (() => { try { const c = document.createElement("canvas"); return !!(c.getContext("webgl2") || c.getContext("webgl")); } catch (e) { return false; } })();
@@ -415,7 +416,8 @@ if (rahmen) {
     if (lauft) S.lauf += dt * tempo * (A.nah ? 1.5 : 1.1);
     spieler.beine.forEach((b, i) => { b.rotation.x = S.y > 0 ? (i < 2 ? -.6 : .6) : Math.sin(S.lauf + (i === 0 || i === 3 ? 0 : Math.PI)) * .7; });
     spieler.hals.rotation.x = S.duck > 0 ? -1.15 : (S.stolper > 0 ? Math.sin(S.stolper * 30) * .3 : 0);
-    g.position.y -= S.duck > 0 ? .25 : 0;
+    // Ducken: Hals nach vorn und in die Hocke (von den Hufen aus gestaucht, damit sie auf dem Boden bleibt)
+    g.scale.y += ((S.duck > 0 ? .8 : 1) - g.scale.y) * Math.min(1, dt * 20);
     spieler.schwanz.rotation.z = Math.sin(S.lauf * .5) * .3;
 
     // Anja läuft hinter Fröbelinchen auf demselben Weg

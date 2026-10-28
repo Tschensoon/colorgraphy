@@ -64,7 +64,7 @@
 </script>
 <link rel="stylesheet" href="style.css?v=3">
 <link rel="stylesheet" href="tools.css?v=8">
-<link rel="stylesheet" href="spiel.css?v=5">
+<link rel="stylesheet" href="spiel.css?v=6">
 </head>
 <body>
 
@@ -131,7 +131,17 @@
           <button type="button" class="spiel-zu lauf-zu" aria-label="Vollbild beenden">✕</button>
           <div class="lauf-overlay">
             <p class="lauf-titel">Fröbelinchen rennt</p>
-            <p class="lauf-text">Wischen oder Pfeiltasten: links und rechts wechseln die Spur und biegen an Ecken ab, hoch springt, runter duckt.</p>
+            <p class="lauf-text"></p>
+            <ul class="lauf-anleitung">
+              <li><span class="la-taste"><b class="nur-tasten"><kbd>←</kbd><kbd>→</kbd></b><b class="nur-touch">⇠ ⇢</b></span>
+                <span><strong>Spur wechseln</strong> und an Ecken <strong>abbiegen</strong><em class="nur-touch">nach links oder rechts wischen</em></span></li>
+              <li><span class="la-taste"><b class="nur-tasten"><kbd>↑</kbd></b><b class="nur-touch">⇡</b></span>
+                <span><strong>Springen</strong> über Bälle, Balken und Pfützen<em class="nur-touch">nach oben wischen</em><em class="nur-tasten">oder Leertaste</em></span></li>
+              <li><span class="la-taste"><b class="nur-tasten"><kbd>↓</kbd></b><b class="nur-touch">⇣</b></span>
+                <span><strong>Ducken</strong> unter Kletterstangen<em class="nur-touch">nach unten wischen</em></span></li>
+              <li><span class="la-taste la-warn">!</span>
+                <span>Bauklötzen <strong>ausweichen</strong>. Wer stolpert, lockt <strong>Anja</strong> an.</span></li>
+            </ul>
             <button type="button" class="pill lauf-los">Los geht’s</button>
           </div>
         </div>
@@ -154,7 +164,7 @@
 </footer>
 
 <script src="spiel.js?v=7" defer></script>
-<script type="module" src="lauf.js?v=1"></script>
+<script type="module" src="lauf.js?v=2"></script>
 <script src="seite.js?v=11" defer></script>
 <script src="ziehen.js?v=2" defer></script>
 <script data-goatcounter="https://colorgraphy.goatcounter.com/count" async src="vendor/goatcounter/count.js"></script>
