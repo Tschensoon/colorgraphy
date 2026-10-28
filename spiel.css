@@ -125,3 +125,7 @@ body.spiel-offen { overflow: hidden; }
   .spiel-rahmen:not(.vollbild), .lauf-rahmen:not(.vollbild), .spiel-hilfe, .lauf-bereich > :not(.lauf-rahmen) { display: none; }
   .lauf-bereich { margin-top: 0; }
 }
+
+/* leichte Vignette über dem 3D-Bild */
+.lauf-buehne::after { content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, .28) 100%); }
