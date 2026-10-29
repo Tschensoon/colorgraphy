@@ -31,7 +31,7 @@ if (rahmen) {
   function laden() {
     if (!bereit) {
       const text = losKnopf.textContent; losKnopf.disabled = true; losKnopf.textContent = "Lädt die 3D-Welt …";
-      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=29"), import("./lauf-ton.js?v=2"), import("./lauf-flug.js?v=3"), import("./lauf-effekte.js?v=3")])
+      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=30"), import("./lauf-ton.js?v=2"), import("./lauf-flug.js?v=3"), import("./lauf-effekte.js?v=3")])
         .then(([m, w, t, f, e]) => { THREE = m; T = t.ton(); aufbauen(w, f, e); losKnopf.disabled = false; losKnopf.textContent = text; });
     }
     return bereit;
@@ -46,17 +46,26 @@ if (rahmen) {
   let qualitaet = lies("froebelinchen-rennt-qualitaet", 0);
   let tutorialFertig = lies("froebelinchen-rennt-tutorial", false);
   // Figuren: Fröbelinchen und Leo gibt es sofort, die anderen ab einer Fröbel-Stufe (eine Stufe je 5000 gesammelte Punkte)
+  // Figuren: Fröbelinchen und Leo gibt es sofort. Die anderen gibt es ab einer Fröbel-Stufe zu kaufen (Sterne).
   const FIGUR_LISTE = [
-    { id: "giraffe", emoji: "🦒", name: "Fröbelinchen", stufe: 1 }, { id: "leo", emoji: "🐢", name: "Leo", stufe: 1 },
-    { id: "hase", emoji: "🐰", name: "Rambo Rabbit", stufe: 5 }, { id: "baer", emoji: "🐻", name: "Baylin", stufe: 10 },
-    { id: "elefant", emoji: "🐘", name: "Jensfant", stufe: 20 },
+    { id: "giraffe", emoji: "🦒", name: "Fröbelinchen", stufe: 1, preis: 0 }, { id: "leo", emoji: "🐢", name: "Leo", stufe: 1, preis: 0 },
+    { id: "hase", emoji: "🐰", name: "Rambo Rabbit", stufe: 5, preis: 250 }, { id: "baer", emoji: "🐻", name: "Baylin", stufe: 10, preis: 250 },
+    { id: "elefant", emoji: "🐘", name: "Jensfant", stufe: 20, preis: 250 }, { id: "affe", emoji: "🐒", name: "Momo", stufe: 30, preis: 1000 },
+    { id: "pinguin", emoji: "🐧", name: "Pingo", stufe: 50, preis: 1000 }, { id: "koala", emoji: "🐨", name: "Kalle", stufe: 70, preis: 1000 },
+    { id: "katze", emoji: "🐱", name: "Mimi", stufe: 100, preis: 1000 },
   ];
   const EP_JE_STUFE = 5000;
   let erfahrung = +lies("froebelinchen-rennt-erfahrung", 0) || 0;
   const stufeVon = (ep) => Math.floor(ep / EP_JE_STUFE) + 1;
   const frei = (id) => stufeVon(erfahrung) >= (FIGUR_LISTE.find(f => f.id === id) || { stufe: 99 }).stufe;
+  const figurDaten = (id) => FIGUR_LISTE.find(f => f.id === id) || FIGUR_LISTE[0];
+  if (!Array.isArray(konto.figuren)) konto.figuren = [];
+  const gekauft = (id) => figurDaten(id).preis === 0 || konto.figuren.includes(id);
   let figur = lies("froebelinchen-rennt-figur", "giraffe");
-  if (!frei(figur)) figur = "giraffe";
+  // wer vor den Preisen schon mit einer freigeschalteten Figur gespielt hat, behält sie
+  if (frei(figur) && !gekauft(figur) && !konto.figurenGeprueft) { konto.figuren.push(figur); }
+  konto.figurenGeprueft = true; schreib("froebelinchen-rennt-konto", konto);
+  if (!frei(figur) || !gekauft(figur)) figur = "giraffe";
   const NAME = () => (FIGUR_LISTE.find(f => f.id === figur) || FIGUR_LISTE[0]).name;
 
   // ---------- Spielwerte ----------
@@ -511,13 +520,30 @@ if (rahmen) {
     k.innerHTML = `<span class="lf-bild" aria-hidden="true">${f.emoji}</span><span class="lf-name"></span>`;
     figurFeld.append(k); return k;
   });
+  let bestaetigen = null;                             // Figur, die gerade auf „Kaufen?“ steht
+  const figurHinweis = rahmen.querySelector(".fig-hinweis"), figurSterne = rahmen.querySelector(".fig-sterne");
   function figurKnoepfeZeigen() {
+    figurSterne.textContent = `★ ${konto.sterne.toLocaleString("de-DE")}`;
     figurKnoepfe.forEach((k, i) => {
-      const f = FIGUR_LISTE[i], offen = frei(f.id);
+      const f = FIGUR_LISTE[i], offen = frei(f.id), hat = gekauft(f.id), kaufbar = offen && !hat;
       k.disabled = !offen; k.setAttribute("aria-pressed", String(f.id === figur));
-      k.querySelector(".lf-name").textContent = offen ? f.name : `🔒 Stufe ${f.stufe}`;
-      k.title = offen ? f.name : `${f.name}: ab Fröbel-Stufe ${f.stufe}`;
+      k.classList.toggle("kaufbar", kaufbar); k.classList.toggle("bestaetigen", kaufbar && bestaetigen === f.id);
+      k.classList.toggle("zu-teuer", kaufbar && konto.sterne < f.preis);
+      k.querySelector(".lf-name").textContent = !offen ? `🔒 Stufe ${f.stufe}` : !hat ? (bestaetigen === f.id ? "Kaufen?" : `${f.preis} ★`) : f.name;
+      k.title = !offen ? `${f.name}: ab Fröbel-Stufe ${f.stufe}` : !hat ? `${f.name} für ${f.preis} Sterne freischalten` : f.name;
     });
+  }
+  // Tippen: gekaufte Figur wählen; freigeschaltete erst „Kaufen?“, beim zweiten Tippen kaufen
+  function figurAntippen(id) {
+    const f = figurDaten(id);
+    if (gekauft(id)) { bestaetigen = null; figurHinweis.textContent = ""; figurWechseln(id); figurKnoepfeZeigen(); return; }
+    if (konto.sterne < f.preis) {
+      bestaetigen = null; figurHinweis.textContent = `${f.name} kostet ${f.preis} ★, dir fehlen noch ${f.preis - konto.sterne} ★.`; figurKnoepfeZeigen(); return;
+    }
+    if (bestaetigen !== id) { bestaetigen = id; figurHinweis.textContent = `${f.name} für ${f.preis} ★ freischalten? Nochmal tippen zum Kaufen.`; figurKnoepfeZeigen(); return; }
+    konto.sterne -= f.preis; konto.figuren.push(id); schreib("froebelinchen-rennt-konto", konto);
+    bestaetigen = null; T.rekord(); figurHinweis.textContent = `${f.emoji} ${f.name} gehört jetzt dir!`;
+    figurWechseln(id); figurKnoepfeZeigen();
   }
   figurKnoepfeZeigen();
   // Fröbel-Stufe mit Balken; nach einer Runde füllt er sich von alt nach neu
@@ -537,7 +563,7 @@ if (rahmen) {
     if (neuStufe > altStufe) {
       konto.sterne += 50 * (neuStufe - altStufe); schreib("froebelinchen-rennt-konto", konto);
       texte.push(`Fröbel-Stufe ${neuStufe} erreicht! +${50 * (neuStufe - altStufe)} ★`);
-      for (const f of FIGUR_LISTE) if (f.stufe > altStufe && f.stufe <= neuStufe) texte.push(`${f.emoji} ${f.name} ist freigeschaltet!`);
+      for (const f of FIGUR_LISTE) if (f.stufe > altStufe && f.stufe <= neuStufe) texte.push(`${f.emoji} ${f.name} gibt es jetzt für ${f.preis} ★!`);
       // Balken erst voll laufen lassen, dann in der neuen Stufe von vorn
       stufeBalken.style.width = "100%";
       setTimeout(() => { stufeBalken.style.transition = "none"; stufeBalken.style.width = "0%"; void stufeBalken.offsetWidth; stufeBalken.style.transition = ""; stufeZeigen(erfahrung); }, 1250);
@@ -563,7 +589,7 @@ if (rahmen) {
     W.ausstattungSetzen(spieler, konto.an);
     T.booster();
   }
-  figurKnoepfe.forEach(k => k.addEventListener("click", async () => { if (k.disabled) return; await laden(); T.start(); figurWechseln(k.dataset.figur); }));
+  figurKnoepfe.forEach(k => k.addEventListener("click", async () => { if (k.disabled) return; await laden(); T.start(); figurAntippen(k.dataset.figur); }));
 
   // ---------- Sterne-Shop ----------
   // Vorschaubilder: eine eigene kleine Giraffe wird mit den Teilen fotografiert (eigener Renderer, nur solange der Laden offen ist)
@@ -634,7 +660,7 @@ if (rahmen) {
     }
   }
   function ladenZu() {
-    shop.hidden = true; anprobe = null;
+    shop.hidden = true; anprobe = null; figurKnoepfeZeigen();
     if (foto) { foto.r.dispose(); foto.r.forceContextLoss(); foto = null; }   // die zweite 3D-Fläche wieder freigeben
   }
   $(".lauf-shop-knopf").addEventListener("click", async () => { await laden(); T.start(); shopZeigen(); shop.hidden = false; });

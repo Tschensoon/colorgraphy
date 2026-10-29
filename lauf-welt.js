@@ -437,6 +437,14 @@ export function welt(T, handy) {
       fotoGanz: [[0, .95, -.1], [2.7, 1.8, -3.7]], fotoRuecken: [[0, 1.25, .1], [1.9, 2.4, 2.3]] },
     elefant: { name: "Jensfant", blick: 1.3, rueckenY: -.07, blaseY: 1.05, blaseS: 1.4, cockpit: [-.15, .35, .38], kopfSkala: 2, halsSkala: 1.8,
       fotoGanz: [[0, 1.2, -.2], [3.4, 2.2, -4.6]], fotoRuecken: [[0, 1.55, .1], [2.4, 3, 2.8]] },
+    affe: { name: "Momo", blick: .95, rueckenY: -.55, blaseY: .75, blaseS: 1, cockpit: [0, .4, .6], kopfSkala: 1.15, halsSkala: .9,
+      fotoGanz: [[0, .85, -.1], [2.3, 1.6, -3.2]], fotoRuecken: [[0, 1.1, .1], [1.6, 2.1, 2.0]] },
+    pinguin: { name: "Pingo", blick: .95, rueckenY: -.43, blaseY: .7, blaseS: 1.05, cockpit: [-.1, .38, .6], kopfSkala: 1.3, halsSkala: 1.2,
+      fotoGanz: [[0, .75, -.1], [2.3, 1.5, -3.2]], fotoRuecken: [[0, 1.0, .1], [1.6, 2, 2.0]] },
+    koala: { name: "Kalle", blick: .9, rueckenY: -.57, blaseY: .7, blaseS: 1, cockpit: [.05, .4, .58], kopfSkala: 1.45, halsSkala: 1.1,
+      fotoGanz: [[0, .8, -.1], [2.3, 1.6, -3.2]], fotoRuecken: [[0, 1.05, .1], [1.6, 2.1, 2.0]] },
+    katze: { name: "Mimi", blick: .85, rueckenY: -.67, blaseY: .7, blaseS: .95, cockpit: [.1, .4, .62], kopfSkala: 1.1, halsSkala: .85,
+      fotoGanz: [[0, .75, -.1], [2.2, 1.5, -3.1]], fotoRuecken: [[0, .95, .1], [1.5, 2, 1.9]] },
   };
   let leoFormen = null;
   function leoFormenBauen() {
@@ -641,9 +649,132 @@ export function welt(T, handy) {
     teil(kugel, baerNase, schwanz, 0, -.33, .14).scale.set(.04, .06, .04);
     return { gruppe: g, koerper, hals, kopf, beine, schwanz, augen, ohren, ...FIGUR_INFO.elefant };
   }
+
+  // ---------- Noch mehr Figuren: Affe, Pinguin, Koala, Katze (gleicher Plüschstil) ----------
+  // Schwanz als gebogene Röhre, zur Spitze hin dünner
+  function rohr(punkte, r0, r1, seg = 20) {
+    const kurve = new T.CatmullRomCurve3(punkte.map(p => new T.Vector3(...p)));
+    const g = new T.TubeGeometry(kurve, seg, r0, 12, false), pos = g.attributes.position;
+    for (let i = 0; i <= seg; i++) {
+      const m = kurve.getPointAt(i / seg), f = 1 - (1 - r1 / r0) * i / seg;
+      for (let j = 0; j <= 12; j++) { const k = i * 13 + j; pos.setXYZ(k, m.x + (pos.getX(k) - m.x) * f, m.y + (pos.getY(k) - m.y) * f, m.z + (pos.getZ(k) - m.z) * f); }
+    }
+    g.computeVertexNormals(); return geteilt(g);
+  }
+  const tierFormen = {};
+  // Grundgerüst für alle Vierbeiner: Rumpf und Hals/Kopf als weiche Körper, Augen, Beine; Besonderes kommt über „extra“
+  function tierBauen(P) {
+    if (!tierFormen[P.id]) tierFormen[P.id] = {
+      rumpf: formNetz(P.rumpf, ...P.rumpfBox, handy ? .028 : .021, P.rumpfHell),
+      kopf: formNetz(P.kopf, ...P.kopfBox, handy ? .02 : .015, P.kopfHell),
+    };
+    const fo = tierFormen[P.id], g = new T.Group(), koerper = gelenk(g, 0, 0, 0); koerper.scale.setScalar(P.skala || 1);
+    teil(fo.rumpf, P.fell, koerper);
+    const hals = gelenk(koerper, ...P.hals); teil(fo.kopf, P.fell, hals);
+    const kopf = gelenk(hals, ...P.K), augen = [], ohren = [];
+    augenSetzen(kopf, augen, ...P.augen);
+    const schwanz = gelenk(koerper, ...P.schwanz);
+    const beine = P.beine ? P.beine(koerper) : vierBeine(koerper, P.ansaetze, P.oben, P.unten, P.pfote, P.bein, P.pfoteMat);
+    P.extra({ kopf, koerper, hals, schwanz, ohren });
+    return { gruppe: g, koerper, hals, kopf, beine, schwanz, augen, ohren, ...FIGUR_INFO[P.id] };
+  }
+  const nasenMat = std({ color: "#2b2b30", roughness: .3 }), rosaMat = std({ color: "#f4a7b9", roughness: .7 }), orangeMat = std({ color: "#ff9a1f", roughness: .5 });
+
+  // --- Momo, der Affe ---
+  const affeFell = zweiFarbenMat("affe", "#7a4a2a", "#ecc9a0", "#e8c39a"), affeBein = pluesch("#7a4a2a", "#e8c39a"), affeHell = pluesch("#ecc9a0", "#fff0d8");
+  const affeK = [0, .3, -.06];
+  const affe = () => tierBauen({
+    id: "affe", fell: affeFell, skala: 1.15, hals: [0, .92, -.28], K: affeK, augen: [.075, .05, -.165, .034], schwanz: [0, .62, .38],
+    rumpf: (x, y, z) => F.weich(F.ei(x, y, z, 0, .66, .04, .3, .34, .36), F.ei(x, y, z, 0, .74, -.2, .26, .28, .22), .1),
+    rumpfHell: (x, y, z) => [klemme((-.2 - z) / .08) * klemme((.86 - y) / .1)], rumpfBox: [[-.4, .25, -.5], [.4, 1.08, .45]],
+    kopf: (x, y, z) => F.weich(F.weich(F.stab(x, y, z, [0, -.08, .04], [0, .18, -.02], .13, .12), F.ei(x, y, z, ...affeK, .21, .2, .19), .06),
+      F.ei(x, y, z, 0, affeK[1] - .06, affeK[2] - .14, .13, .1, .08), .04),
+    kopfHell: (x, y, z) => [klemme(((affeK[2] - .06) - z) / .05) * (y < affeK[1] + .1 ? 1 : 0)], kopfBox: [[-.32, -.26, -.42], [.32, .56, .3]],
+    ansaetze: [[-.16, .55, -.22], [.16, .55, -.22], [-.17, .52, .22], [.17, .52, .22]], oben: [[.075, .065, .28]], unten: [[.065, .06, .24]], pfote: [[.07, .04, .1]],
+    bein: affeBein, pfoteMat: affeHell,
+    extra: ({ kopf, schwanz, ohren }) => {
+      for (const s of [-1, 1]) {
+        const ohr = gelenk(kopf, s * .2, .03, 0); ohr.userData.s = s; ohr.userData.basis = 0; ohren.push(ohr);
+        teil(kugel, affeBein, ohr).scale.set(.03, .08, .07); teil(kugel, affeHell, ohr, s * .012, 0, 0).scale.set(.02, .055, .05);
+        teil(kugel, nasenMat, kopf, s * .025, -.05, -.25).scale.set(.012, .009, .008);
+      }
+      teil(rohr([[0, 0, 0], [0, .15, .2], [0, .45, .28], [0, .62, .15], [0, .55, .04]], .04, .025), affeBein, schwanz);
+    },
+  });
+  // --- Pingo, der Pinguin (Flossen als Vorderbeine, orange Füße hinten) ---
+  const pinguinFell = zweiFarbenMat("pinguin", "#22262e", "#f4f6f8", "#c9d6ff"), pinguinFlosse = pluesch("#22262e", "#c9d6ff");
+  const pinguinK = [0, .18, -.02];
+  const pinguin = () => tierBauen({
+    id: "pinguin", fell: pinguinFell, skala: 1.1, hals: [0, 1.02, -.02], K: pinguinK, augen: [.075, .04, -.19, .03], schwanz: [0, .25, .3],
+    rumpf: (x, y, z) => F.ei(x, y, z, 0, .62, 0, .34, .5, .32),
+    rumpfHell: (x, y, z) => [klemme((-.06 - z) / .1) * (y < 1.0 ? 1 : 0)], rumpfBox: [[-.42, .08, -.4], [.42, 1.15, .4]],
+    kopf: (x, y, z) => F.weich(F.ei(x, y, z, ...pinguinK, .22, .2, .21), F.stab(x, y, z, [0, -.12, 0], [0, .05, 0], .2, .19), .06),
+    kopfHell: (x, y, z) => [klemme(((pinguinK[2] - .09) - z) / .05) * (y < pinguinK[1] + .06 ? 1 : 0)], kopfBox: [[-.3, -.32, -.32], [.3, .45, .3]],
+    beine: (koerper) => {
+      const b = [];
+      for (const s of [-1, 1]) {                         // Flossen an der Seite
+        const o = gelenk(koerper, s * .34, .86, -.02); o.rotation.z = s * .25;
+        const f = teil(rundStab(.075, .05, .34), pinguinFlosse, o); f.scale.z = .45;
+        const u = gelenk(o, 0, -.34, 0); b.push({ oben: o, unten: u });
+      }
+      for (const s of [-1, 1]) {                         // kurze orange Füße
+        const o = gelenk(koerper, s * .12, .16, .02); teil(rundStab(.06, .06, .08), orangeMat, o);
+        const u = gelenk(o, 0, -.08, 0); teil(rundStab(.05, .05, .05), orangeMat, u); teil(kugel, orangeMat, u, 0, -.06, -.04).scale.set(.08, .03, .13);
+        b.push({ oben: o, unten: u });
+      }
+      return b;
+    },
+    extra: ({ kopf, schwanz }) => {
+      const s = teil(new T.ConeGeometry(.06, .15, 14), orangeMat, kopf, 0, -.02, -.25); s.rotation.x = -Math.PI / 2;   // Schnabel
+      const sw = teil(new T.ConeGeometry(.08, .16, 10), pinguinFlosse, schwanz); sw.rotation.x = 1.9;
+    },
+  });
+  // --- Kalle, der Koala (große flauschige Ohren, dicke Nase) ---
+  const koalaFell = zweiFarbenMat("koala", "#9aa1a8", "#eceef0", "#ffffff"), koalaBein = pluesch("#9aa1a8", "#ffffff"), koalaHell = pluesch("#eceef0", "#ffffff");
+  const koalaK = [0, .3, -.12];
+  const koala = () => tierBauen({
+    id: "koala", fell: koalaFell, skala: 1.1, hals: [0, .88, -.36], K: koalaK, augen: [.1, .06, -.17, .03], schwanz: [0, .66, .45],
+    rumpf: (x, y, z) => F.weich(F.ei(x, y, z, 0, .62, .05, .36, .36, .42), F.ei(x, y, z, 0, .68, -.22, .3, .32, .26), .1),
+    rumpfHell: (x, y) => [klemme((.5 - y) / .1)], rumpfBox: [[-.45, .2, -.55], [.45, 1.05, .55]],
+    kopf: (x, y, z) => F.weich(F.stab(x, y, z, [0, -.08, .06], [0, .16, -.06], .17, .16), F.ei(x, y, z, ...koalaK, .25, .22, .21), .06),
+    kopfBox: [[-.36, -.26, -.42], [.36, .58, .32]],
+    ansaetze: [[-.18, .5, -.25], [.18, .5, -.25], [-.2, .46, .3], [.2, .46, .3]], oben: [[.1, .09, .24]], unten: [[.09, .09, .2]], pfote: [[.09, .04, .11]],
+    bein: koalaBein, pfoteMat: nasenMat,
+    extra: ({ kopf, schwanz, ohren }) => {
+      teil(kugel, nasenMat, kopf, 0, -.03, -.215).scale.set(.07, .09, .05);
+      for (const s of [-1, 1]) {
+        const ohr = gelenk(kopf, s * .24, .12, 0); ohr.userData.s = s; ohr.userData.basis = 0; ohren.push(ohr);
+        teil(kugel, koalaBein, ohr).scale.set(.13, .13, .06); teil(kugel, koalaHell, ohr, 0, 0, -.025).scale.set(.09, .09, .04);
+      }
+      teil(kugel, koalaBein, schwanz).scale.setScalar(.07);
+    },
+  });
+  // --- Mimi, die Katze (rotgetigert, spitze Ohren, langer Schwanz) ---
+  const katzeFell = zweiFarbenMat("katze", "#e8964a", "#fbf3e8", "#ffe0b8"), katzeBein = pluesch("#e8964a", "#ffe0b8"), katzeHell = pluesch("#fbf3e8", "#ffffff");
+  const katzeK = [0, .25, -.12];
+  const katze = () => tierBauen({
+    id: "katze", fell: katzeFell, skala: 1.15, hals: [0, .78, -.38], K: katzeK, augen: [.08, .04, -.15, .032], schwanz: [0, .66, .52],
+    rumpf: (x, y, z) => F.weich(F.ei(x, y, z, 0, .6, .08, .28, .27, .46), F.ei(x, y, z, 0, .64, -.22, .24, .26, .22), .1),
+    rumpfHell: (x, y) => [klemme((.46 - y) / .08)], rumpfBox: [[-.38, .25, -.62], [.38, .95, .64]],
+    kopf: (x, y, z) => F.weich(F.weich(F.stab(x, y, z, [0, -.08, .06], [0, .14, -.06], .13, .12), F.ei(x, y, z, ...katzeK, .19, .17, .17), .05),
+      F.ei(x, y, z, 0, katzeK[1] - .05, katzeK[2] - .13, .1, .07, .07), .03),
+    kopfHell: (x, y, z) => [klemme(((katzeK[2] - .1) - z) / .04) * (y < katzeK[1] ? 1 : 0)], kopfBox: [[-.3, -.24, -.4], [.3, .5, .3]],
+    ansaetze: [[-.14, .48, -.26], [.14, .48, -.26], [-.15, .48, .32], [.15, .48, .32]], oben: [[.07, .06, .24]], unten: [[.06, .055, .22]], pfote: [[.065, .035, .09]],
+    bein: katzeBein, pfoteMat: katzeHell,
+    extra: ({ kopf, schwanz, ohren }) => {
+      teil(kugel, rosaMat, kopf, 0, -.02, -.215).scale.set(.022, .016, .014);
+      for (const s of [-1, 1]) {
+        const ohr = gelenk(kopf, s * .1, .13, 0); ohr.userData.s = s; ohr.userData.basis = -s * .25; ohren.push(ohr);
+        teil(new T.ConeGeometry(.075, .16, 14), katzeBein, ohr, 0, .07, 0).scale.z = .55;
+        teil(new T.ConeGeometry(.045, .1, 12), rosaMat, ohr, 0, .06, -.025).scale.z = .4;
+      }
+      teil(rohr([[0, 0, 0], [0, .1, .2], [0, .35, .35], [0, .6, .38], [0, .75, .3]], .05, .035), katzeBein, schwanz);
+    },
+  });
   const FIGUREN = {
     giraffe: { bauen: () => giraffeBauen(), name: "Fröbelinchen" }, leo: { bauen: () => leoBauen(), name: "Leo" },
     hase: { bauen: haseBauen, name: "Rambo Rabbit" }, baer: { bauen: baerBauen, name: "Baylin" }, elefant: { bauen: elefantBauen, name: "Jensfant" },
+    affe: { bauen: affe, name: "Momo" }, pinguin: { bauen: pinguin, name: "Pingo" }, koala: { bauen: koala, name: "Kalle" }, katze: { bauen: katze, name: "Mimi" },
   };
   const figurBauen = (id) => (FIGUREN[id] || FIGUREN.giraffe).bauen();
 

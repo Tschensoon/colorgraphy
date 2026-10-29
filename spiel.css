@@ -302,3 +302,14 @@ body.spiel-offen { overflow: hidden; }
 .lauf-overlay.ergebnis .le-punkte b { font-size: 2.1rem; }
 .lauf-overlay.ergebnis .le-werte li { padding: .3rem .4rem; }
 .lauf-overlay.ergebnis .le-werte b { font-size: .95rem; }
+
+/* Figuren freischalten: Preis-Kacheln, Bestätigen, Sternestand */
+.lauf-abschnitt .fig-sterne { float: right; text-transform: none; letter-spacing: 0; color: #b07a00; }
+.lauf-figur button.kaufbar { border-style: dashed; border-color: #e0b84a; background: #fffaf0; }
+.lauf-figur button.kaufbar .lf-name { color: #8a5d00; }
+.lauf-figur button.bestaetigen { border-style: solid; border-color: #ffb300; background: #ffe9a8; animation: hud-kombo .5s ease-out; }
+.lauf-figur button.zu-teuer { opacity: .7; }
+.fig-hinweis { margin: -.2rem 0 0; min-height: 0; font-size: .78rem; font-weight: 700; color: #8a5d00; text-align: center; }
+.fig-hinweis:empty { display: none; }
+.lauf-figur { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.lauf-figur button > span:last-child { max-width: 100%; hyphens: auto; overflow-wrap: anywhere; }
