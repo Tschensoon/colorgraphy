@@ -1766,6 +1766,6 @@ export function welt(T, handy) {
   }
   const luft = new T.Group(); luft.add(wetter, voegel);
 
-  return { rekordFahne, figurBauen, FIGUREN, leoBauen, FIGUR_INFO, toertchen, frauBauen, sprechblase, froebelBanner, froebelHeckenTafel, froebelTafel, froebelSchild, kontaktSchatten, grasBueschel, dampf, weltHindernis, entsorgen, pfeilSchild, bodenPfeil, AUSSTATTUNG, ausstattungSetzen, zonen: ZONEN, zoneFuer, dekoFuer, heckeFuer, blumenFuer, bodenFlaeche, bodenFolgen, verbinden, zoneWechsel, zoneSchritt,
+  return { wasserNormal: wellen, rekordFahne, figurBauen, FIGUREN, leoBauen, FIGUR_INFO, toertchen, frauBauen, sprechblase, froebelBanner, froebelHeckenTafel, froebelTafel, froebelSchild, kontaktSchatten, grasBueschel, dampf, weltHindernis, entsorgen, pfeilSchild, bodenPfeil, AUSSTATTUNG, ausstattungSetzen, zonen: ZONEN, zoneFuer, dekoFuer, heckeFuer, blumenFuer, bodenFlaeche, bodenFolgen, verbinden, zoneWechsel, zoneSchritt,
     animieren, wetterSchritt, voegelSchritt, luft, mat, geo, giraffeBauen, anjaBauen, boden, heckenStueck, blumen, ferne, sonnenScheibe, funke, staub, kante, dekoNeu, hindernis, stern, panzer, booster, blase, himmel, wolken, gras };
 }

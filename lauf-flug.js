@@ -19,6 +19,8 @@ export function flugWelt(T, W) {
     rumpf: std({ color: "#e53935", roughness: .35, metalness: .2 }), rumpfAnja: std({ color: "#f48fb1", roughness: .35, metalness: .2 }),
     fluegel: std({ color: "#fdd835", roughness: .4 }), fluegelAnja: std({ color: "#ffffff", roughness: .4 }),
     dunkel: std({ color: "#2b2b2b", roughness: .5 }), glas: std({ color: "#9fd3f2", roughness: .05, metalness: .3, transparent: true, opacity: .6 }),
+    bootGelb: std({ color: "#ffc61a", roughness: .35, metalness: .1 }), pylone: std({ color: "#ff6a13", roughness: .45, emissive: "#ff4a00", emissiveIntensity: .15 }),
+    weiss: std({ color: "#f6f6f2", roughness: .5 }), bojeRot: std({ color: "#e53935", roughness: .4 }),
     ring: std({ color: "#ffcc33", roughness: .25, metalness: .6, emissive: "#ffb000", emissiveIntensity: 1.1 }),
     korb: std({ color: "#9c6b3a", roughness: .9 }), seil: new T.LineBasicMaterial({ color: "#5a4632" }),
     gewitter: std({ color: "#8a93a3", roughness: 1 }), blitz: new T.MeshBasicMaterial({ color: "#fff6a8" }),
@@ -133,5 +135,40 @@ export function flugWelt(T, W) {
     const k = new T.Mesh(new T.PlaneGeometry(500, 500).rotateX(-Math.PI / 2), std({ map: wolkenBild, roughness: 1, color: "#ffffff" }));
     k.receiveShadow = true; return k;
   }
-  return { flieger, ring, heissluftballon, gewitter, voegel, insel, regenbogen, wolkenMeer, wolkenBild, wolkenBallen, strahlen };
+  // Level 3: Boot (Fröbelinchen gelb mit rotem Rand, Anja rosa mit weißem Rand), „sitz“ wie beim Flugzeug
+  function boot(anja) {
+    const g = new T.Group();
+    const r = teil(new T.CapsuleGeometry(.75, 2, 8, 20), anja ? M.rumpfAnja : M.bootGelb, g, 0, .05, 0); r.rotation.x = Math.PI / 2; r.scale.set(1, 1, .5);
+    const deck = teil(new T.CapsuleGeometry(.8, 2.05, 6, 20), anja ? M.fluegelAnja : M.rumpf, g, 0, .26, 0); deck.rotation.x = Math.PI / 2; deck.scale.set(1, 1, .08);
+    teil(new T.BoxGeometry(.8, .45, .45), M.dunkel, g, 0, .45, 1.5);                     // Außenbordmotor
+    const propeller = gelenk(g, 0, .02, 1.78);
+    for (let i = 0; i < 3; i++) { const b = teil(new T.BoxGeometry(.07, .42, .04), M.dunkel, propeller); b.rotation.z = i * Math.PI * 2 / 3; }
+    const scheibe = teil(new T.SphereGeometry(.45, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), M.glas, g, 0, .3, -1.05); scheibe.scale.set(1.3, .7, .5);
+    const sitz = gelenk(g, 0, .2, .15);
+    return { gruppe: g, propeller, sitz };
+  }
+  // Pylone auf einem schwimmenden Sockel
+  const pylonGeo = { sockel: new T.CylinderGeometry(.55, .6, .18, 16), kegel: new T.ConeGeometry(.36, 1.15, 20), band: new T.CylinderGeometry(.215, .27, .2, 20) };
+  for (const k of Object.values(pylonGeo)) k.userData.geteilt = true;
+  function pylone() {
+    const g = new T.Group();
+    teil(pylonGeo.sockel, M.dunkel, g, 0, .05, 0); teil(pylonGeo.kegel, M.pylone, g, 0, .7, 0); teil(pylonGeo.band, M.weiss, g, 0, .62, 0);
+    return g;
+  }
+  function boje() {
+    const g = new T.Group();
+    teil(kugel, M.bojeRot, g, 0, .25, 0).scale.set(.45, .4, .45);
+    teil(new T.CylinderGeometry(.04, .04, 1, 6), M.weiss, g, 0, .9, 0);
+    teil(kugel, M.weiss, g, 0, 1.42, 0).scale.setScalar(.09);
+    return g;
+  }
+  // Wasserfläche mit wandernden Wellen (Normalenkarte aus der Welt, hier fein wiederholt)
+  function wasserFlaeche(wellen) {
+    const t = wellen.clone(); t.wrapS = t.wrapT = T.RepeatWrapping; t.repeat.set(80, 80); t.needsUpdate = true;
+    const k = new T.Mesh(new T.PlaneGeometry(600, 600).rotateX(-Math.PI / 2),
+      std({ color: "#2b8bcc", roughness: .12, metalness: .25, normalMap: t, normalScale: new T.Vector2(.7, .7), envMapIntensity: 1.3 }));
+    k.receiveShadow = true; k.userData.wellen = t;
+    return k;
+  }
+  return { boot, pylone, boje, wasserFlaeche, flieger, ring, heissluftballon, gewitter, voegel, insel, regenbogen, wolkenMeer, wolkenBild, wolkenBallen, strahlen };
 }
