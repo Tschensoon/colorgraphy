@@ -665,6 +665,7 @@ if (rahmen) {
   }
   $(".lauf-shop-knopf").addEventListener("click", async () => { await laden(); T.start(); shopZeigen(); shop.hidden = false; });
   $(".ls-zu").addEventListener("click", ladenZu);
+  $(".ls-x").addEventListener("click", ladenZu);
 
   // ---------- Bestenliste ----------
   const ERLAUBT = /^[A-Za-zÄÖÜäöüßÀ-ÿ0-9 ._-]+$/;
@@ -736,6 +737,10 @@ if (rahmen) {
   });
   $(".lauf-top-knopf").addEventListener("click", () => { bestenlisteLaden(); topFeld.hidden = false; });
   $(".lt-zu").addEventListener("click", () => { topFeld.hidden = true; });
+  $(".lt-x").addEventListener("click", () => { topFeld.hidden = true; });
+  // solange Laden oder Bestenliste offen sind: X, Pause und Ton des Spiels ausblenden (das X würde sonst das ganze Spiel schließen)
+  const panelBeobachter = new MutationObserver(() => rahmen.classList.toggle("panel-offen", !shop.hidden || !topFeld.hidden));
+  for (const el of [shop, topFeld]) panelBeobachter.observe(el, { attributes: true, attributeFilter: ["hidden"] });
   bestenlisteLaden();
 
   // ---------- Einblendungen, Anja, Booster ----------

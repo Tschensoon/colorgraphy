@@ -313,3 +313,10 @@ body.spiel-offen { overflow: hidden; }
 .fig-hinweis:empty { display: none; }
 .lauf-figur { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 .lauf-figur button > span:last-child { max-width: 100%; hyphens: auto; overflow-wrap: anywhere; }
+
+/* Laden und Bestenliste liegen über allem (auch über dem X des Spiels) und haben oben rechts ein eigenes Schließen, das beim Scrollen mitläuft */
+.lauf-overlay .lauf-shop { z-index: 6; padding-top: calc(env(safe-area-inset-top) + 1rem); }
+.panel-x { position: sticky; top: 0; align-self: flex-end; z-index: 1; flex: none; width: 2.6rem; height: 2.6rem; margin: -.4rem -.2rem -2.2rem 0;
+  border: 0; border-radius: 50%; background: #034a3e; color: #fff; font-size: 1.15rem; line-height: 1; cursor: pointer; box-shadow: 0 4px 14px rgba(0, 40, 30, .25); }
+.panel-x:hover { background: #046b59; }
+.lauf-rahmen.panel-offen .lauf-zu, .lauf-rahmen.panel-offen .lauf-steuer, .lauf-rahmen.panel-offen .lauf-hud { display: none !important; }
