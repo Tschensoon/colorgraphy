@@ -320,3 +320,41 @@ body.spiel-offen { overflow: hidden; }
   border: 0; border-radius: 50%; background: #034a3e; color: #fff; font-size: 1.15rem; line-height: 1; cursor: pointer; box-shadow: 0 4px 14px rgba(0, 40, 30, .25); }
 .panel-x:hover { background: #046b59; }
 .lauf-rahmen.panel-offen .lauf-zu, .lauf-rahmen.panel-offen .lauf-steuer, .lauf-rahmen.panel-offen .lauf-hud { display: none !important; }
+
+/* Duell (Kissenschlacht): Balken, Zeit, Herzen, fliegende Buchstaben, A/B-Knöpfe */
+.duell { position: absolute; inset: 0; z-index: 2; pointer-events: none; font-family: inherit; }
+.duell[hidden] { display: none; }
+.du-kopf { position: absolute; top: calc(env(safe-area-inset-top) + 12px); left: 50%; transform: translateX(-50%); width: min(70%, 640px);
+  display: grid; grid-template-columns: 1fr auto 1fr; gap: .6rem; align-items: center; }
+.du-balken { position: relative; height: 1.25rem; border-radius: 999px; background: rgba(0, 30, 25, .45); overflow: hidden; border: 2px solid #fff; }
+.du-balken i { position: absolute; inset: 0; background: linear-gradient(90deg, #a8c700, #3baa35); transform-origin: left; transition: transform .25s; }
+.du-balken.rechts i { transform-origin: right; background: linear-gradient(90deg, #ff7aa2, #ffb3d1); }
+.du-balken span { position: absolute; inset: 0; z-index: 1; padding: 0 .55rem; font-weight: 800; font-size: .72rem; line-height: 1.1rem; color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, .6); }
+.du-balken.rechts span { text-align: right; }
+.du-zeit { min-width: 2.4rem; text-align: center; font-weight: 900; font-size: 1.5rem; color: #fff; text-shadow: 0 2px 6px rgba(0, 0, 0, .5); }
+.du-herzen { position: absolute; top: calc(env(safe-area-inset-top) + 2.8rem); left: 50%; transform: translateX(-50%); font-size: 1.25rem; letter-spacing: .25rem; filter: drop-shadow(0 1px 2px rgba(0,0,0,.4)); }
+.du-bahn { position: absolute; left: 0; right: 0; top: 24%; height: 5rem; }
+.du-ziel { position: absolute; left: 22%; top: 50%; width: 4.8rem; height: 4.8rem; transform: translate(-50%, -50%); border-radius: 50%;
+  border: 5px dashed #fff; box-shadow: 0 0 0 4px rgba(3, 74, 62, .35), inset 0 0 18px rgba(255, 255, 255, .6); transition: border-color .15s; }
+.duell.fehler .du-ziel { border-color: #ff5252; }
+.duell.richtig .du-ziel { border-color: #7cff7c; }
+.du-buchstabe { position: absolute; top: 50%; width: 3.8rem; height: 3.8rem; transform: translate(-50%, -50%); border-radius: 50%; display: grid; place-items: center;
+  font-weight: 900; font-size: 2.1rem; line-height: 1; color: #fff; border: 3px solid #fff; box-shadow: 0 6px 16px rgba(0, 0, 0, .25); }
+.du-buchstabe.a { background: #1e88e5; } .du-buchstabe.b { background: #e8577a; }
+.du-buchstabe.weg { animation: du-pop .3s ease-out forwards; }
+.du-buchstabe.daneben { animation: du-weg .3s ease-out forwards; }
+@keyframes du-pop { to { transform: translate(-50%, -50%) scale(1.8); opacity: 0; } }
+@keyframes du-weg { to { transform: translate(-50%, 30%) scale(.6); opacity: 0; } }
+.du-knoepfe { position: absolute; bottom: calc(env(safe-area-inset-bottom) + 1rem); left: 0; right: 0; display: flex; justify-content: space-between; padding: 0 6%; }
+.du-knoepfe button { pointer-events: auto; width: 5.4rem; height: 5.4rem; border-radius: 50%; border: 4px solid #fff; font-weight: 900; font-size: 2.3rem; line-height: 1;
+  color: #fff; box-shadow: 0 8px 20px rgba(0, 0, 0, .3); cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+.du-knoepfe button[data-b="A"] { background: #1e88e5; } .du-knoepfe button[data-b="B"] { background: #e8577a; }
+.du-knoepfe button:active { transform: scale(.92); }
+.du-knoepfe small { display: block; font-size: .6rem; font-weight: 700; opacity: .85; }
+.lauf-rahmen.touch .du-knoepfe small { display: none; }
+/* Hochformat: Balken unter die Knöpfe oben (Schließen, Pause, Ton), damit nichts übereinanderliegt */
+@container (max-width: 600px) or (max-aspect-ratio: 4 / 5) {
+  .du-kopf { top: calc(env(safe-area-inset-top) + 4.2rem); width: calc(100% - 1.5rem); }
+  .du-herzen { top: calc(env(safe-area-inset-top) + 6.4rem); }
+  .du-bahn { top: 27%; }
+}

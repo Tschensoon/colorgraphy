@@ -807,9 +807,10 @@ export function welt(T, handy) {
   // Personen: Anja (blond, pinkes Shirt, Pferdeschwanz) und die Frau, die ihre Autoschlüssel sucht (lange schwarze Haare)
   const PERSONEN = {
     anja: { shirt: [.76, .10, .2], shirtMat: mat.shirt, haar: mat.haar, lang: false },
+    marlena: { shirt: [.30, .12, .55], shirtMat: std({ color: "#8e5bd0", roughness: .9 }), haar: mat.haar, lang: true },   // blond, schulterlang
     frau: { shirt: [.02, .32, .30], shirtMat: std({ color: "#1f9a8a", roughness: .9 }), haar: std({ color: "#17120f", roughness: .45 }), lang: true },
   };
-  const anjaBauen = () => personBauen("anja"), frauBauen = () => personBauen("frau");
+  const anjaBauen = () => personBauen("anja"), frauBauen = () => personBauen("frau"), marlenaBauen = () => personBauen("marlena");
   function personBauen(wer) {
     const P = PERSONEN[wer];
     if (!koerperFormen[wer]) koerperFormen[wer] = koerperFormBauen(P.shirt);
@@ -1298,6 +1299,29 @@ export function welt(T, handy) {
   };
   const tafelGeo = geteilt(new T.PlaneGeometry(4.2, 2.1)), schildGeo2 = geteilt(new T.PlaneGeometry(1.8, .9));
   // beidseitiges Banner (vorn und hinten lesbar), Mitte bei (0, 0)
+  // Kissen für die Kissenschlacht
+  function kissen(farbe) {
+    const g = new T.Group();
+    teil(kugel, std({ color: farbe, roughness: .85 }), g).scale.set(.3, .12, .22);
+    for (const [x, z] of [[-.27, -.19], [.27, -.19], [-.27, .19], [.27, .19]]) teil(kugel, std({ color: farbe, roughness: .85 }), g, x, 0, z).scale.setScalar(.035);   // Zipfel
+    return g;
+  }
+  // Bühne fürs Duell: Turnhalle mit Holzboden, blauer Matte, Wand mit Fröbel-Banner und Wimpelkette
+  function duellBuehne() {
+    const g = new T.Group();
+    const bodenH = new T.Mesh(uvSkala(new T.PlaneGeometry(40, 32), 10, 8).rotateX(-Math.PI / 2), mat.holz); bodenH.receiveShadow = true; g.add(bodenH);
+    const matte = teil(new T.BoxGeometry(7.5, .12, 3.2), std({ color: "#2f6fd6", roughness: .8 }), g, 0, .06, 0); matte.receiveShadow = true;
+    const wand = new T.Mesh(new T.PlaneGeometry(40, 12), std({ color: "#f3e6cf", roughness: .95 })); wand.position.set(0, 6, -5); wand.receiveShadow = true; g.add(wand);
+    const sockel = teil(new T.BoxGeometry(40, 1, .1), std({ color: "#3baa35", roughness: .8 }), g, 0, .5, -4.95);
+    const ban = froebelBanner(5.5, 1.05); ban.position.set(0, 4.1, -4.9); g.add(ban);
+    const farben = ["#e53935", "#fdd835", "#43a047", "#1e88e5", "#8e24aa", "#fb8c00"].map(c => std({ color: c, roughness: .7, side: T.DoubleSide }));
+    const wimpel = new T.BufferGeometry().setFromPoints([new T.Vector3(-.22, 0, 0), new T.Vector3(.22, 0, 0), new T.Vector3(0, -.42, 0)]); wimpel.computeVertexNormals();
+    for (let i = 0; i < 26; i++) {
+      const x = -13 + i * 1.04, w = new T.Mesh(wimpel, farben[i % farben.length]);
+      w.position.set(x, 5.6 - Math.sin((i / 25) * Math.PI) * .7, -4.85); g.add(w);
+    }
+    return g;
+  }
   function froebelBanner(b, h) {
     const g = new T.Group(), geo = new T.PlaneGeometry(b, h);
     for (const dreh of [0, Math.PI]) { const m = teil(geo, FM.banner, g); m.rotation.y = dreh; m.position.z = dreh ? -.012 : .012; }
@@ -1897,6 +1921,6 @@ export function welt(T, handy) {
   }
   const luft = new T.Group(); luft.add(wetter, voegel);
 
-  return { wasserNormal: wellen, rekordFahne, figurBauen, FIGUREN, leoBauen, FIGUR_INFO, toertchen, frauBauen, sprechblase, froebelBanner, froebelHeckenTafel, froebelTafel, froebelSchild, kontaktSchatten, grasBueschel, dampf, weltHindernis, entsorgen, pfeilSchild, bodenPfeil, AUSSTATTUNG, ausstattungSetzen, zonen: ZONEN, zoneFuer, dekoFuer, heckeFuer, blumenFuer, bodenFlaeche, bodenFolgen, verbinden, zoneWechsel, zoneSchritt,
+  return { marlenaBauen, kissen, duellBuehne, wasserNormal: wellen, rekordFahne, figurBauen, FIGUREN, leoBauen, FIGUR_INFO, toertchen, frauBauen, sprechblase, froebelBanner, froebelHeckenTafel, froebelTafel, froebelSchild, kontaktSchatten, grasBueschel, dampf, weltHindernis, entsorgen, pfeilSchild, bodenPfeil, AUSSTATTUNG, ausstattungSetzen, zonen: ZONEN, zoneFuer, dekoFuer, heckeFuer, blumenFuer, bodenFlaeche, bodenFolgen, verbinden, zoneWechsel, zoneSchritt,
     animieren, wetterSchritt, voegelSchritt, luft, mat, geo, giraffeBauen, anjaBauen, boden, heckenStueck, blumen, ferne, sonnenScheibe, funke, staub, kante, dekoNeu, hindernis, stern, panzer, booster, blase, himmel, wolken, gras };
 }

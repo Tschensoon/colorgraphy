@@ -31,7 +31,7 @@ if (rahmen) {
   function laden() {
     if (!bereit) {
       const text = losKnopf.textContent; losKnopf.disabled = true; losKnopf.textContent = "Lädt die 3D-Welt …";
-      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=30"), import("./lauf-ton.js?v=2"), import("./lauf-flug.js?v=3"), import("./lauf-effekte.js?v=3")])
+      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=31"), import("./lauf-ton.js?v=2"), import("./lauf-flug.js?v=3"), import("./lauf-effekte.js?v=3")])
         .then(([m, w, t, f, e]) => { THREE = m; T = t.ton(); aufbauen(w, f, e); losKnopf.disabled = false; losKnopf.textContent = text; });
     }
     return bereit;
@@ -143,6 +143,7 @@ if (rahmen) {
     if (renderer.capabilities.isWebGL2 && (ext.has("EXT_color_buffer_float") || ext.has("EXT_color_buffer_half_float"))) NB = fxModul.effekte(THREE, renderer, handy);
     schattenF = W.kontaktSchatten(1.1, 2.1); schattenA = W.kontaktSchatten(.9, .9); szene.add(schattenF, schattenA);
     tempoLinien = document.createElement("div"); tempoLinien.className = "lauf-tempo"; blende.after(tempoLinien);
+    duellAufbauen();
     qualitaetSetzen(qualitaet);
     neu();
     groesse(); new ResizeObserver(groesse).observe(huelle);
@@ -331,7 +332,7 @@ if (rahmen) {
   }
 
   function neu() {
-    flugAus();
+    duellAus(); flugAus();
     for (const ab of abschnitte) { szene.remove(ab.gruppe); W.entsorgen(ab.gruppe); }
     for (const p of teilchen) { szene.remove(p.k); teilchenLager[p.k.userData.art].push(p.k); }
     teilchen = [];
@@ -353,7 +354,7 @@ if (rahmen) {
 
   // ---------- Steuerung ----------
   function eingabe(art) {
-    if (zustand !== "laeuft" || FL.an) return;
+    if (zustand !== "laeuft" || FL.an || DU.an) return;
     const ab = abschnitte.find(a => a.nr === S.idx);
     if (art === "links" || art === "rechts") {
       const d = art === "links" ? -1 : 1;
@@ -371,6 +372,7 @@ if (rahmen) {
   const TASTEN = { ArrowLeft: "links", KeyA: "links", ArrowRight: "rechts", KeyD: "rechts", ArrowUp: "hoch", KeyW: "hoch", Space: "hoch", ArrowDown: "runter", KeyS: "runter" };
   addEventListener("keydown", (e) => {
     if ((e.code === "KeyP" || e.code === "Escape") && (zustand === "laeuft" || zustand === "pause")) { e.preventDefault(); pauseUm(); return; }
+    if (DU.an && (e.code === "KeyA" || e.code === "KeyB")) { e.preventDefault(); if (!e.repeat) duellTaste(e.code === "KeyA" ? "A" : "B"); return; }
     const art = TASTEN[e.code];
     if (!art || zustand !== "laeuft") return;
     e.preventDefault(); gedrueckt.add(art); flugTasten();
@@ -462,7 +464,7 @@ if (rahmen) {
     ergebnis.querySelector(".le-punkte b").textContent = p;
     ergebnis.querySelector(".le-sterne").textContent = sternZahl;
     ergebnis.querySelector(".le-meter").textContent = Math.round(strecke);
-    ergebnis.querySelector(".le-welt").textContent = FL.an ? (FL.art === "wasser" ? "Wasserwelt" : "Luftwelt") : W.zonen[Math.min(R.welt, W.zonen.length - 1)].name;
+    ergebnis.querySelector(".le-welt").textContent = DU.an ? "Kissenschlacht" : FL.an ? (FL.art === "wasser" ? "Wasserwelt" : "Luftwelt") : W.zonen[Math.min(R.welt, W.zonen.length - 1)].name;
     ergebnis.querySelector(".le-rekord").hidden = !neuerRekord;
     if (neuerRekord) T.rekord(); else T.ende();
     if (!tutorialFertig) { tutorialFertig = true; schreib("froebelinchen-rennt-tutorial", true); }
@@ -876,6 +878,7 @@ if (rahmen) {
 
   // ---------- Spielschritt ----------
   function schritt(dt) {
+    if (DU.an) { duellSchritt(dt); return; }
     if (FL.an) { flugSchritt(dt); return; }
     const tempoZiel = START_TEMPO + (MAX_TEMPO - START_TEMPO) * (1 - Math.exp(-R.zeit / 130));
     tempo = tempo < tempoZiel ? Math.min(tempoZiel, tempo + dt * 1.5) : tempoZiel;   // nach dem Stolpern wieder hochlaufen
@@ -889,10 +892,10 @@ if (rahmen) {
     S.s += v * dt; strecke += v * dt; punkte += v * dt * faktor;
     S.stolper = Math.max(0, S.stolper - dt);
     // 3000 Punkte: weiß überblenden, dann geht es im Flugzeug weiter (Level 2)
-    if (!FL.abflug && punkte >= FL.ab) { FL.abflug = .001; T.abflug(); meldung(`${FL.ab} Punkte!`, FL.naechsteArt === "wasser" ? `${NAME()} springt ins Boot …` : `${NAME()} steigt ins Flugzeug …`); }
+    if (!FL.abflug && punkte >= FL.ab) { FL.abflug = .001; T.abflug(); meldung(`${FL.ab} Punkte!`, FL.naechsteArt === "duell" ? `Marlena fordert ${NAME()} zur Kissenschlacht heraus!` : FL.naechsteArt === "wasser" ? `${NAME()} springt ins Boot …` : `${NAME()} steigt ins Flugzeug …`); }
     if (FL.abflug) {
       FL.abflug += dt; blende.style.opacity = Math.min(1, FL.abflug / .9);
-      if (FL.abflug >= .9) { flugStart(); return; }
+      if (FL.abflug >= .9) { if (FL.naechsteArt === "duell") duellStart(); else flugStart(); return; }
     }
     if (FL.rueck) { FL.rueck += dt; blende.style.opacity = Math.max(0, 1 - FL.rueck / .8); if (FL.rueck > .8) FL.rueck = 0; }
 
@@ -1024,6 +1027,7 @@ if (rahmen) {
     if (zustand === "pause") { zeichnen(); return; }
     if (zustand === "laeuft") { schritt(dt); leistungMessen(echt); }
     else if (zustand === "fang") schlussSchritt(dt);
+    if (DU.an) { duellBild(dt); return; }
     if (FL.an) { flugBild(dt); return; }
     const ab = abschnitte.find(a => a.nr === S.idx);
     const [px, pz] = punkt(ab, S.s, S.x), yaw = -ab.h * Math.PI / 2;
@@ -1196,7 +1200,7 @@ if (rahmen) {
     { const f = W.frauBauen(); f.gruppe.add(W.sprechblase(["Ich suche meine", "Autoschlüssel!"])); dazu(f.gruppe); }
     [FW.ring(), FW.heissluftballon(), FW.gewitter(), FW.voegel(), FW.insel(), FW.regenbogen(), FW.wolkenBallen(), W.froebelBanner(2, .5)].forEach(dazu);
     for (const art of ["staub", "funke", "dampf"]) { const k = teilchenHolen(art); dazu(k); }
-    const versteckt = [meer, flieger.gruppe, anjaFlieger.gruppe, strahlen, boot.gruppe, anjaBoot.gruppe, wasser, anja.gruppe, blase, schattenA, ...sternchen];   // auch was gerade unsichtbar ist
+    const versteckt = [buehne, meer, flieger.gruppe, anjaFlieger.gruppe, strahlen, boot.gruppe, anjaBoot.gruppe, wasser, anja.gruppe, blase, schattenA, ...sternchen];   // auch was gerade unsichtbar ist
     const sichtbar = versteckt.map(o => o.visible);
     for (const o of versteckt) o.visible = true;
     szene.add(g);
@@ -1264,6 +1268,162 @@ if (rahmen) {
       p.k.material.opacity = (1 - f) * (p.alpha || 1); if (p.wachsen) p.k.scale.setScalar(.25 + f * p.wachsen);
       return true;
     });
+  }
+
+
+  // ---------- Duell: Kissenschlacht gegen Marlena (2D-Seitenansicht) ----------
+  // Buchstaben A oder B fliegen von rechts auf einen Zielkreis zu. Ist einer im Kreis, drückt man den passenden Knopf
+  // (Tasten A/B oder die großen Knöpfe). Richtig: Kissen-Treffer. Falsch, zu früh oder verpasst: ein Herz weg.
+  // Nach 30 Sekunden (oder wenn Marlenas Balken leer ist) hat man gewonnen, bei 3 Fehlern gewinnt Marlena und die Runde ist vorbei.
+  const DUELL_ZEIT = 30, ZIEL = .22, TOLERANZ = .075;
+  const DU = { an: false, zeit: 0, intro: 0, fehler: 0, leben: 1, buchstaben: [], naechster: 0, ende: 0, sieg: false, ausblenden: 0, schlag: 0, gegen: 0, rueckF: 0, rueckM: 0 };
+  let buehne, marlena, kissenF, kissenM, duellUI;
+  function duellAufbauen() {
+    buehne = W.duellBuehne(); buehne.visible = false; szene.add(buehne);
+    marlena = W.marlenaBauen(); buehne.add(marlena.gruppe);
+    kissenF = W.kissen("#bfe3ff"); kissenM = W.kissen("#ffc1d9");
+    marlena.arme[1].unten.add(kissenM); kissenM.position.set(0, -.3, -.14); kissenM.rotation.x = Math.PI / 2;
+    duellUI = document.createElement("div"); duellUI.className = "duell"; duellUI.hidden = true;
+    duellUI.innerHTML = `<div class="du-kopf"><div class="du-balken links"><i></i><span class="du-name"></span></div><div class="du-zeit">30</div>
+      <div class="du-balken rechts"><i></i><span>Marlena</span></div></div><div class="du-herzen"></div>
+      <div class="du-bahn"><div class="du-ziel"></div></div>
+      <div class="du-knoepfe"><button type="button" data-b="A">A<small>Taste A</small></button><button type="button" data-b="B">B<small>Taste B</small></button></div>`;
+    tempoLinien.after(duellUI);
+    duellUI.querySelectorAll(".du-knoepfe button").forEach(k => k.addEventListener("pointerdown", (e) => { e.preventDefault(); duellTaste(k.dataset.b); }));
+  }
+  const duellBahn = () => duellUI.querySelector(".du-bahn");
+  function duellAnzeige() {
+    duellUI.querySelector(".du-zeit").textContent = Math.max(0, Math.ceil(DUELL_ZEIT - DU.zeit));
+    duellUI.querySelector(".du-herzen").textContent = "❤️".repeat(3 - DU.fehler) + "🤍".repeat(DU.fehler);
+    duellUI.querySelector(".rechts i").style.transform = `scaleX(${Math.max(0, DU.leben)})`;
+    duellUI.querySelector(".links i").style.transform = `scaleX(${(3 - DU.fehler) / 3})`;
+  }
+  function duellStart() {
+    DU.an = true; FL.art = "duell";
+    for (const ab of abschnitte) ab.gruppe.visible = false;
+    for (const o of [boden, ferneGruppe, W.luft]) o.visible = false;
+    schattenF.visible = schattenA.visible = false; anja.gruppe.visible = false; sternchen.forEach(st => { st.visible = false; });
+    buehne.visible = true;
+    // Figuren gegenüber auf der Matte; die Figur hält ihr Kissen im Maul
+    buehne.add(spieler.gruppe); spieler.gruppe.position.set(-1.8, .12, 0); spieler.gruppe.rotation.set(0, -Math.PI / 2, 0); spieler.gruppe.scale.setScalar(1);
+    spieler.koerper.rotation.set(0, 0, 0); blase.visible = false;
+    const ks = spieler.kopfSkala || 1;
+    spieler.kopf.add(kissenF); kissenF.position.set(0, -.1 * ks, -.3 * ks); kissenF.rotation.set(Math.PI / 2, 0, 0); kissenF.scale.setScalar(.8 * ks);
+    marlena.gruppe.position.set(1.8, .12, 0); marlena.gruppe.rotation.set(0, Math.PI / 2, 0);
+    DU.buchstaben.forEach(l => l.el.remove());
+    Object.assign(DU, { zeit: 0, intro: 1.6, fehler: 0, leben: 1, buchstaben: [], naechster: 0, ende: 0, sieg: false, ausblenden: 0, schlag: 0, gegen: 0, rueckF: 0, rueckM: 0 });
+    duellUI.querySelector(".du-name").textContent = NAME(); duellUI.hidden = false; duellAnzeige();
+    szene.fog.near = 40; szene.fog.far = 140; szene.fog.color.set("#f3e6cf"); himmelKugel.material.color.set("#ffffff");
+    stimmungSetzen(); kamPos = null; wackeln = 0;
+    T.welt(); T.musik(1);
+    meldung("Kissenschlacht!", handy ? "Tipp A oder B, wenn der Buchstabe im Kreis ist" : "Drück A oder B, wenn der Buchstabe im Kreis ist");
+  }
+  function duellAus() {
+    if (!buehne) return;
+    if (DU.an || buehne.visible) {
+      szene.add(spieler.gruppe); spieler.gruppe.position.set(0, 0, 0); spieler.gruppe.rotation.set(0, 0, 0); spieler.koerper.rotation.set(0, 0, 0);
+      spieler.beine.forEach(b => { b.oben.rotation.set(0, 0, 0); b.unten.rotation.set(0, 0, 0); });
+      for (const o of [boden, ferneGruppe]) o.visible = true;
+      W.luft.visible = qualitaet < 3; for (const ab of abschnitte) ab.gruppe.visible = true;
+      szene.fog.near = 45; szene.fog.far = 120;
+    }
+    if (kissenF.parent) kissenF.parent.remove(kissenF);
+    DU.buchstaben.forEach(l => l.el.remove()); DU.buchstaben = [];
+    DU.an = false; buehne.visible = false; duellUI.hidden = true;
+  }
+  function duellBlitz(klasse) { duellUI.classList.remove("fehler", "richtig"); void duellUI.offsetWidth; duellUI.classList.add(klasse); setTimeout(() => duellUI.classList.remove(klasse), 250); }
+  function buchstabeWeg(l, klasse) { l.weg = true; l.el.classList.add(klasse); setTimeout(() => l.el.remove(), 320); }
+  function duellFehler(text) {
+    DU.fehler++; DU.gegen = .4; DU.rueckF = .35; wackeln = .3; T.stolpern(); komboWeg(); duellBlitz("fehler");
+    if (navigator.vibrate) navigator.vibrate(60);
+    duellAnzeige();
+    if (DU.fehler >= 3) {
+      DU.buchstaben.forEach(l => buchstabeWeg(l, "daneben")); DU.buchstaben = [];
+      setTimeout(() => { duellUI.hidden = true; }, 400);
+      verlieren("Marlena hat die Kissenschlacht gewonnen!", "duell");
+    } else meldung(text, `Noch ${3 - DU.fehler} ${3 - DU.fehler === 1 ? "Herz" : "Herzen"}`);
+  }
+  function duellSieg(titel) {
+    DU.ende = 1.6; DU.sieg = true; punkte += 1000; sternZahl += 25; T.rekord();
+    DU.buchstaben.forEach(l => buchstabeWeg(l, "weg")); DU.buchstaben = [];
+    meldung(titel, "+1.000 Punkte · +25 ★");
+    const wo = marlena.gruppe.getWorldPosition(new THREE.Vector3()); wo.y += 1.6;
+    for (const farbe of ["#ffd54a", "#3baa35", "#ff7aa2", "#6ec6ff"]) funkeln(wo, farbe, 10);
+  }
+  function duellTaste(b) {
+    if (!DU.an || zustand !== "laeuft" || DU.ende || DU.intro > 0) return;
+    let best = null;
+    for (const l of DU.buchstaben) if (!l.weg && Math.abs(l.x - ZIEL) <= TOLERANZ && (!best || Math.abs(l.x - ZIEL) < Math.abs(best.x - ZIEL))) best = l;
+    if (!best) { duellFehler("Zu früh!"); return; }
+    if (best.b !== b) { buchstabeWeg(best, "daneben"); duellFehler("Falscher Buchstabe!"); return; }
+    buchstabeWeg(best, "weg"); duellBlitz("richtig");
+    DU.schlag = .35; DU.rueckM = .35; DU.leben -= .06; punkte += 50; T.schubs(); GE.freude = .35;
+    const wo = marlena.zopf.parent.getWorldPosition(new THREE.Vector3());   // Kopf (Zopf hängt am Kopf)
+    funkeln(wo, "#ffffff", 10);
+    duellAnzeige();
+    if (DU.leben <= 0) duellSieg("K.O.! Gewonnen!");
+  }
+  function duellSchritt(dt) {
+    R.zeit += dt;
+    if (FL.abflug) { FL.abflug += dt; blende.style.opacity = Math.max(0, 1 - (FL.abflug - .9) / .8); if (FL.abflug > 1.7) FL.abflug = 0; }
+    for (const k of ["schlag", "gegen", "rueckF", "rueckM"]) DU[k] = Math.max(0, DU[k] - dt);
+    if (DU.ausblenden) {                                // nach dem Sieg: weiß überblenden und zurück in die Laufwelt
+      DU.ausblenden += dt; blende.style.opacity = Math.min(1, DU.ausblenden / .9);
+      if (DU.ausblenden >= .9) { DU.ausblenden = 0; flugLanden(); }
+      return;
+    }
+    if (DU.ende) { DU.ende -= dt; if (DU.ende <= 0) { DU.ende = 0; DU.ausblenden = .001; T.abflug(); } return; }
+    if (DU.intro > 0) { DU.intro -= dt; return; }
+    DU.zeit += dt;
+    if (DU.zeit >= DUELL_ZEIT) { duellSieg("Gewonnen!"); return; }
+    // neue Buchstaben, mit der Zeit öfter und schneller
+    DU.naechster -= dt;
+    if (DU.naechster <= 0) {
+      DU.naechster = Math.max(.62, 1.2 - DU.zeit * .018);
+      const b = Math.random() < .5 ? "A" : "B", el = document.createElement("div");
+      el.className = "du-buchstabe " + b.toLowerCase(); el.textContent = b; duellBahn().append(el);
+      DU.buchstaben.push({ b, x: 1.08, el, weg: false });
+    }
+    const v = .55 + DU.zeit * .012;
+    for (const l of DU.buchstaben) {
+      if (l.weg) continue;
+      l.x -= v * dt; l.el.style.left = (l.x * 100).toFixed(2) + "%";
+      if (l.x < ZIEL - TOLERANZ) { buchstabeWeg(l, "daneben"); duellFehler("Verpasst!"); if (zustand !== "laeuft") return; }
+    }
+    DU.buchstaben = DU.buchstaben.filter(l => !l.weg);
+    duellAnzeige();
+    hudZeigen();
+  }
+  function duellBild(dt) {
+    const t = performance.now() / 1000, g = spieler.gruppe;
+    // Fröbelinchen (bzw. die gewählte Figur): steht, wippt, haut beim Treffer mit dem Kissen im Vorderbein zu
+    spieler.beine.forEach((b, i) => { b.oben.rotation.x = Math.sin(t * 6 + i) * .06; b.unten.rotation.x = 0; });
+    const pS = DU.schlag > 0 ? Math.sin((1 - DU.schlag / .35) * Math.PI) : 0;
+    spieler.beine[1].oben.rotation.x = pS * .7;        // beim Zuhauen ein kleiner Satz nach vorn, das Kissen schwingt mit dem Kopf
+    spieler.koerper.position.y = Math.abs(Math.sin(t * 5)) * .04 + pS * .12;
+    spieler.hals.rotation.x = Math.sin(t * 2) * .06 - pS * .6;
+    const hoch = kamera.aspect < .8, abst = hoch ? 1.45 : 1.8;   // im Hochformat stehen beide etwas näher beisammen
+    g.position.x = -abst - (DU.rueckF > 0 ? Math.sin(DU.rueckF / .35 * Math.PI) * .35 : 0);
+    // Marlena: federt auf den Füßen, holt bei Fehlern mit dem Kissen aus, weicht bei Treffern zurück
+    const pM = DU.gegen > 0 ? Math.sin((1 - DU.gegen / .4) * Math.PI) : 0;
+    marlena.k.position.y = Math.abs(Math.sin(t * 5.5)) * .05; marlena.k.rotation.x = -.05 - (DU.rueckM > 0 ? Math.sin(DU.rueckM / .35 * Math.PI) * .25 : 0);
+    marlena.beine.forEach((b, i) => { b.oben.rotation.x = (i ? -.25 : .25) + Math.sin(t * 5.5) * .05; b.unten.rotation.x = -.35; });
+    marlena.arme[1].oben.rotation.x = .7 + pM * 1.5; marlena.arme[1].unten.rotation.x = .5 - pM * .3;
+    marlena.arme[0].oben.rotation.x = .3 + Math.sin(t * 3) * .1; marlena.arme[0].unten.rotation.x = .9;
+    marlena.zopf.rotation.x = .12 + Math.sin(t * 5.5) * .08;
+    marlena.gruppe.position.x = abst + (DU.rueckM > 0 ? Math.sin(DU.rueckM / .35 * Math.PI) * .35 : 0);
+    // Kamera seitlich: alles wie in einem 2D-Kampfspiel nebeneinander
+    // im Hochformat so weit weg, dass rund 6 m Breite ins Bild passen (beide Figuren samt Ausholen)
+    kamera.position.set(0, hoch ? 2 : 1.6, hoch ? Math.min(16, 3.1 / (Math.tan(25 * Math.PI / 180) * kamera.aspect)) : 8.6);
+    if (wackeln > 0) { wackeln = Math.max(0, wackeln - dt); kamera.position.x += (Math.random() - .5) * wackeln * .5; kamera.position.y += (Math.random() - .5) * wackeln * .3; }
+    kamera.lookAt(0, hoch ? 1.5 : 1.25, 0);
+    kamera.fov += ((hoch ? 50 : 40) - kamera.fov) * Math.min(1, dt * 6); kamera.updateProjectionMatrix();
+    himmelKugel.position.copy(kamera.position); sonnenBild.position.set(kamera.position.x - 85, 95, kamera.position.z + 50);
+    schattenNachfuehren(0, 0);
+    gesicht(dt, .3);
+    W.animieren(t); lichtSchritt(dt);
+    teilchenSchritt(dt);
+    zeichnen();
   }
 
   // ---------- Level 2: Luftwelt ----------
@@ -1334,7 +1494,7 @@ if (rahmen) {
   }
   // Nach einer Minute: weiß überblenden und in der Laufwelt auf einem neuen Wegstück weiterrennen
   function flugLanden() {
-    flugAus();
+    duellAus(); flugAus();
     for (const ab of abschnitte) { szene.remove(ab.gruppe); W.entsorgen(ab.gruppe); }
     abschnitte = []; hindernisse = []; sterne = []; booster = [];
     startNr = S.idx + 1;
@@ -1344,10 +1504,12 @@ if (rahmen) {
     Object.assign(A, { nah: false, zeit: 0, abstand: 18, bis: 8 });
     kamYaw = 0; kamPos = null;
     FL.ab = Math.floor(punkte) + FLUG_AB;          // nächste Phase nach 3000 zu Fuß gesammelten Punkten, abwechselnd Luft und Wasser
-    const warNass = FL.art === "wasser"; FL.naechsteArt = warNass ? "luft" : "wasser";
+    const FOLGE = ["luft", "wasser", "duell"], warNass = FL.art === "wasser", warDuell = FL.art === "duell";
+    FL.naechsteArt = FOLGE[(FOLGE.indexOf(FL.art) + 1) % FOLGE.length];
     FL.rueck = .001; blende.style.opacity = 1;
     T.welt(); T.musik(aktZone);
-    meldung(warNass ? "Wieder an Land!" : "Gelandet!", `${W.zonen[aktZone].name} · ${FL.naechsteArt === "wasser" ? "Bootsfahrt" : "nächster Flug"} in ${FLUG_AB.toLocaleString("de-DE")} Punkten`);
+    meldung(warDuell ? "Weiter geht's!" : warNass ? "Wieder an Land!" : "Gelandet!",
+      `${W.zonen[aktZone].name} · ${{ luft: "nächster Flug", wasser: "Bootsfahrt", duell: "Kissenschlacht" }[FL.naechsteArt]} in ${FLUG_AB.toLocaleString("de-DE")} Punkten`);
   }
 
   // Eine „Reihe“ im Himmel: Ring mit Sternenspur, Sternenbogen oder Hindernisse; dazu Inseln und Wolken am Rand
