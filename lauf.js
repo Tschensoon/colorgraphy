@@ -78,7 +78,7 @@ if (rahmen) {
   let zustand = "start", tempo, punkte, sternZahl, strecke, wackeln = 0, schlussSzene = null;
   const S = { idx: 0, s: 0, spur: 0, x: 0, y: 0, vy: 0, duck: 0, abbiegen: 0, stolper: 0, lauf: 0, sprungPuffer: 0, eis: 0, lande: 0 };
   const A = { nah: false, zeit: 0, abstand: 16, bis: 5, lauf: 0, schritt: 0 };
-  const R = { anjaPhase: false, tempoF: 1, booster: 0, schubs: 0, welt: 0, zeit: 0, flug: 0, ringe: 0, frauBei: 20, kombo: 0, fahne: false, jubel: false };    // Werte dieser Runde für Aufgaben, Ergebnis und Bestenliste
+  const R = { fluege: 0, anjaPhase: false, tempoF: 1, booster: 0, schubs: 0, welt: 0, zeit: 0, flug: 0, ringe: 0, frauBei: 20, kombo: 0, fahne: false, jubel: false };    // Werte dieser Runde für Aufgaben, Ergebnis und Bestenliste
   const tipps = new Set();
 
   const richtung = (h) => h === 0 ? [0, -1] : [h, 0];           // Norden = -z, Osten = +x, Westen = -x
@@ -330,7 +330,7 @@ if (rahmen) {
     FL.ab = FLUG_AB; FL.rueck = 0;
     aktZone = 0; W.zoneWechsel(0, true); stimmungSetzen(true);
     Object.assign(B, { turbo: 0, schild: 0, ruhe: 0, magnet: 0, doppelt: 0, schubs: null });
-    Object.assign(R, { anjaPhase: false, tempoF: 1, booster: 0, schubs: 0, welt: 0, zeit: 0, flug: 0, ringe: 0, frauBei: 20, kombo: 0, fahne: false, jubel: false });
+    Object.assign(R, { fluege: 0, anjaPhase: false, tempoF: 1, booster: 0, schubs: 0, welt: 0, zeit: 0, flug: 0, ringe: 0, frauBei: 20, kombo: 0, fahne: false, jubel: false });
     tempo = START_TEMPO; punkte = 0; sternZahl = 0; strecke = 0; wackeln = 0; schlussSzene = null;
     Object.assign(S, { idx: 0, s: 0, spur: 0, x: 0, y: 0, vy: 0, duck: 0, abbiegen: 0, stolper: 0, sprungPuffer: 0, eis: 0, lande: 0 });
     Object.assign(A, { nah: false, zeit: 0, abstand: 16, bis: 5 });
@@ -806,7 +806,7 @@ if (rahmen) {
   function hudZeigen() {
     let t = `${Math.floor(punkte)} Punkte · ★ ${sternZahl}`;
     if (komboFaktor() > 1) t += ` · 🔥×${komboFaktor()}`;
-    if (FL.an) t += ` · ✈ ${Math.max(0, Math.ceil(FLUG_ZEIT - FL.zeit))} s`;
+    if (FL.an) t += ` · ✈ ${Math.max(0, Math.ceil(FL.dauer - FL.zeit))} s`;
     if (B.turbo > 0) t += ` · ⚡ ${Math.ceil(B.turbo)}`;
     if (B.magnet > 0) t += ` · 🧲 ${Math.ceil(B.magnet)}`;
     if (B.doppelt > 0) t += ` · ×2 ${Math.ceil(B.doppelt)}`;
@@ -1238,7 +1238,7 @@ if (rahmen) {
   // Ab 3000 Punkten fliegt Fröbelinchen eine Minute lang in ihrem Spielzeug-Flugzeug nach Norden (-z). Finger ziehen bzw. Pfeiltasten lenken
   // frei nach links, rechts, oben und unten. Durch Ringe fliegen gibt Punkte; Ballons, Gewitterwolken und Vögel bringen sie
   // ins Trudeln, dann holt Anja in ihrem eigenen Flieger auf (wie das Stolpern am Boden).
-  const FLUG_AB = 3000, FLUG_ZEIT = 60, FX = 7, FY0 = 3, FY1 = 13;
+  const FLUG_AB = 3000, FLUG_ERSTER = 60, FLUG_WEITERE = 30, FX = 7, FY0 = 3, FY1 = 13;   // erster Flug eine Minute, jeder weitere 30 Sekunden
   const FL = { an: false, abflug: 0, x: 0, y: 7, z: 0, zx: 0, zy: 7, v: 18, neig: 0, nick: 0, naechst: 0, strecke: 0, trudeln: 0,
     regenbogen: 0, objekte: [], tasten: { x: 0, y: 0 }, ax: 0, ay: 7, ab: 3000, zeit: 0, landung: 0, rueck: 0, gewarnt: false };
   let FW, flieger, anjaFlieger, meer, flugGruppe, blende, strahlen;
@@ -1254,7 +1254,7 @@ if (rahmen) {
     renderer.domElement.after(blende);                  // direkt über dem Bild, Anzeigen und Meldungen bleiben darüber sichtbar
   }
   function flugStart() {
-    FL.an = true; R.flug = 1;
+    FL.an = true; R.flug = 1; R.fluege++; FL.dauer = R.fluege === 1 ? FLUG_ERSTER : FLUG_WEITERE;
     for (const ab of abschnitte) ab.gruppe.visible = false;
     for (const o of [boden, ferneGruppe, W.luft]) o.visible = false;
     for (const o of [flieger.gruppe, anjaFlieger.gruppe, meer, flugGruppe]) o.visible = true;
@@ -1376,8 +1376,8 @@ if (rahmen) {
   }
   function flugSchritt(dt) {
     R.zeit += dt; FL.zeit += dt; rekordPruefen(); anjaPhasePruefen();
-    if (!FL.gewarnt && FL.zeit >= FLUG_ZEIT - 4) { FL.gewarnt = true; meldung("Gleich wird gelandet!", "Noch ein paar Ringe mitnehmen"); }
-    if (FL.zeit >= FLUG_ZEIT && !FL.landung) { FL.landung = .001; T.abflug(); }
+    if (!FL.gewarnt && FL.zeit >= FL.dauer - 4) { FL.gewarnt = true; meldung("Gleich wird gelandet!", "Noch ein paar Ringe mitnehmen"); }
+    if (FL.zeit >= FL.dauer && !FL.landung) { FL.landung = .001; T.abflug(); }
     if (FL.landung) {
       FL.landung += dt; blende.style.opacity = Math.min(1, FL.landung / .9);
       if (FL.landung >= .9) { flugLanden(); return; }
