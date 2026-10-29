@@ -290,3 +290,15 @@ body.spiel-offen { overflow: hidden; }
 .lauf-tipp { margin: 0; font-size: .85rem; color: #4b5b56; }
 .lauf-overlay.ergebnis .lauf-tipp { display: none; }
 .lauf-rahmen.touch .lauf-anleitung b.nur-touch { display: inline; }
+
+/* Ergebnis: Eintragen für die Bestenliste direkt unter den Punkten (am Handy ohne Scrollen sichtbar), Werte danach, alles etwas kompakter */
+.lauf-overlay.ergebnis .lauf-ergebnis:not([hidden]) { display: flex; flex-direction: column; align-items: stretch; gap: .45rem; }
+.lauf-overlay .le-punkte { order: 0; } .lauf-overlay .le-rekord { order: 1; align-self: center; }
+.lauf-overlay .lauf-eintragen { order: 2; width: 100%; max-width: none; margin: 0; padding: .55rem .6rem .6rem; border-radius: 14px; background: #fff6d6; }
+.lauf-overlay .lauf-eintragen label { margin-bottom: .3rem; font-weight: 700; color: #5a3d00; }
+.lauf-overlay .le-werte { order: 3; margin-top: 0; }
+.lauf-overlay.ergebnis .lauf-titel { font-size: 1.15rem; }
+.lauf-overlay.ergebnis .lauf-text { font-size: .8rem; }
+.lauf-overlay.ergebnis .le-punkte b { font-size: 2.1rem; }
+.lauf-overlay.ergebnis .le-werte li { padding: .3rem .4rem; }
+.lauf-overlay.ergebnis .le-werte b { font-size: .95rem; }

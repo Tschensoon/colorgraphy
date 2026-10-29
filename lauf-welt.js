@@ -433,7 +433,7 @@ export function welt(T, handy) {
       fotoGanz: [[0, .75, -.1], [2.3, 1.6, -3.3]], fotoRuecken: [[0, 1.2, .1], [1.7, 2.3, 2.2]] },
     hase: { name: "Rambo Rabbit", blick: .95, rueckenY: -.61, blaseY: .75, blaseS: 1, cockpit: [.05, .4, .6], kopfSkala: 1.1, halsSkala: .9,
       fotoGanz: [[0, .85, -.1], [2.3, 1.6, -3.2]], fotoRuecken: [[0, 1.1, .1], [1.6, 2.1, 2.0]] },
-    baer: { name: "Bäralf", blick: 1.05, rueckenY: -.43, blaseY: .85, blaseS: 1.15, cockpit: [-.05, .35, .48], kopfSkala: 1.5, halsSkala: 1.35,
+    baer: { name: "Baylin", blick: 1.05, rueckenY: -.43, blaseY: .85, blaseS: 1.15, cockpit: [-.05, .35, .48], kopfSkala: 1.5, halsSkala: 1.35,
       fotoGanz: [[0, .95, -.1], [2.7, 1.8, -3.7]], fotoRuecken: [[0, 1.25, .1], [1.9, 2.4, 2.3]] },
     elefant: { name: "Jensfant", blick: 1.3, rueckenY: -.07, blaseY: 1.05, blaseS: 1.4, cockpit: [-.15, .35, .38], kopfSkala: 2, halsSkala: 1.8,
       fotoGanz: [[0, 1.2, -.2], [3.4, 2.2, -4.6]], fotoRuecken: [[0, 1.55, .1], [2.4, 3, 2.8]] },
@@ -492,7 +492,7 @@ export function welt(T, handy) {
     return { gruppe: g, koerper, hals, kopf, beine, schwanz, augen, ohren, ...FIGUR_INFO.leo };
   }
 
-  // ---------- Weitere Figuren zum Freischalten: Rambo Rabbit, Bäralf, Jensfant ----------
+  // ---------- Weitere Figuren zum Freischalten: Rambo Rabbit, Baylin, Jensfant ----------
   // Zwei Farben über das Attribut „hell“ (Bauch, Schnauze), ohne Muster
   function zweiFarbenMat(name, haupt, hell, sheen) {
     const m = new T.MeshPhysicalMaterial({ color: "#ffffff", roughness: 1, sheen: 1, sheenRoughness: .5, sheenColor: new T.Color(sheen) });
@@ -566,7 +566,7 @@ export function welt(T, handy) {
     return { gruppe: g, koerper, hals, kopf, beine, schwanz, augen, ohren, ...FIGUR_INFO.hase };
   }
 
-  // --- Bäralf: brauner Teddybär mit heller Schnauze ---
+  // --- Baylin: brauner Teddybär mit heller Schnauze ---
   const baerFell = zweiFarbenMat("baer", "#8a5a33", "#dcb88e", "#e8c39a"), baerBein = pluesch("#8a5a33", "#e8c39a"),
     baerHell = pluesch("#dcb88e", "#fff0d8"), baerNase = std({ color: "#2b1d14", roughness: .3 });
   let baerFormen = null;
@@ -643,7 +643,7 @@ export function welt(T, handy) {
   }
   const FIGUREN = {
     giraffe: { bauen: () => giraffeBauen(), name: "Fröbelinchen" }, leo: { bauen: () => leoBauen(), name: "Leo" },
-    hase: { bauen: haseBauen, name: "Rambo Rabbit" }, baer: { bauen: baerBauen, name: "Bäralf" }, elefant: { bauen: elefantBauen, name: "Jensfant" },
+    hase: { bauen: haseBauen, name: "Rambo Rabbit" }, baer: { bauen: baerBauen, name: "Baylin" }, elefant: { bauen: elefantBauen, name: "Jensfant" },
   };
   const figurBauen = (id) => (FIGUREN[id] || FIGUREN.giraffe).bauen();
 
