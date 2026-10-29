@@ -61,6 +61,9 @@ if (rahmen) {
 
   // ---------- Spielwerte ----------
   const SPUR = 1.6, H = 2.9, ECKE = 12;           // Spurbreite, halbe Wegbreite, Abbiegezone vor der Ecke
+  // Ab vielen Punkten in einer Runde wird alles schneller (Laufen und Fliegen)
+  const TEMPO_STUFEN = [[40000, 1.4], [30000, 1.3], [20000, 1.2], [10000, 1.1]];   // alle 10.000 Punkte etwas schneller
+  const tempoFaktor = () => { for (const [p, f] of TEMPO_STUFEN) if (punkte >= p) return f; return 1; };
   const START_TEMPO = 9, MAX_TEMPO = 21, BESCHL = .1;
   const SPRUNG = 7.2, G = 22, DUCKEN = .75, PUFFER = .15;
   let renderer, szene, kamera, uhr, boden, spieler, anja;
@@ -72,7 +75,7 @@ if (rahmen) {
   let zustand = "start", tempo, punkte, sternZahl, strecke, wackeln = 0, schlussSzene = null;
   const S = { idx: 0, s: 0, spur: 0, x: 0, y: 0, vy: 0, duck: 0, abbiegen: 0, stolper: 0, lauf: 0, sprungPuffer: 0, eis: 0, lande: 0 };
   const A = { nah: false, zeit: 0, abstand: 16, bis: 5, lauf: 0, schritt: 0 };
-  const R = { booster: 0, schubs: 0, welt: 0, zeit: 0, flug: 0, ringe: 0, frauBei: 20, kombo: 0, fahne: false, jubel: false };    // Werte dieser Runde für Aufgaben, Ergebnis und Bestenliste
+  const R = { tempoF: 1, booster: 0, schubs: 0, welt: 0, zeit: 0, flug: 0, ringe: 0, frauBei: 20, kombo: 0, fahne: false, jubel: false };    // Werte dieser Runde für Aufgaben, Ergebnis und Bestenliste
   const tipps = new Set();
 
   const richtung = (h) => h === 0 ? [0, -1] : [h, 0];           // Norden = -z, Osten = +x, Westen = -x
@@ -235,7 +238,7 @@ if (rahmen) {
   // und es bleibt immer mindestens eine Spur frei. Mit der Zeit kommen schwerere Muster dazu.
   function hindernisseVerteilen(ab, setze) {
     const schwer = Math.min(1, ab.nr / 30);
-    const tempoDort = Math.min(MAX_TEMPO, START_TEMPO + ab.nr * .45);
+    const tempoDort = Math.min(MAX_TEMPO, START_TEMPO + ab.nr * .45) * tempoFaktor();   // schneller: Hindernisse weiter auseinander
     const mindest = tempoDort * .95 + 3;              // gut eine Sekunde Reaktionszeit
     let s = ab.erster ? 24 : 14;
     while (s < ab.L - 11) {
@@ -322,7 +325,7 @@ if (rahmen) {
     FL.ab = FLUG_AB; FL.rueck = 0;
     aktZone = 0; W.zoneWechsel(0, true); stimmungSetzen(true);
     Object.assign(B, { turbo: 0, schild: 0, ruhe: 0, magnet: 0, doppelt: 0, schubs: null });
-    Object.assign(R, { booster: 0, schubs: 0, welt: 0, zeit: 0, flug: 0, ringe: 0, frauBei: 20, kombo: 0, fahne: false, jubel: false });
+    Object.assign(R, { tempoF: 1, booster: 0, schubs: 0, welt: 0, zeit: 0, flug: 0, ringe: 0, frauBei: 20, kombo: 0, fahne: false, jubel: false });
     tempo = START_TEMPO; punkte = 0; sternZahl = 0; strecke = 0; wackeln = 0; schlussSzene = null;
     Object.assign(S, { idx: 0, s: 0, spur: 0, x: 0, y: 0, vy: 0, duck: 0, abbiegen: 0, stolper: 0, sprungPuffer: 0, eis: 0, lande: 0 });
     Object.assign(A, { nah: false, zeit: 0, abstand: 16, bis: 5 });
@@ -340,7 +343,7 @@ if (rahmen) {
     if (art === "links" || art === "rechts") {
       const d = art === "links" ? -1 : 1;
       // in der Abbiegezone wird ein Wisch in Abbiege-Richtung vorgemerkt, auch wenn er etwas früh kommt
-      if (ab.L - S.s < ECKE && S.s < ab.L + .6 && d === ab.dreh) { if (!S.abbiegen) T.spur(); S.abbiegen = d; return; }
+      if (ab.L - S.s < ECKE * tempoFaktor() && S.s < ab.L + .6 && d === ab.dreh) { if (!S.abbiegen) T.spur(); S.abbiegen = d; return; }
       const neu = Math.max(-1, Math.min(1, S.spur + d));
       if (neu !== S.spur) { S.spur = neu; T.spur(); }
     } else if (art === "hoch") {
@@ -765,6 +768,13 @@ if (rahmen) {
     zab.gruppe.add(f); fahne = f; fahneOrt = { nr: zab.nr, s };
   }
   let fahne = null, fahneOrt = null;
+  // neue Tempo-Stufe erreicht: kurz ankündigen
+  function tempoPruefen() {
+    const f = tempoFaktor();
+    if (f <= R.tempoF) return;
+    R.tempoF = f; T.booster(); wackeln = Math.max(wackeln, .25);
+    meldung("Noch schneller!", `${TEMPO_STUFEN.find(t => t[1] === f)[0].toLocaleString("de-DE")} Punkte · Tempo ×${String(f).replace(".", ",")}`);
+  }
   function rekordPruefen() {
     if (R.jubel || rekord <= 0 || punkte <= rekord) return;
     // steht eine Fahne am Weg, wird erst beim Vorbeilaufen gejubelt (Törtchen bringen einen manchmal etwas früher über den Rekord)
@@ -824,7 +834,8 @@ if (rahmen) {
   function schritt(dt) {
     if (FL.an) { flugSchritt(dt); return; }
     tempo = Math.min(MAX_TEMPO, tempo + BESCHL * dt); R.zeit += dt;
-    const v = tempo * (S.stolper > 0 ? .6 : 1) * (B.turbo > 0 ? 1.35 : 1);
+    tempoPruefen();
+    const v = tempo * tempoFaktor() * (S.stolper > 0 ? .6 : 1) * (B.turbo > 0 ? 1.35 : 1);
     for (const k of ["turbo", "schild", "ruhe", "magnet", "doppelt"]) B[k] = Math.max(0, B[k] - dt);
     const faktor = B.doppelt > 0 ? 2 : 1;
     const unverwundbar = B.schild > 0 || !!B.schubs || FL.abflug > 0 || FL.rueck > 0;
@@ -977,7 +988,7 @@ if (rahmen) {
     // beim Schubser dreht sie sich kurz um (zu Anja nach hinten) und wieder zurück
     const umdrehen = B.schubs ? Math.max(0, Math.sin(Math.min(1, Math.max(0, (B.schubs.t - .45) / 1.1)) * Math.PI)) : 0;
     g.rotation.y = winkel(g.rotation.y, yaw + umdrehen * Math.PI, Math.min(1, dt * 12));
-    if (lauft) S.lauf += dt * tempo * (A.nah ? 1.5 : 1.1) * (B.turbo > 0 ? 1.35 : 1);
+    if (lauft) S.lauf += dt * tempo * tempoFaktor() * (A.nah ? 1.5 : 1.1) * (B.turbo > 0 ? 1.35 : 1);
     spieler.beine.forEach((b, i) => {      // diagonal gleiche Beine, Knie knicken nach hinten
       const ph = S.lauf + (i === 0 || i === 3 ? 0 : Math.PI), vorn = i < 2;
       if (S.y > 0) { b.oben.rotation.x = vorn ? .6 : -.5; b.unten.rotation.x = vorn ? -1.2 : -.5; return; }
@@ -1358,7 +1369,8 @@ if (rahmen) {
     FL.v = Math.min(30, FL.v + .15 * dt);
     for (const k of ["turbo", "schild", "ruhe", "magnet", "doppelt"]) B[k] = Math.max(0, B[k] - dt);
     const faktor = B.doppelt > 0 ? 2 : 1, unverwundbar = B.schild > 0 || FL.abflug > 0 || FL.landung > 0;
-    const v = FL.v * (B.turbo > 0 ? 1.3 : 1) * (FL.trudeln > 0 ? .75 : 1);
+    tempoPruefen();
+    const v = FL.v * tempoFaktor() * (B.turbo > 0 ? 1.3 : 1) * (FL.trudeln > 0 ? .75 : 1);
     const zAlt = FL.z;
     FL.z -= v * dt; strecke += v * dt; FL.strecke += v * dt; punkte += v * dt * faktor;
     if (FL.abflug) {                                     // Blende wieder ausblenden
