@@ -62,9 +62,12 @@ if (rahmen) {
   // ---------- Spielwerte ----------
   const SPUR = 1.6, H = 2.9, ECKE = 12;           // Spurbreite, halbe Wegbreite, Abbiegezone vor der Ecke
   // Ab vielen Punkten in einer Runde wird alles schneller (Laufen und Fliegen)
-  const TEMPO_STUFEN = [[40000, 1.4], [30000, 1.3], [20000, 1.2], [10000, 1.1]];   // alle 10.000 Punkte etwas schneller
+  const TEMPO_STUFEN = [[40000, 1.2], [30000, 1.15], [20000, 1.1], [10000, 1.05]];   // alle 10.000 Punkte etwas schneller (nie über ~22 m/s)
+  // Schwierigkeit 0–4: dieselben Stufen machen das Spiel auch dichter (mehr Hindernisse, weniger Schutz, Anja öfter)
+  const schwerStufe = () => TEMPO_STUFEN.filter(([p]) => punkte >= p).length;
+  const ANJA_PHASE = 40000;                         // ab hier bleibt Anja dicht dran: jeder Stolperer beendet die Runde
   const tempoFaktor = () => { for (const [p, f] of TEMPO_STUFEN) if (punkte >= p) return f; return 1; };
-  const START_TEMPO = 9, MAX_TEMPO = 21, BESCHL = .1;
+  const START_TEMPO = 9, MAX_TEMPO = 18;          // Grundtempo steigt als weiche Kurve: ~15 m/s nach 2 min, ~18 nach 6 min
   const SPRUNG = 7.2, G = 22, DUCKEN = .75, PUFFER = .15;
   let renderer, szene, kamera, uhr, boden, spieler, anja;
   let startNr = 0;                                 // Nummer des ersten Abschnitts (nach der Landung geht es weiter)
@@ -75,7 +78,7 @@ if (rahmen) {
   let zustand = "start", tempo, punkte, sternZahl, strecke, wackeln = 0, schlussSzene = null;
   const S = { idx: 0, s: 0, spur: 0, x: 0, y: 0, vy: 0, duck: 0, abbiegen: 0, stolper: 0, lauf: 0, sprungPuffer: 0, eis: 0, lande: 0 };
   const A = { nah: false, zeit: 0, abstand: 16, bis: 5, lauf: 0, schritt: 0 };
-  const R = { tempoF: 1, booster: 0, schubs: 0, welt: 0, zeit: 0, flug: 0, ringe: 0, frauBei: 20, kombo: 0, fahne: false, jubel: false };    // Werte dieser Runde für Aufgaben, Ergebnis und Bestenliste
+  const R = { anjaPhase: false, tempoF: 1, booster: 0, schubs: 0, welt: 0, zeit: 0, flug: 0, ringe: 0, frauBei: 20, kombo: 0, fahne: false, jubel: false };    // Werte dieser Runde für Aufgaben, Ergebnis und Bestenliste
   const tipps = new Set();
 
   const richtung = (h) => h === 0 ? [0, -1] : [h, 0];           // Norden = -z, Osten = +x, Westen = -x
@@ -219,7 +222,9 @@ if (rahmen) {
     if (!erster && Math.random() < .5) {
       const bs = zufall(14, L - 14);
       if (!hindernisse.some(o => o.nr === nr && Math.abs(o.s - bs) < 4)) {
-        const r = Math.random(), typ = r < .24 ? "turbo" : r < .48 ? "schild" : r < .66 ? "schubs" : r < .83 ? "magnet" : "doppelt";
+        const r = Math.random();
+        let typ = r < .24 ? "turbo" : r < .48 ? "schild" : r < .66 ? "schubs" : r < .83 ? "magnet" : "doppelt";
+        if ((typ === "schild" || typ === "schubs") && (R.anjaPhase || Math.random() < schwerStufe() * .18)) typ = wahl(["turbo", "magnet", "doppelt"]);   // später seltener Schutz
         const sp = wahl([-1, 0, 1]);
         booster.push({ nr, s: bs, spur: sp, typ, mesh: setze(W.booster(typ), bs, sp * SPUR, 1.05), weg: false });
       }
@@ -244,11 +249,11 @@ if (rahmen) {
     while (s < ab.L - 11) {
       const typ = hindernisNeu(ab, s, setze, schwer, null);
       // Kombination: kurz danach ein zweites Hindernis, das man mit einer Bewegung schafft
-      if (schwer > .25 && Math.random() < .2 + .35 * schwer && s + tempoDort * .7 + 2 < ab.L - 11) {
+      if (schwer > .25 && Math.random() < .2 + .35 * schwer + schwerStufe() * .08 && s + tempoDort * .7 + 2 < ab.L - 11) {
         s += tempoDort * .7 + 2;
         hindernisNeu(ab, s, setze, schwer, typ);
       }
-      s += mindest * (1.35 - .35 * schwer) + zufall(0, 7 * (1 - schwer) + 2);
+      s += mindest * Math.max(.85, 1.35 - .35 * schwer - schwerStufe() * .06) + zufall(0, 7 * (1 - schwer) + 2);
     }
   }
   // Art des Hindernisses: block = ausweichen (sonst Rundenende), niedrig = drüberspringen, hoch = ducken, eis = rutschig
@@ -259,7 +264,7 @@ if (rahmen) {
   function hindernisNeu(ab, s, setze, schwer, vorher) {
     const extra = WELT_HINDERNISSE[ab.zone] || [];
     let typ;
-    if (extra.length && Math.random() < .4) typ = wahl(extra);
+    if (extra.length && Math.random() < .4 + schwerStufe() * .08) typ = wahl(extra);   // später mehr bewegte Hindernisse
     else {
       const r = Math.random(), kw = .22 + .12 * schwer;
       typ = r < kw ? "kloetze" : r < kw + .25 ? "ball" : r < kw + .42 ? "balken" : r < kw + .55 ? "pfuetze" : "stange";
@@ -325,7 +330,7 @@ if (rahmen) {
     FL.ab = FLUG_AB; FL.rueck = 0;
     aktZone = 0; W.zoneWechsel(0, true); stimmungSetzen(true);
     Object.assign(B, { turbo: 0, schild: 0, ruhe: 0, magnet: 0, doppelt: 0, schubs: null });
-    Object.assign(R, { tempoF: 1, booster: 0, schubs: 0, welt: 0, zeit: 0, flug: 0, ringe: 0, frauBei: 20, kombo: 0, fahne: false, jubel: false });
+    Object.assign(R, { anjaPhase: false, tempoF: 1, booster: 0, schubs: 0, welt: 0, zeit: 0, flug: 0, ringe: 0, frauBei: 20, kombo: 0, fahne: false, jubel: false });
     tempo = START_TEMPO; punkte = 0; sternZahl = 0; strecke = 0; wackeln = 0; schlussSzene = null;
     Object.assign(S, { idx: 0, s: 0, spur: 0, x: 0, y: 0, vy: 0, duck: 0, abbiegen: 0, stolper: 0, sprungPuffer: 0, eis: 0, lande: 0 });
     Object.assign(A, { nah: false, zeit: 0, abstand: 16, bis: 5 });
@@ -729,7 +734,7 @@ if (rahmen) {
   function komboWeg() { R.kombo = 0; }
   function stolpern() {
     komboWeg();
-    if (A.nah && A.abstand < 7) { verlieren("Anja hat dich erwischt!", "anja"); return; }
+    if (R.anjaPhase || (A.nah && A.abstand < 7)) { verlieren("Anja hat dich erwischt!", "anja"); return; }
     S.stolper = .5; tempo = Math.max(START_TEMPO, tempo * .85);
     wackeln = .35; T.stolpern(); if (navigator.vibrate) navigator.vibrate(40);
     anjaKommt(6);
@@ -768,11 +773,18 @@ if (rahmen) {
     zab.gruppe.add(f); fahne = f; fahneOrt = { nr: zab.nr, s };
   }
   let fahne = null, fahneOrt = null;
+  // ab 40.000 Punkten: Anja bleibt dicht dran, ab jetzt zählt jeder Schritt
+  function anjaPhasePruefen() {
+    if (R.anjaPhase || punkte < ANJA_PHASE) return;
+    R.anjaPhase = true; B.ruhe = 0; B.schubs = null; T.anja();
+    meldung("Anja ist dir auf den Fersen!", "Ab jetzt beendet jeder Stolperer die Runde");
+  }
   // neue Tempo-Stufe erreicht: kurz ankündigen
   function tempoPruefen() {
     const f = tempoFaktor();
     if (f <= R.tempoF) return;
     R.tempoF = f; T.booster(); wackeln = Math.max(wackeln, .25);
+    if (R.anjaPhase && f === TEMPO_STUFEN[0][1]) return;   // bei 40.000 zeigt die Anja-Meldung, was jetzt gilt
     meldung("Noch schneller!", `${TEMPO_STUFEN.find(t => t[1] === f)[0].toLocaleString("de-DE")} Punkte · Tempo ×${String(f).replace(".", ",")}`);
   }
   function rekordPruefen() {
@@ -833,7 +845,10 @@ if (rahmen) {
   // ---------- Spielschritt ----------
   function schritt(dt) {
     if (FL.an) { flugSchritt(dt); return; }
-    tempo = Math.min(MAX_TEMPO, tempo + BESCHL * dt); R.zeit += dt;
+    const tempoZiel = START_TEMPO + (MAX_TEMPO - START_TEMPO) * (1 - Math.exp(-R.zeit / 130));
+    tempo = tempo < tempoZiel ? Math.min(tempoZiel, tempo + dt * 1.5) : tempoZiel;   // nach dem Stolpern wieder hochlaufen
+    R.zeit += dt;
+    anjaPhasePruefen();
     tempoPruefen();
     const v = tempo * tempoFaktor() * (S.stolper > 0 ? .6 : 1) * (B.turbo > 0 ? 1.35 : 1);
     for (const k of ["turbo", "schild", "ruhe", "magnet", "doppelt"]) B[k] = Math.max(0, B[k] - dt);
@@ -903,7 +918,7 @@ if (rahmen) {
         if (!tipps.has("eis")) { tipps.add("eis"); meldung("Glatteis!", "Lenken geht kurz langsamer"); }
         continue;
       }
-      if (unverwundbar) continue;
+      if (unverwundbar && !(R.anjaPhase && h.art !== "block")) continue;   // in der Anja-Phase schützt das Schild nur vor Bauklötzen
       if (h.art === "frau") {                          // umgerannt: Fröbelinchen stolpert, die Frau ruft hinterher
         h.getroffen = true; stolpern(); if (zustand !== "laeuft") return;
         meldung("Huch, Zusammenstoß!", "„Hast du meine Schlüssel gesehen?“"); continue;
@@ -935,8 +950,9 @@ if (rahmen) {
     if (B.schubs) { schubsSchritt(dt, v); hudZeigen(); return; }
     A.bis -= dt;
     if (!A.nah && A.bis <= 0) anjaKommt(5);
-    if (A.nah) { A.zeit -= dt; if (A.zeit <= 0) { A.nah = false; A.bis = zufall(15, 22); } }
-    A.abstand += ((A.nah ? 3.4 : 18) - A.abstand) * Math.min(1, dt * (A.nah ? 1.6 : .5));
+    if (R.anjaPhase) { A.nah = true; A.zeit = 99; }
+    if (A.nah) { A.zeit -= dt; if (A.zeit <= 0) { A.nah = false; A.bis = zufall(15, 22) - schwerStufe() * 2.5; } }
+    A.abstand += ((A.nah ? 3.4 : 18) - A.abstand) * Math.min(1, dt * (A.nah ? 1.6 + schwerStufe() * .25 : .5));
     if (A.abstand < 12 && (A.schritt -= dt) <= 0) { A.schritt = .28; T.schritt(Math.max(0, 1 - A.abstand / 12)); }
     hudZeigen();
   }
@@ -1352,14 +1368,14 @@ if (rahmen) {
 
   function flugTreffer(o) {
     komboWeg();
-    if (A.nah && A.abstand < 7) { verlieren(o.typ === "gewitter" ? "Blitz und Donner, Anja hat dich!" : "Anja hat dich eingeholt!", "anja"); return; }
+    if (R.anjaPhase || (A.nah && A.abstand < 7)) { verlieren(o.typ === "gewitter" ? "Blitz und Donner, Anja hat dich!" : "Anja hat dich eingeholt!", "anja"); return; }
     FL.trudeln = .8; FL.v = Math.max(16, FL.v * .85);
     wackeln = .35; T.stolpern(); if (navigator.vibrate) navigator.vibrate(40);
     if (A.nah) meldung({ ballon: "Bumm, ein Ballon!", gewitter: "Blitz und Donner!", voegel: "Huch, Vögel!" }[o.typ], "Pass auf, Anja ist ganz nah!");
     anjaKommt(6);
   }
   function flugSchritt(dt) {
-    R.zeit += dt; FL.zeit += dt; rekordPruefen();
+    R.zeit += dt; FL.zeit += dt; rekordPruefen(); anjaPhasePruefen();
     if (!FL.gewarnt && FL.zeit >= FLUG_ZEIT - 4) { FL.gewarnt = true; meldung("Gleich wird gelandet!", "Noch ein paar Ringe mitnehmen"); }
     if (FL.zeit >= FLUG_ZEIT && !FL.landung) { FL.landung = .001; T.abflug(); }
     if (FL.landung) {
@@ -1425,7 +1441,8 @@ if (rahmen) {
     // Anja kommt auch in der Luft immer wieder hinterhergeflogen
     A.bis -= dt;
     if (!A.nah && A.bis <= 0) anjaKommt(5);
-    if (A.nah) { A.zeit -= dt; if (A.zeit <= 0) { A.nah = false; A.bis = zufall(15, 22); } }
+    if (R.anjaPhase) { A.nah = true; A.zeit = 99; }
+    if (A.nah) { A.zeit -= dt; if (A.zeit <= 0) { A.nah = false; A.bis = zufall(15, 22) - schwerStufe() * 2.5; } }
     A.abstand += ((A.nah ? 6 : 22) - A.abstand) * Math.min(1, dt * (A.nah ? 1.4 : .5));
     hudZeigen();
   }
