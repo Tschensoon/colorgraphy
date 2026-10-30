@@ -39,6 +39,13 @@ body.spiel-offen { overflow: hidden; }
 .bestenliste li { display: flex; gap: .8rem; align-items: baseline; padding: .5rem .2rem; border-top: 1px solid var(--line); }
 .bestenliste li:first-child { border-top: 0; }
 .bestenliste li.eigen { color: var(--accent); font-weight: 700; }
+/* Patchnotes: kleine Box unter der Bestenliste */
+.patchnotes { max-width: 520px; margin: 1.2rem auto 0; padding: 1rem 1.2rem; border: 1px solid var(--line); border-radius: 18px; background: var(--surface); }
+.patchnotes h2 { margin: 0 0 .6rem; font-size: 1.05rem; text-align: center; }
+.patchnotes ul { list-style: none; margin: 0; padding: 0; font-size: .85rem; line-height: 1.4; }
+.patchnotes li { display: flex; gap: .7rem; padding: .4rem 0; border-top: 1px solid var(--line); }
+.patchnotes li:first-child { border-top: 0; }
+.patchnotes time { flex: none; min-width: 2.8rem; font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
 .bl-rang { width: 2.2rem; flex: none; opacity: .7; font-variant-numeric: tabular-nums; }
 .bl-name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .bl-punkte { font-weight: 700; font-variant-numeric: tabular-nums; }
