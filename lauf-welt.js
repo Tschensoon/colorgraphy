@@ -443,6 +443,8 @@ export function welt(T, handy) {
       fotoGanz: [[0, .75, -.1], [2.3, 1.5, -3.2]], fotoRuecken: [[0, 1.0, .1], [1.6, 2, 2.0]] },
     koala: { name: "Kalle", blick: .9, rueckenY: -.57, blaseY: .7, blaseS: 1, cockpit: [.05, .4, .58], kopfSkala: 1.45, halsSkala: 1.1,
       fotoGanz: [[0, .8, -.1], [2.3, 1.6, -3.2]], fotoRuecken: [[0, 1.05, .1], [1.6, 2.1, 2.0]] },
+    anja: { name: "Anja", blick: 1.2, rueckenY: .33, rueckenS: .62, blaseY: .95, blaseS: .9, cockpit: [-.75, .25, 1], kopfSkala: .72, halsSkala: .55,
+      fotoGanz: [[0, 1.0, 0], [2.4, 1.7, -3.6]], fotoRuecken: [[0, 1.35, .1], [1.5, 2.1, 1.9]] },
     katze: { name: "Mimi", blick: .85, rueckenY: -.67, blaseY: .7, blaseS: .95, cockpit: [.1, .4, .62], kopfSkala: 1.1, halsSkala: .85,
       fotoGanz: [[0, .75, -.1], [2.2, 1.5, -3.1]], fotoRuecken: [[0, .95, .1], [1.5, 2, 1.9]] },
   };
@@ -775,6 +777,7 @@ export function welt(T, handy) {
     giraffe: { bauen: () => giraffeBauen(), name: "Fröbelinchen" }, leo: { bauen: () => leoBauen(), name: "Leo" },
     hase: { bauen: haseBauen, name: "Rambo Rabbit" }, baer: { bauen: baerBauen, name: "Baylin" }, elefant: { bauen: elefantBauen, name: "Jensfant" },
     affe: { bauen: affe, name: "Momo" }, pinguin: { bauen: pinguin, name: "Pingo" }, koala: { bauen: koala, name: "Kalle" }, katze: { bauen: katze, name: "Mimi" },
+    anja: { bauen: anjaFigur, name: "Anja" },
   };
   const figurBauen = (id) => (FIGUREN[id] || FIGUREN.giraffe).bauen();
 
@@ -807,9 +810,16 @@ export function welt(T, handy) {
   // Personen: Anja (blond, pinkes Shirt, Pferdeschwanz) und die Frau, die ihre Autoschlüssel sucht (lange schwarze Haare)
   const PERSONEN = {
     anja: { shirt: [.76, .10, .2], shirtMat: mat.shirt, haar: mat.haar, lang: false },
+    marlena: { shirt: [.30, .12, .55], shirtMat: std({ color: "#8e5bd0", roughness: .9 }), haar: mat.haar, lang: true },   // blond, schulterlang: verfolgt Anja, wenn man selbst Anja ist
     frau: { shirt: [.02, .32, .30], shirtMat: std({ color: "#1f9a8a", roughness: .9 }), haar: std({ color: "#17120f", roughness: .45 }), lang: true },
   };
-  const anjaBauen = () => personBauen("anja"), frauBauen = () => personBauen("frau");
+  const anjaBauen = () => personBauen("anja"), frauBauen = () => personBauen("frau"), marlenaBauen = () => personBauen("marlena");
+  // Anja als spielbare Figur (ab Stufe 150): dieselbe Person, dazu ein Hals-Gelenk und die Felder, die das Spiel von jeder Figur erwartet
+  function anjaFigur() {
+    const p = personBauen("anja"), kopf = p.zopf.parent;
+    const hals = gelenk(p.k, 0, 1.52, 0); hals.add(kopf); kopf.position.y -= 1.52;
+    return { gruppe: p.gruppe, koerper: p.k, hals, kopf, beine: p.beine, arme: p.arme, schwanz: p.zopf, augen: [], ohren: [], mensch: true, ...FIGUR_INFO.anja };
+  }
   function personBauen(wer) {
     const P = PERSONEN[wer];
     if (!koerperFormen[wer]) koerperFormen[wer] = koerperFormBauen(P.shirt);
@@ -1494,7 +1504,7 @@ export function welt(T, handy) {
     for (const id of ids) {
       const a = AUSSTATTUNG[id]; if (!a) continue;
       const teilG = a.bauen(); teilG.userData.ausstattung = true;
-      if (a.platz === "ruecken") teilG.position.y += sp.rueckenY || 0;
+      if (a.platz === "ruecken") { teilG.position.y += sp.rueckenY || 0; if (sp.rueckenS) teilG.scale.setScalar(sp.rueckenS); }   // Anja: Rückenteile kleiner
       else teilG.scale.setScalar((a.platz === "hals" ? sp.halsSkala : sp.kopfSkala) || 1);   // große Köpfe bekommen große Mützen
       (a.platz === "hals" ? sp.hals : a.platz === "ruecken" ? sp.koerper : sp.kopf).add(teilG);
     }
@@ -1920,6 +1930,6 @@ export function welt(T, handy) {
   }
   const luft = new T.Group(); luft.add(wetter, voegel);
 
-  return { kissen, duellBuehne, wasserNormal: wellen, rekordFahne, figurBauen, FIGUREN, leoBauen, FIGUR_INFO, toertchen, frauBauen, sprechblase, froebelBanner, froebelHeckenTafel, froebelTafel, froebelSchild, kontaktSchatten, grasBueschel, dampf, weltHindernis, entsorgen, pfeilSchild, bodenPfeil, AUSSTATTUNG, ausstattungSetzen, zonen: ZONEN, zoneFuer, dekoFuer, heckeFuer, blumenFuer, bodenFlaeche, bodenFolgen, verbinden, zoneWechsel, zoneSchritt,
+  return { marlenaBauen, kissen, duellBuehne, wasserNormal: wellen, rekordFahne, figurBauen, FIGUREN, leoBauen, FIGUR_INFO, toertchen, frauBauen, sprechblase, froebelBanner, froebelHeckenTafel, froebelTafel, froebelSchild, kontaktSchatten, grasBueschel, dampf, weltHindernis, entsorgen, pfeilSchild, bodenPfeil, AUSSTATTUNG, ausstattungSetzen, zonen: ZONEN, zoneFuer, dekoFuer, heckeFuer, blumenFuer, bodenFlaeche, bodenFolgen, verbinden, zoneWechsel, zoneSchritt,
     animieren, wetterSchritt, voegelSchritt, luft, mat, geo, giraffeBauen, anjaBauen, boden, heckenStueck, blumen, ferne, sonnenScheibe, funke, staub, kante, dekoNeu, hindernis, stern, panzer, booster, blase, himmel, wolken, gras };
 }

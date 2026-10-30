@@ -31,7 +31,7 @@ if (rahmen) {
   function laden() {
     if (!bereit) {
       const text = losKnopf.textContent; losKnopf.disabled = true; losKnopf.textContent = "Lädt die 3D-Welt …";
-      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=33"), import("./lauf-ton.js?v=2"), import("./lauf-flug.js?v=3"), import("./lauf-effekte.js?v=3")])
+      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=34"), import("./lauf-ton.js?v=2"), import("./lauf-flug.js?v=3"), import("./lauf-effekte.js?v=3")])
         .then(([m, w, t, f, e]) => { THREE = m; T = t.ton(); aufbauen(w, f, e); losKnopf.disabled = false; losKnopf.textContent = text; });
     }
     return bereit;
@@ -52,7 +52,7 @@ if (rahmen) {
     { id: "hase", emoji: "🐰", name: "Rambo Rabbit", stufe: 5, preis: 250 }, { id: "baer", emoji: "🐻", name: "Baylin", stufe: 10, preis: 250 },
     { id: "elefant", emoji: "🐘", name: "Jensfant", stufe: 20, preis: 250 }, { id: "affe", emoji: "🐒", name: "Momo", stufe: 30, preis: 1000 },
     { id: "pinguin", emoji: "🐧", name: "Pingo", stufe: 50, preis: 1000 }, { id: "koala", emoji: "🐨", name: "Kalle", stufe: 70, preis: 1000 },
-    { id: "katze", emoji: "🐱", name: "Mimi", stufe: 100, preis: 1000 },
+    { id: "katze", emoji: "🐱", name: "Mimi", stufe: 100, preis: 1000 }, { id: "anja", emoji: "👱‍♀️", name: "Anja", stufe: 150, preis: 1000 },
   ];
   const EP_JE_STUFE = 5000;
   let erfahrung = +lies("froebelinchen-rennt-erfahrung", 0) || 0;
@@ -67,6 +67,9 @@ if (rahmen) {
   konto.figurenGeprueft = true; schreib("froebelinchen-rennt-konto", konto);
   if (!frei(figur) || !gekauft(figur)) figur = "giraffe";
   const NAME = () => (FIGUR_LISTE.find(f => f.id === figur) || FIGUR_LISTE[0]).name;
+  // Wer verfolgt: sonst Anja, spielt man selbst Anja, ist Marlena hinter ihr her (auch beim Schubsen und in der Kissenschlacht)
+  const JAGD = () => figur === "anja" ? "Marlena" : "Anja";
+  const verfolgerBauen = () => { const v = figur === "anja" ? W.marlenaBauen() : W.anjaBauen(); v.wer = JAGD(); return v; };
 
   // ---------- Spielwerte ----------
   const SPUR = 1.6, H = 2.9, ECKE = 12;           // Spurbreite, halbe Wegbreite, Abbiegezone vor der Ecke
@@ -134,7 +137,7 @@ if (rahmen) {
     W.verbinden({ szene, himmelMat: himmelKugel.material, sonne });
     spieler = W.figurBauen(figur); szene.add(spieler.gruppe);
     W.ausstattungSetzen(spieler, konto.an);
-    anja = W.anjaBauen(); szene.add(anja.gruppe);
+    anja = verfolgerBauen(); szene.add(anja.gruppe);
     blase = W.blase(); spieler.gruppe.add(blase); blasePassen(1);
     sternchen = [0, 1, 2].map(() => { const st = W.stern(); st.scale.setScalar(.45); st.visible = false; szene.add(st); return st; });
     flugAufbauen(flugModul);
@@ -481,7 +484,7 @@ if (rahmen) {
     { id: "bauernhof", text: "Lauf bis zum Bauernhof", lohn: 20, ok: () => R.welt >= 1 },
     { id: "booster2", text: "Nimm 2 Booster in einer Runde", lohn: 20, ok: () => R.booster >= 2 },
     { id: "meter800", text: "Lauf 800 Meter", lohn: 30, ok: () => strecke >= 800 },
-    { id: "schubs", text: "Schubs Anja einmal um", lohn: 25, ok: () => R.schubs >= 1 },
+    { id: "schubs", get text() { return `Schubs ${JAGD()} einmal um`; }, lohn: 25, ok: () => R.schubs >= 1 },
     { id: "see", text: "Lauf bis an den See", lohn: 30, ok: () => R.welt >= 2 },
     { id: "sterne60", text: "Sammle 60 Sterne in einer Runde", lohn: 40, ok: () => sternZahl >= 60 },
     { id: "herbst", text: "Lauf bis in den Herbstwald", lohn: 40, ok: () => R.welt >= 3 },
@@ -589,6 +592,12 @@ if (rahmen) {
       spieler.gruppe.position.set(0, cy, cz); spieler.gruppe.scale.setScalar(cs); spieler.beine.forEach(b => { b.oben.visible = false; });
     } else { spieler.gruppe.position.copy(alt.position); spieler.gruppe.rotation.copy(alt.rotation); }
     W.ausstattungSetzen(spieler, konto.an);
+    if (anja.wer !== JAGD()) {                              // Anja gewählt (oder wieder abgewählt): Verfolgerin austauschen
+      const altA = anja, el = altA.gruppe.parent || szene;
+      anja = verfolgerBauen(); el.remove(altA.gruppe); el.add(anja.gruppe);
+      anja.gruppe.position.copy(altA.gruppe.position); anja.gruppe.rotation.copy(altA.gruppe.rotation); anja.gruppe.visible = altA.gruppe.visible;
+      anja.beine.forEach(b => { b.oben.visible = altA.beine[0].oben.visible; });
+    }
     T.booster();
   }
   figurKnoepfe.forEach(k => k.addEventListener("click", async () => { if (k.disabled) return; await laden(); T.start(); figurAntippen(k.dataset.figur); }));
@@ -754,7 +763,7 @@ if (rahmen) {
   const ANJA_FLUG = ["Flieg schneller!", "„Ich flieg dir hinterher!“", "„Warte, Fröbelinchen!“"];
   function anjaKommt(dauer) {
     if (B.ruhe > 0 || B.schubs) return;           // nach dem Schubser hat man Ruhe
-    if (!A.nah) { meldung("Achtung, Anja kommt!", (FL.an ? wahl(ANJA_FLUG) : wahl(ANJA_RUFE)).replace("Fröbelinchen", NAME())); T.anja(); }
+    if (!A.nah) { meldung(`Achtung, ${JAGD()} kommt!`, (FL.an ? wahl(ANJA_FLUG) : wahl(ANJA_RUFE)).replace("Fröbelinchen", NAME())); T.anja(); }
     A.nah = true; A.zeit = dauer;
   }
   // Kombo: jedes eingesammelte Törtchen (bzw. jeder Stern) ohne Stolpern zählt mit; alle 10 steigt der Faktor, bis ×5
@@ -768,7 +777,7 @@ if (rahmen) {
   function komboWeg() { R.kombo = 0; }
   function stolpern() {
     komboWeg();
-    if (R.anjaPhase || (A.nah && A.abstand < 7)) { verlieren("Anja hat dich erwischt!", "anja"); return; }
+    if (R.anjaPhase || (A.nah && A.abstand < 7)) { verlieren(`${JAGD()} hat dich erwischt!`, "anja"); return; }
     S.stolper = .5; tempo = Math.max(START_TEMPO, tempo * .85);
     wackeln = .35; T.stolpern(); if (navigator.vibrate) navigator.vibrate(40);
     anjaKommt(6);
@@ -814,7 +823,7 @@ if (rahmen) {
   function anjaPhasePruefen() {
     if (R.anjaPhase || punkte < ANJA_PHASE) return;
     R.anjaPhase = true; B.ruhe = 0; B.schubs = null; T.anja();
-    meldung("Anja ist dir auf den Fersen!", "Ab jetzt beendet jeder Stolperer die Runde");
+    meldung(`${JAGD()} ist dir auf den Fersen!`, "Ab jetzt beendet jeder Stolperer die Runde");
   }
   // neue Tempo-Stufe erreicht: kurz ankündigen
   function tempoPruefen() {
@@ -871,7 +880,7 @@ if (rahmen) {
   function schubsSchritt(dt, v) {
     const sc = B.schubs; sc.t += dt;
     if (sc.t < .8) { A.abstand += (2.2 - A.abstand) * Math.min(1, dt * 6); return; }
-    if (!sc.getroffen) { sc.getroffen = true; R.schubs++; T.schubs(); meldung("Schubs!", "Anja plumpst hin · 10 s Ruhe"); }
+    if (!sc.getroffen) { sc.getroffen = true; R.schubs++; T.schubs(); meldung("Schubs!", `${JAGD()} plumpst hin · 10 s Ruhe`); }
     sc.umfallen = Math.min(1, sc.umfallen + dt * 3);
     A.abstand += v * dt;                               // sie bleibt liegen, Fröbelinchen läuft davon
     if (sc.t > 1.6 && A.abstand > 16) {
@@ -896,7 +905,7 @@ if (rahmen) {
     S.s += v * dt; strecke += v * dt; punkte += v * dt * faktor;
     S.stolper = Math.max(0, S.stolper - dt);
     // 3000 Punkte: weiß überblenden, dann geht es im Flugzeug weiter (Level 2)
-    if (!FL.abflug && punkte >= FL.ab) { FL.abflug = .001; T.abflug(); meldung(`${FL.ab} Punkte!`, FL.naechsteArt === "duell" ? `Anja fordert ${NAME()} zur Kissenschlacht heraus!` : FL.naechsteArt === "wasser" ? `${NAME()} springt ins Boot …` : `${NAME()} steigt ins Flugzeug …`); }
+    if (!FL.abflug && punkte >= FL.ab) { FL.abflug = .001; T.abflug(); meldung(`${FL.ab} Punkte!`, FL.naechsteArt === "duell" ? `${JAGD()} fordert ${NAME()} zur Kissenschlacht heraus!` : FL.naechsteArt === "wasser" ? `${NAME()} springt ins Boot …` : `${NAME()} steigt ins Flugzeug …`); }
     if (FL.abflug) {
       FL.abflug += dt; blende.style.opacity = Math.min(1, FL.abflug / .9);
       if (FL.abflug >= .9) { if (FL.naechsteArt === "duell") duellStart(); else flugStart(); return; }
@@ -1048,7 +1057,21 @@ if (rahmen) {
     const umdrehen = B.schubs ? Math.max(0, Math.sin(Math.min(1, Math.max(0, (B.schubs.t - .45) / 1.1)) * Math.PI)) : 0;
     g.rotation.y = winkel(g.rotation.y, yaw + umdrehen * Math.PI, Math.min(1, dt * 12));
     if (lauft) S.lauf += dt * tempo * tempoFaktor() * (A.nah ? 1.5 : 1.1) * (B.turbo > 0 ? 1.35 : 1);
-    spieler.beine.forEach((b, i) => {      // diagonal gleiche Beine, Knie knicken nach hinten
+    if (spieler.mensch) {                  // Anja als Figur: läuft wie eine Läuferin, die Arme schwingen gegengleich
+      spieler.beine.forEach((b, i) => {
+        if (S.y > 0) { b.oben.rotation.x = i ? -.4 : .9; b.unten.rotation.x = i ? -.3 : -1.3; return; }
+        if (S.duck > 0) { b.oben.rotation.x = .9; b.unten.rotation.x = -1.5; return; }
+        const ph = S.lauf + i * Math.PI;
+        b.oben.rotation.x = Math.sin(ph) * .75; b.unten.rotation.x = -Math.max(0, Math.sin(ph + 1.6)) * 1.35;
+      });
+      const stoss = B.schubs && B.schubs.t > .55 && B.schubs.t < 1.15 ? Math.sin((B.schubs.t - .55) / .6 * Math.PI) : 0;   // beim Schubsen beide Arme nach vorn
+      spieler.arme.forEach((a, i) => {
+        const ph = S.lauf + i * Math.PI;
+        a.oben.rotation.z = 0; a.unten.rotation.z = 0;
+        a.oben.rotation.x = -Math.sin(ph) * .7 * (1 - stoss) + stoss * 1.5; a.unten.rotation.x = 1.1 * (1 - stoss) + Math.sin(ph) * .25;
+      });
+      spieler.koerper.rotation.x = S.duck > 0 ? .35 : -.06;
+    } else spieler.beine.forEach((b, i) => {      // diagonal gleiche Beine, Knie knicken nach hinten
       const ph = S.lauf + (i === 0 || i === 3 ? 0 : Math.PI), vorn = i < 2;
       if (S.y > 0) { b.oben.rotation.x = vorn ? .6 : -.5; b.unten.rotation.x = vorn ? -1.2 : -.5; return; }
       b.oben.rotation.x = Math.sin(ph) * .55;
@@ -1056,7 +1079,7 @@ if (rahmen) {
     });
     spieler.koerper.position.y = S.y > 0 ? 0 : Math.abs(Math.sin(S.lauf)) * .04;
     const kopfnuss = B.schubs && B.schubs.t > .7 && B.schubs.t < 1.1 ? -Math.sin((B.schubs.t - .7) / .4 * Math.PI) * .9 : 0;
-    spieler.hals.rotation.x = S.duck > 0 ? -1.15 : (S.stolper > 0 ? Math.sin(S.stolper * 30) * .3 : kopfnuss);
+    spieler.hals.rotation.x = S.duck > 0 ? (spieler.mensch ? -.3 : -1.15) : (S.stolper > 0 ? Math.sin(S.stolper * 30) * .3 : kopfnuss);
     blase.visible = B.schild > 0 && (B.schild > 1 || Math.floor(B.schild * 8) % 2 === 0);
     if (blase.visible) blase.scale.setScalar(1 + Math.sin(performance.now() / 180) * .03);
     // Ducken: Hals nach vorn und in die Hocke (von den Hufen aus gestaucht, damit sie auf dem Boden bleibt)
@@ -1076,7 +1099,11 @@ if (rahmen) {
     if (leerlauf) {
       const t = performance.now() / 1000;
       spieler.beine.forEach((b, i) => { b.oben.rotation.x = 0; b.unten.rotation.x = 0; });
-      spieler.beine[1].oben.rotation.x = 1.05 + Math.sin(t * 7) * .3; spieler.beine[1].unten.rotation.x = -1.1;   // Vorderbein nach vorn heben, damit man das Winken sieht
+      if (spieler.mensch) {                             // Anja winkt mit dem linken Arm (arme[0] sitzt links von ihr aus gesehen)
+        spieler.koerper.rotation.x = 0;
+        spieler.arme.forEach(a => { a.oben.rotation.set(0, 0, 0); a.unten.rotation.set(.15, 0, 0); });
+        spieler.arme[0].oben.rotation.z = -2.6 - Math.sin(t * 7) * .3; spieler.arme[0].unten.rotation.z = -.4;
+      } else { spieler.beine[1].oben.rotation.x = 1.05 + Math.sin(t * 7) * .3; spieler.beine[1].unten.rotation.x = -1.1; }   // Vorderbein nach vorn heben, damit man das Winken sieht
       spieler.hals.rotation.x = Math.sin(t * 1.3) * .08; spieler.koerper.position.y = 0; spieler.koerper.rotation.z = 0;
       spieler.schwanz.rotation.z = Math.sin(t * 6) * .45;
       g.scale.set(1, 1, 1);
@@ -1287,12 +1314,12 @@ if (rahmen) {
   let buehne, gegner, kissenF, kissenM, duellUI;
   function duellAufbauen() {
     buehne = W.duellBuehne(); buehne.visible = false; szene.add(buehne);
-    gegner = W.anjaBauen(); buehne.add(gegner.gruppe);
+    gegner = W.anjaBauen(); gegner.wer = "Anja"; buehne.add(gegner.gruppe);
     kissenF = W.kissen("#bfe3ff"); kissenM = W.kissen("#ffc1d9");
     gegner.arme[1].unten.add(kissenM); kissenM.position.set(0, -.3, -.14); kissenM.rotation.x = Math.PI / 2;
     duellUI = document.createElement("div"); duellUI.className = "duell"; duellUI.hidden = true;
     duellUI.innerHTML = `<div class="du-kopf"><div class="du-balken links"><i></i><span class="du-name"></span></div><div class="du-zeit">30</div>
-      <div class="du-balken rechts"><i></i><span>Anja</span></div></div><div class="du-herzen"></div>
+      <div class="du-balken rechts"><i></i><span class="du-gegner"></span></div></div><div class="du-herzen"></div>
       <div class="du-bahn"><div class="du-ziel"></div></div>
       <div class="du-knoepfe"><button type="button" data-b="A">A<small>Taste A</small></button><button type="button" data-b="B">B<small>Taste B</small></button></div>`;
     tempoLinien.after(duellUI);
@@ -1315,7 +1342,13 @@ if (rahmen) {
     buehne.add(spieler.gruppe); spieler.gruppe.position.set(-1.8, .12, 0); spieler.gruppe.rotation.set(0, -Math.PI / 2, 0); spieler.gruppe.scale.setScalar(1);
     spieler.koerper.rotation.set(0, 0, 0); blase.visible = false;
     const ks = spieler.kopfSkala || 1;
-    spieler.kopf.add(kissenF); kissenF.position.set(0, -.1 * ks, -.3 * ks); kissenF.rotation.set(Math.PI / 2, 0, 0); kissenF.scale.setScalar(.8 * ks);
+    if (spieler.mensch) { spieler.arme[1].unten.add(kissenF); kissenF.position.set(0, -.3, -.14); kissenF.rotation.set(Math.PI / 2, 0, 0); kissenF.scale.setScalar(1); }   // Anja hält es in der Hand
+    else { spieler.kopf.add(kissenF); kissenF.position.set(0, -.1 * ks, -.3 * ks); kissenF.rotation.set(Math.PI / 2, 0, 0); kissenF.scale.setScalar(.8 * ks); }
+    if (gegner.wer !== JAGD()) {                         // Gegnerin ist die Verfolgerin: Anja, bzw. Marlena, wenn man selbst Anja spielt
+      buehne.remove(gegner.gruppe); gegner = JAGD() === "Marlena" ? W.marlenaBauen() : W.anjaBauen(); gegner.wer = JAGD(); buehne.add(gegner.gruppe);
+      gegner.arme[1].unten.add(kissenM);
+    }
+    duellUI.querySelector(".du-gegner").textContent = JAGD();
     gegner.gruppe.position.set(1.8, .12, 0); gegner.gruppe.rotation.set(0, Math.PI / 2, 0);
     DU.buchstaben.forEach(l => l.el.remove());
     Object.assign(DU, { zeit: 0, intro: 1.6, fehler: 0, leben: 1, buchstaben: [], naechster: 0, ende: 0, sieg: false, ausblenden: 0, schlag: 0, gegen: 0, rueckF: 0, rueckM: 0 });
@@ -1347,7 +1380,7 @@ if (rahmen) {
     if (DU.fehler >= 3) {
       DU.buchstaben.forEach(l => buchstabeWeg(l, "daneben")); DU.buchstaben = [];
       setTimeout(() => { duellUI.hidden = true; }, 400);
-      verlieren("Anja hat die Kissenschlacht gewonnen!", "duell");
+      verlieren(`${JAGD()} hat die Kissenschlacht gewonnen!`, "duell");
     } else meldung(text, `Noch ${3 - DU.fehler} ${3 - DU.fehler === 1 ? "Herz" : "Herzen"}`);
   }
   function duellSieg(titel) {
@@ -1404,9 +1437,15 @@ if (rahmen) {
   function duellBild(dt) {
     const t = performance.now() / 1000, g = spieler.gruppe;
     // Fröbelinchen (bzw. die gewählte Figur): steht, wippt, haut beim Treffer mit dem Kissen im Vorderbein zu
-    spieler.beine.forEach((b, i) => { b.oben.rotation.x = Math.sin(t * 6 + i) * .06; b.unten.rotation.x = 0; });
     const pS = DU.schlag > 0 ? Math.sin((1 - DU.schlag / .35) * Math.PI) : 0;
-    spieler.beine[1].oben.rotation.x = pS * .7;        // beim Zuhauen ein kleiner Satz nach vorn, das Kissen schwingt mit dem Kopf
+    if (spieler.mensch) {                               // Anja: federt wie ihre Gegnerin und haut mit dem Kissen in der Hand zu
+      spieler.beine.forEach((b, i) => { b.oben.rotation.x = (i ? -.25 : .25) + Math.sin(t * 5.5) * .05; b.unten.rotation.x = -.35; });
+      spieler.arme[1].oben.rotation.set(.7 + pS * 1.5, 0, 0); spieler.arme[1].unten.rotation.set(.5 - pS * .3, 0, 0);
+      spieler.arme[0].oben.rotation.set(.3 + Math.sin(t * 3) * .1, 0, 0); spieler.arme[0].unten.rotation.set(.9, 0, 0);
+    } else {
+      spieler.beine.forEach((b, i) => { b.oben.rotation.x = Math.sin(t * 6 + i) * .06; b.unten.rotation.x = 0; });
+      spieler.beine[1].oben.rotation.x = pS * .7;        // beim Zuhauen ein kleiner Satz nach vorn, das Kissen schwingt mit dem Kopf
+    }
     spieler.koerper.position.y = Math.abs(Math.sin(t * 5)) * .04 + pS * .12;
     spieler.hals.rotation.x = Math.sin(t * 2) * .06 - pS * .6;
     const hoch = kamera.aspect < .8, abst = hoch ? 1.45 : 1.8;   // im Hochformat stehen beide etwas näher beisammen
@@ -1609,10 +1648,10 @@ if (rahmen) {
 
   function flugTreffer(o) {
     komboWeg();
-    if (R.anjaPhase || (A.nah && A.abstand < 7)) { verlieren(o.typ === "gewitter" ? "Blitz und Donner, Anja hat dich!" : "Anja hat dich eingeholt!", "anja"); return; }
+    if (R.anjaPhase || (A.nah && A.abstand < 7)) { verlieren(o.typ === "gewitter" ? `Blitz und Donner, ${JAGD()} hat dich!` : `${JAGD()} hat dich eingeholt!`, "anja"); return; }
     FL.trudeln = .8; FL.v = Math.max(16, FL.v * .85);
     wackeln = .35; T.stolpern(); if (navigator.vibrate) navigator.vibrate(40);
-    if (A.nah) meldung({ ballon: "Bumm, ein Ballon!", gewitter: "Blitz und Donner!", voegel: "Huch, Vögel!", pylon: "Bumm, eine Pylone!" }[o.typ], "Pass auf, Anja ist ganz nah!");
+    if (A.nah) meldung({ ballon: "Bumm, ein Ballon!", gewitter: "Blitz und Donner!", voegel: "Huch, Vögel!", pylon: "Bumm, eine Pylone!" }[o.typ], `Pass auf, ${JAGD()} ist ganz nah!`);
     anjaKommt(6);
   }
   function flugSchritt(dt) {
