@@ -1574,11 +1574,15 @@ if (rahmen) {
       const x0 = rx(), w = zufall(0, 6), welle = Math.random() < .55;
       for (let i = 0; i < 7; i++) flugStern(welle ? klemmX(x0 + Math.sin(w + i * .7) * 2.6) : x0, Y, z - i * 2.6);
     } else if (Math.random() < .5 + schwer * .2) {
-      const reihen = 1 + (Math.random() < schwer * .6 ? 1 : 0);
+      // locker verteilte Pylonen statt einer Wand: 2–3 Stück mit mindestens 4 m Abstand und leicht versetzt, es gibt immer mehrere Durchfahrten
+      const reihen = 1 + (Math.random() < schwer * .5 ? 1 : 0);
       for (let j = 0; j < reihen; j++) {
-        const luecke = zufall(-FX + 2, FX - 2), breite = Math.max(3.8, 4.4 - schwer * .6), zr = z - j * 15;
-        for (let x = -FX; x <= FX + .1; x += 2.2) if (Math.abs(x - luecke) > breite / 2) flugObjekt("pylon", FW.pylone(), x, 0, zr, { r: 1.15, tiefe: .8 });
-        flugStern(luecke, Y, zr + 3);                 // Belohnung in der Lücke
+        const zr = z - j * 15, n = 2 + (Math.random() < .3 + schwer * .4 ? 1 : 0), xs = [];
+        for (let v = 0; v < 40 && xs.length < n; v++) { const x = zufall(-FX + .5, FX - .5); if (xs.every(a => Math.abs(a - x) >= 4)) xs.push(x); }
+        xs.sort((a, b) => a - b).forEach(x => flugObjekt("pylon", FW.pylone(), x, 0, zr - zufall(0, 2.5), { r: 1.15, tiefe: .8 }));
+        const rand = [-FX, ...xs, FX]; let lx = 0, lb = 0;          // Belohnung in der breitesten Lücke
+        for (let i = 0; i < rand.length - 1; i++) if (rand[i + 1] - rand[i] > lb) { lb = rand[i + 1] - rand[i]; lx = (rand[i] + rand[i + 1]) / 2; }
+        flugStern(lx, Y, zr + 3);
       }
     } else {
       const n = 2 + Math.floor(Math.random() * (2 + schwer * 2));
