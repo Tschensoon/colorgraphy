@@ -31,7 +31,7 @@ if (rahmen) {
   function laden() {
     if (!bereit) {
       const text = losKnopf.textContent; losKnopf.disabled = true; losKnopf.textContent = "Lädt die 3D-Welt …";
-      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=32"), import("./lauf-ton.js?v=2"), import("./lauf-flug.js?v=3"), import("./lauf-effekte.js?v=3")])
+      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=33"), import("./lauf-ton.js?v=2"), import("./lauf-flug.js?v=3"), import("./lauf-effekte.js?v=3")])
         .then(([m, w, t, f, e]) => { THREE = m; T = t.ton(); aufbauen(w, f, e); losKnopf.disabled = false; losKnopf.textContent = text; });
     }
     return bereit;
@@ -87,7 +87,7 @@ if (rahmen) {
   let zustand = "start", tempo, punkte, sternZahl, strecke, wackeln = 0, schlussSzene = null;
   const S = { idx: 0, s: 0, spur: 0, x: 0, y: 0, vy: 0, duck: 0, abbiegen: 0, stolper: 0, lauf: 0, sprungPuffer: 0, eis: 0, lande: 0 };
   const A = { nah: false, zeit: 0, abstand: 16, bis: 5, lauf: 0, schritt: 0 };
-  const R = { boote: 0, fluege: 0, anjaPhase: false, tempoF: 1, booster: 0, schubs: 0, marlena: 0, welt: 0, zeit: 0, laufZeit: 0, flug: 0, ringe: 0, frauBei: 20, kombo: 0, fahne: false, jubel: false };    // Werte dieser Runde für Aufgaben, Ergebnis und Bestenliste
+  const R = { boote: 0, fluege: 0, anjaPhase: false, tempoF: 1, booster: 0, schubs: 0, welt: 0, zeit: 0, laufZeit: 0, flug: 0, ringe: 0, frauBei: 20, kombo: 0, fahne: false, jubel: false };    // Werte dieser Runde für Aufgaben, Ergebnis und Bestenliste
   const tipps = new Set();
 
   const richtung = (h) => h === 0 ? [0, -1] : [h, 0];           // Norden = -z, Osten = +x, Westen = -x
@@ -233,8 +233,8 @@ if (rahmen) {
       const bs = zufall(14, L - 14);
       if (!hindernisse.some(o => o.nr === nr && Math.abs(o.s - bs) < 4)) {
         const r = Math.random();
-        let typ = r < .31 ? "schild" : r < .54 ? "marlena" : r < .77 ? "magnet" : "doppelt";
-        if ((typ === "schild" || typ === "marlena") && (R.anjaPhase || Math.random() < schwerStufe() * .18)) typ = wahl(["magnet", "doppelt"]);   // später seltener Schutz
+        let typ = r < .31 ? "schild" : r < .54 ? "schubs" : r < .77 ? "magnet" : "doppelt";
+        if ((typ === "schild" || typ === "schubs") && (R.anjaPhase || Math.random() < schwerStufe() * .18)) typ = wahl(["magnet", "doppelt"]);   // später seltener Schutz
         const sp = wahl([-1, 0, 1]);
         booster.push({ nr, s: bs, spur: sp, typ, mesh: setze(W.booster(typ), bs, sp * SPUR, 1.05), weg: false });
       }
@@ -341,7 +341,7 @@ if (rahmen) {
     aktZone = 0; W.zoneWechsel(0, true); stimmungSetzen(true);
     Object.assign(B, { turbo: 0, schild: 0, ruhe: 0, magnet: 0, doppelt: 0, schubs: null });
     FL.naechsteArt = "luft";
-    Object.assign(R, { boote: 0, fluege: 0, anjaPhase: false, tempoF: 1, booster: 0, schubs: 0, marlena: 0, welt: 0, zeit: 0, laufZeit: 0, flug: 0, ringe: 0, frauBei: 20, kombo: 0, fahne: false, jubel: false });
+    Object.assign(R, { boote: 0, fluege: 0, anjaPhase: false, tempoF: 1, booster: 0, schubs: 0, welt: 0, zeit: 0, laufZeit: 0, flug: 0, ringe: 0, frauBei: 20, kombo: 0, fahne: false, jubel: false });
     tempo = START_TEMPO; punkte = 0; sternZahl = 0; strecke = 0; wackeln = 0; schlussSzene = null;
     Object.assign(S, { idx: 0, s: 0, spur: 0, x: 0, y: 0, vy: 0, duck: 0, abbiegen: 0, stolper: 0, sprungPuffer: 0, eis: 0, lande: 0 });
     Object.assign(A, { nah: false, zeit: 0, abstand: 16, bis: 5 });
@@ -481,7 +481,7 @@ if (rahmen) {
     { id: "bauernhof", text: "Lauf bis zum Bauernhof", lohn: 20, ok: () => R.welt >= 1 },
     { id: "booster2", text: "Nimm 2 Booster in einer Runde", lohn: 20, ok: () => R.booster >= 2 },
     { id: "meter800", text: "Lauf 800 Meter", lohn: 30, ok: () => strecke >= 800 },
-    { id: "marlena", text: "Lass Marlena einmal Anja vertreiben", lohn: 25, ok: () => R.marlena >= 1 },
+    { id: "schubs", text: "Schubs Anja einmal um", lohn: 25, ok: () => R.schubs >= 1 },
     { id: "see", text: "Lauf bis an den See", lohn: 30, ok: () => R.welt >= 2 },
     { id: "sterne60", text: "Sammle 60 Sterne in einer Runde", lohn: 40, ok: () => sternZahl >= 60 },
     { id: "herbst", text: "Lauf bis in den Herbstwald", lohn: 40, ok: () => R.welt >= 3 },
@@ -753,7 +753,7 @@ if (rahmen) {
   const ANJA_RUFE = ["Lauf schneller!", "„Fröbelinchen, bleib stehen!“", "„Ich krieg dich!“", "„Warte doch mal!“"];
   const ANJA_FLUG = ["Flieg schneller!", "„Ich flieg dir hinterher!“", "„Warte, Fröbelinchen!“"];
   function anjaKommt(dauer) {
-    if (B.ruhe > 0 || B.schubs) return;           // Marlena hält Anja gerade fern
+    if (B.ruhe > 0 || B.schubs) return;           // nach dem Schubser hat man Ruhe
     if (!A.nah) { meldung("Achtung, Anja kommt!", (FL.an ? wahl(ANJA_FLUG) : wahl(ANJA_RUFE)).replace("Fröbelinchen", NAME())); T.anja(); }
     A.nah = true; A.zeit = dauer;
   }
@@ -773,21 +773,13 @@ if (rahmen) {
     wackeln = .35; T.stolpern(); if (navigator.vibrate) navigator.vibrate(40);
     anjaKommt(6);
   }
-  const BOOSTER_FUNKEN = { schild: "#6ec6ff", marlena: "#ffd54a", magnet: "#ff6b6b", doppelt: "#c58cff" };
-  // Booster in Luft und Wasser: Schild am häufigsten, Marlena nicht mehr in der Anja-Phase
-  function flugBooster() {
-    const r = Math.random();
-    if (r < .325) return "schild";
-    return wahl(R.anjaPhase ? ["magnet", "doppelt"] : ["marlena", "magnet", "doppelt"]);
-  }
+  const BOOSTER_FUNKEN = { schild: "#6ec6ff", schubs: "#ff7aa2", magnet: "#ff6b6b", doppelt: "#c58cff" };
+  // Booster in Luft und Wasser: Schild am häufigsten (Schubsen geht nur zu Fuß)
+  const flugBooster = () => Math.random() < .325 ? "schild" : wahl(["magnet", "doppelt"]);
   function boosterNehmen(typ) {
     R.booster++; T.booster();
     if (typ === "turbo") { B.turbo = 6; wackeln = Math.max(wackeln, .2); meldung("Turbo!", `${NAME()} rennt schneller`); }
     else if (typ === "schild") { B.schild = 7; meldung("Schutzschild!", "7 Sekunden unverwundbar"); }
-    else if (typ === "marlena") {                  // Marlena hält Anja 10 Sekunden lang auf
-      R.marlena++; B.ruhe = 10; A.nah = false; A.zeit = 0; A.bis = Math.max(A.bis, 10 + zufall(3, 6));
-      meldung("Marlena vertreibt Anja!", "10 Sekunden Ruhe vor Anja");
-    }
     else if (typ === "magnet") { B.magnet = 8; meldung("Sterne-Magnet!", "Alle Sterne fliegen zu dir"); }
     else if (typ === "doppelt") { B.doppelt = 10; meldung("Doppelte Punkte!", "10 Sekunden lang alles ×2"); }
     else if (!B.schubs) { B.schubs = { t: 0, umfallen: 0, getroffen: false }; A.nah = true; A.zeit = 99; meldung("Schubs-Booster!", `Hol sie dir, ${NAME()}!`); }
@@ -856,7 +848,7 @@ if (rahmen) {
     if (B.magnet > 0) t += ` · 🧲 ${Math.ceil(B.magnet)}`;
     if (B.doppelt > 0) t += ` · ×2 ${Math.ceil(B.doppelt)}`;
     if (B.schild > 0) t += ` · 🛡 ${Math.ceil(B.schild)}`;
-    if (B.ruhe > 0) t += ` · Anja weg ${Math.ceil(B.ruhe)}`;
+    if (B.ruhe > 0) t += ` · Ruhe ${Math.ceil(B.ruhe)}`;
     if (hud.textContent !== t) hud.textContent = t;
   }
 
@@ -904,7 +896,7 @@ if (rahmen) {
     S.s += v * dt; strecke += v * dt; punkte += v * dt * faktor;
     S.stolper = Math.max(0, S.stolper - dt);
     // 3000 Punkte: weiß überblenden, dann geht es im Flugzeug weiter (Level 2)
-    if (!FL.abflug && punkte >= FL.ab) { FL.abflug = .001; T.abflug(); meldung(`${FL.ab} Punkte!`, FL.naechsteArt === "duell" ? `Marlena fordert ${NAME()} zur Kissenschlacht heraus!` : FL.naechsteArt === "wasser" ? `${NAME()} springt ins Boot …` : `${NAME()} steigt ins Flugzeug …`); }
+    if (!FL.abflug && punkte >= FL.ab) { FL.abflug = .001; T.abflug(); meldung(`${FL.ab} Punkte!`, FL.naechsteArt === "duell" ? `Anja fordert ${NAME()} zur Kissenschlacht heraus!` : FL.naechsteArt === "wasser" ? `${NAME()} springt ins Boot …` : `${NAME()} steigt ins Flugzeug …`); }
     if (FL.abflug) {
       FL.abflug += dt; blende.style.opacity = Math.min(1, FL.abflug / .9);
       if (FL.abflug >= .9) { if (FL.naechsteArt === "duell") duellStart(); else flugStart(); return; }
@@ -1207,7 +1199,7 @@ if (rahmen) {
     });
     ["kloetze", "ball", "balken", "pfuetze", "stange"].forEach(t => dazu(W.hindernis(t, 4)));
     ["heuballen", "huhn", "enten", "laub", "schneeball", "eis"].forEach(t => dazu(W.weltHindernis(t, 4)));
-    ["schild", "marlena", "magnet", "doppelt"].forEach(t => dazu(W.booster(t)));
+    ["schild", "schubs", "magnet", "doppelt"].forEach(t => dazu(W.booster(t)));
     ["logo", "ohren", "kitas"].forEach(t => { dazu(W.froebelHeckenTafel(t)); dazu(W.froebelTafel(t)); });
     ["ohren", "kitas"].forEach(t => dazu(W.froebelSchild(t)));
     dazu(W.toertchen()); dazu(FW.pylone()); dazu(FW.boje()); for (const f of FIGUR_LISTE) if (f.id !== figur) dazu(W.figurBauen(f.id).gruppe);
@@ -1286,21 +1278,21 @@ if (rahmen) {
   }
 
 
-  // ---------- Duell: Kissenschlacht gegen Marlena (2D-Seitenansicht) ----------
+  // ---------- Duell: Kissenschlacht gegen Anja (2D-Seitenansicht) ----------
   // Buchstaben A oder B fliegen von rechts auf einen Zielkreis zu. Ist einer im Kreis, drückt man den passenden Knopf
   // (Tasten A/B oder die großen Knöpfe). Richtig: Kissen-Treffer. Falsch, zu früh oder verpasst: ein Herz weg.
-  // Nach 30 Sekunden (oder wenn Marlenas Balken leer ist) hat man gewonnen, bei 3 Fehlern gewinnt Marlena und die Runde ist vorbei.
+  // Nach 30 Sekunden (oder wenn Anjas Balken leer ist) hat man gewonnen, bei 3 Fehlern gewinnt Anja und die Runde ist vorbei.
   const DUELL_ZEIT = 30, ZIEL = .22, TOLERANZ = .075;
   const DU = { an: false, zeit: 0, intro: 0, fehler: 0, leben: 1, buchstaben: [], naechster: 0, ende: 0, sieg: false, ausblenden: 0, schlag: 0, gegen: 0, rueckF: 0, rueckM: 0 };
-  let buehne, marlena, kissenF, kissenM, duellUI;
+  let buehne, gegner, kissenF, kissenM, duellUI;
   function duellAufbauen() {
     buehne = W.duellBuehne(); buehne.visible = false; szene.add(buehne);
-    marlena = W.marlenaBauen(); buehne.add(marlena.gruppe);
+    gegner = W.anjaBauen(); buehne.add(gegner.gruppe);
     kissenF = W.kissen("#bfe3ff"); kissenM = W.kissen("#ffc1d9");
-    marlena.arme[1].unten.add(kissenM); kissenM.position.set(0, -.3, -.14); kissenM.rotation.x = Math.PI / 2;
+    gegner.arme[1].unten.add(kissenM); kissenM.position.set(0, -.3, -.14); kissenM.rotation.x = Math.PI / 2;
     duellUI = document.createElement("div"); duellUI.className = "duell"; duellUI.hidden = true;
     duellUI.innerHTML = `<div class="du-kopf"><div class="du-balken links"><i></i><span class="du-name"></span></div><div class="du-zeit">30</div>
-      <div class="du-balken rechts"><i></i><span>Marlena</span></div></div><div class="du-herzen"></div>
+      <div class="du-balken rechts"><i></i><span>Anja</span></div></div><div class="du-herzen"></div>
       <div class="du-bahn"><div class="du-ziel"></div></div>
       <div class="du-knoepfe"><button type="button" data-b="A">A<small>Taste A</small></button><button type="button" data-b="B">B<small>Taste B</small></button></div>`;
     tempoLinien.after(duellUI);
@@ -1324,7 +1316,7 @@ if (rahmen) {
     spieler.koerper.rotation.set(0, 0, 0); blase.visible = false;
     const ks = spieler.kopfSkala || 1;
     spieler.kopf.add(kissenF); kissenF.position.set(0, -.1 * ks, -.3 * ks); kissenF.rotation.set(Math.PI / 2, 0, 0); kissenF.scale.setScalar(.8 * ks);
-    marlena.gruppe.position.set(1.8, .12, 0); marlena.gruppe.rotation.set(0, Math.PI / 2, 0);
+    gegner.gruppe.position.set(1.8, .12, 0); gegner.gruppe.rotation.set(0, Math.PI / 2, 0);
     DU.buchstaben.forEach(l => l.el.remove());
     Object.assign(DU, { zeit: 0, intro: 1.6, fehler: 0, leben: 1, buchstaben: [], naechster: 0, ende: 0, sieg: false, ausblenden: 0, schlag: 0, gegen: 0, rueckF: 0, rueckM: 0 });
     duellUI.querySelector(".du-name").textContent = NAME(); duellUI.hidden = false; duellAnzeige();
@@ -1355,14 +1347,14 @@ if (rahmen) {
     if (DU.fehler >= 3) {
       DU.buchstaben.forEach(l => buchstabeWeg(l, "daneben")); DU.buchstaben = [];
       setTimeout(() => { duellUI.hidden = true; }, 400);
-      verlieren("Marlena hat die Kissenschlacht gewonnen!", "duell");
+      verlieren("Anja hat die Kissenschlacht gewonnen!", "duell");
     } else meldung(text, `Noch ${3 - DU.fehler} ${3 - DU.fehler === 1 ? "Herz" : "Herzen"}`);
   }
   function duellSieg(titel) {
     DU.ende = 1.6; DU.sieg = true; punkte += 1000; sternZahl += 25; T.rekord();
     DU.buchstaben.forEach(l => buchstabeWeg(l, "weg")); DU.buchstaben = [];
     meldung(titel, "+1.000 Punkte · +25 ★");
-    const wo = marlena.gruppe.getWorldPosition(new THREE.Vector3()); wo.y += 1.6;
+    const wo = gegner.gruppe.getWorldPosition(new THREE.Vector3()); wo.y += 1.6;
     for (const farbe of ["#ffd54a", "#3baa35", "#ff7aa2", "#6ec6ff"]) funkeln(wo, farbe, 10);
   }
   function duellTaste(b) {
@@ -1373,7 +1365,7 @@ if (rahmen) {
     if (best.b !== b) { buchstabeWeg(best, "daneben"); duellFehler("Falscher Buchstabe!"); return; }
     buchstabeWeg(best, "weg"); duellBlitz("richtig");
     DU.schlag = .35; DU.rueckM = .35; DU.leben -= .06; punkte += 50; T.schubs(); GE.freude = .35;
-    const wo = marlena.zopf.parent.getWorldPosition(new THREE.Vector3());   // Kopf (Zopf hängt am Kopf)
+    const wo = gegner.zopf.parent.getWorldPosition(new THREE.Vector3());   // Kopf (Zopf hängt am Kopf)
     funkeln(wo, "#ffffff", 10);
     duellAnzeige();
     if (DU.leben <= 0) duellSieg("K.O.! Gewonnen!");
@@ -1419,14 +1411,14 @@ if (rahmen) {
     spieler.hals.rotation.x = Math.sin(t * 2) * .06 - pS * .6;
     const hoch = kamera.aspect < .8, abst = hoch ? 1.45 : 1.8;   // im Hochformat stehen beide etwas näher beisammen
     g.position.x = -abst - (DU.rueckF > 0 ? Math.sin(DU.rueckF / .35 * Math.PI) * .35 : 0);
-    // Marlena: federt auf den Füßen, holt bei Fehlern mit dem Kissen aus, weicht bei Treffern zurück
+    // Anja: federt auf den Füßen, holt bei Fehlern mit dem Kissen aus, weicht bei Treffern zurück
     const pM = DU.gegen > 0 ? Math.sin((1 - DU.gegen / .4) * Math.PI) : 0;
-    marlena.k.position.y = Math.abs(Math.sin(t * 5.5)) * .05; marlena.k.rotation.x = -.05 - (DU.rueckM > 0 ? Math.sin(DU.rueckM / .35 * Math.PI) * .25 : 0);
-    marlena.beine.forEach((b, i) => { b.oben.rotation.x = (i ? -.25 : .25) + Math.sin(t * 5.5) * .05; b.unten.rotation.x = -.35; });
-    marlena.arme[1].oben.rotation.x = .7 + pM * 1.5; marlena.arme[1].unten.rotation.x = .5 - pM * .3;
-    marlena.arme[0].oben.rotation.x = .3 + Math.sin(t * 3) * .1; marlena.arme[0].unten.rotation.x = .9;
-    marlena.zopf.rotation.x = .12 + Math.sin(t * 5.5) * .08;
-    marlena.gruppe.position.x = abst + (DU.rueckM > 0 ? Math.sin(DU.rueckM / .35 * Math.PI) * .35 : 0);
+    gegner.k.position.y = Math.abs(Math.sin(t * 5.5)) * .05; gegner.k.rotation.x = -.05 - (DU.rueckM > 0 ? Math.sin(DU.rueckM / .35 * Math.PI) * .25 : 0);
+    gegner.beine.forEach((b, i) => { b.oben.rotation.x = (i ? -.25 : .25) + Math.sin(t * 5.5) * .05; b.unten.rotation.x = -.35; });
+    gegner.arme[1].oben.rotation.x = .7 + pM * 1.5; gegner.arme[1].unten.rotation.x = .5 - pM * .3;
+    gegner.arme[0].oben.rotation.x = .3 + Math.sin(t * 3) * .1; gegner.arme[0].unten.rotation.x = .9;
+    gegner.zopf.rotation.x = .12 + Math.sin(t * 5.5) * .08;
+    gegner.gruppe.position.x = abst + (DU.rueckM > 0 ? Math.sin(DU.rueckM / .35 * Math.PI) * .35 : 0);
     // Kamera seitlich: alles wie in einem 2D-Kampfspiel nebeneinander
     // im Hochformat so weit weg, dass rund 6 m Breite ins Bild passen (beide Figuren samt Ausholen)
     kamera.position.set(0, hoch ? 2 : 1.6, hoch ? Math.min(16, 3.1 / (Math.tan(25 * Math.PI / 180) * kamera.aspect)) : 8.6);

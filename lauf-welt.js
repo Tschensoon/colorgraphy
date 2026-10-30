@@ -807,10 +807,9 @@ export function welt(T, handy) {
   // Personen: Anja (blond, pinkes Shirt, Pferdeschwanz) und die Frau, die ihre Autoschlüssel sucht (lange schwarze Haare)
   const PERSONEN = {
     anja: { shirt: [.76, .10, .2], shirtMat: mat.shirt, haar: mat.haar, lang: false },
-    marlena: { shirt: [.30, .12, .55], shirtMat: std({ color: "#8e5bd0", roughness: .9 }), haar: mat.haar, lang: true },   // blond, schulterlang
     frau: { shirt: [.02, .32, .30], shirtMat: std({ color: "#1f9a8a", roughness: .9 }), haar: std({ color: "#17120f", roughness: .45 }), lang: true },
   };
-  const anjaBauen = () => personBauen("anja"), frauBauen = () => personBauen("frau"), marlenaBauen = () => personBauen("marlena");
+  const anjaBauen = () => personBauen("anja"), frauBauen = () => personBauen("frau");
   function personBauen(wer) {
     const P = PERSONEN[wer];
     if (!koerperFormen[wer]) koerperFormen[wer] = koerperFormBauen(P.shirt);
@@ -1059,7 +1058,6 @@ export function welt(T, handy) {
       g.fillStyle = "#fff"; g.fillRect(30, 58, 16, 30); g.fillRect(82, 58, 16, 30);
       g.fillStyle = "#bdbdbd"; g.fillRect(30, 80, 16, 10); g.fillRect(82, 80, 16, 10);
     }],
-    marlena: ["#f2a900", (g) => { g.font = "bold 66px Arial, sans-serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText("M", 64, 68); }],   // Marlena vertreibt Anja
     doppelt: ["#8e24aa", (g) => { g.font = "bold 58px Arial, sans-serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText("×2", 64, 68); }],
     schubs: ["#e8577a", (g) => {
       g.beginPath();
@@ -1922,6 +1920,6 @@ export function welt(T, handy) {
   }
   const luft = new T.Group(); luft.add(wetter, voegel);
 
-  return { marlenaBauen, kissen, duellBuehne, wasserNormal: wellen, rekordFahne, figurBauen, FIGUREN, leoBauen, FIGUR_INFO, toertchen, frauBauen, sprechblase, froebelBanner, froebelHeckenTafel, froebelTafel, froebelSchild, kontaktSchatten, grasBueschel, dampf, weltHindernis, entsorgen, pfeilSchild, bodenPfeil, AUSSTATTUNG, ausstattungSetzen, zonen: ZONEN, zoneFuer, dekoFuer, heckeFuer, blumenFuer, bodenFlaeche, bodenFolgen, verbinden, zoneWechsel, zoneSchritt,
+  return { kissen, duellBuehne, wasserNormal: wellen, rekordFahne, figurBauen, FIGUREN, leoBauen, FIGUR_INFO, toertchen, frauBauen, sprechblase, froebelBanner, froebelHeckenTafel, froebelTafel, froebelSchild, kontaktSchatten, grasBueschel, dampf, weltHindernis, entsorgen, pfeilSchild, bodenPfeil, AUSSTATTUNG, ausstattungSetzen, zonen: ZONEN, zoneFuer, dekoFuer, heckeFuer, blumenFuer, bodenFlaeche, bodenFolgen, verbinden, zoneWechsel, zoneSchritt,
     animieren, wetterSchritt, voegelSchritt, luft, mat, geo, giraffeBauen, anjaBauen, boden, heckenStueck, blumen, ferne, sonnenScheibe, funke, staub, kante, dekoNeu, hindernis, stern, panzer, booster, blase, himmel, wolken, gras };
 }
