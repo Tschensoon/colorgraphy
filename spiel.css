@@ -258,6 +258,12 @@ body.spiel-offen { overflow: hidden; }
 @container (max-aspect-ratio: 4 / 5) {
   .lauf-overlay { justify-content: flex-end; }
   .lauf-karte { max-height: 74cqh; }
+  /* nach der Runde fast bildschirmhoch (nur die Knöpfe oben bleiben frei), damit Punkte und Namensfeld ohne Scrollen zu sehen sind */
+  .lauf-overlay.ergebnis .lauf-karte { max-height: calc(100cqh - 5.2rem); }
+}
+/* kleine Handys hochkant: nach der Runde die Figuren in einer Reihe zum Wischen, damit mehr Platz für Punkte und Namensfeld bleibt */
+@container (max-aspect-ratio: 4 / 5) and (max-height: 760px) {
+  .lauf-overlay.ergebnis .lauf-figur { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: 4.1rem; overflow-x: auto; padding: .5rem .1rem .1rem; scrollbar-width: none; }
 }
 /* Handy quer: wenig Höhe, darum Info links und Wahl rechts nebeneinander */
 @container (min-aspect-ratio: 5 / 4) and (max-height: 560px) {
@@ -299,6 +305,7 @@ body.spiel-offen { overflow: hidden; }
 .lauf-overlay .le-werte { order: 3; margin-top: 0; }
 .lauf-overlay.ergebnis .lauf-titel { font-size: 1.15rem; }
 .lauf-overlay.ergebnis .lauf-text { font-size: .8rem; }
+.lauf-text small { display: block; margin-top: .15rem; font-size: .72rem; font-weight: 600; opacity: .8; }
 .lauf-overlay.ergebnis .le-punkte b { font-size: 2.1rem; }
 .lauf-overlay.ergebnis .le-werte li { padding: .3rem .4rem; }
 .lauf-overlay.ergebnis .le-werte b { font-size: .95rem; }

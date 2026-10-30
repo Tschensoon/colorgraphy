@@ -462,7 +462,11 @@ if (rahmen) {
     konto.sterne += sternZahl; schreib("froebelinchen-rennt-konto", konto);
     const geschafft = aufgabenPruefen();
     ueberTitel.textContent = grund;
-    ueberText.textContent = geschafft.length ? `Aufgabe geschafft: ${geschafft.join(", ")}` : `Rekord ${rekord} · Sterne gesamt ${konto.sterne}`;
+    if (geschafft.length) {                              // kurz: eine Zeile mit Anzahl und Sternen, darunter die Aufgaben klein
+      const lohn = geschafft.reduce((n, a) => n + a.lohn, 0), klein = document.createElement("small");
+      ueberText.textContent = `✓ ${geschafft.length === 1 ? "Aufgabe" : geschafft.length + " Aufgaben"} geschafft · +${lohn} ★`;
+      klein.textContent = geschafft.map(a => a.text).join(" · "); ueberText.append(klein);
+    } else ueberText.textContent = `Rekord ${rekord} · Sterne gesamt ${konto.sterne}`;
     ergebnis.hidden = false; ueber.classList.add("ergebnis");
     ergebnis.querySelector(".le-punkte b").textContent = p;
     ergebnis.querySelector(".le-sterne").textContent = sternZahl;
@@ -473,6 +477,12 @@ if (rahmen) {
     if (!tutorialFertig) { tutorialFertig = true; schreib("froebelinchen-rennt-tutorial", true); }
     aufgabenZeigen();
     stufeNachRunde(p);
+    // passt das Namensfeld nicht ganz ins Bild (kleine Handys), zu den Punkten scrollen: Punkte und Namensfeld stehen dann oben
+    requestAnimationFrame(() => {
+      const info = $(".lauf-info"); info.scrollTop = 0;
+      const feld = eintragForm.getBoundingClientRect(), ib = info.getBoundingClientRect();
+      if (!eintragForm.hidden && feld.bottom > ib.bottom) info.scrollTop += ergebnis.querySelector(".le-punkte").getBoundingClientRect().top - ib.top - 6;
+    });
     eintragenAnbieten(p, Math.ceil(R.zeit));
     losKnopf.textContent = "Nochmal";
     ueber.hidden = false;
@@ -497,13 +507,10 @@ if (rahmen) {
     if (AUFGABEN.every(a => erledigt.includes(a.id))) { erledigt = []; schreib("froebelinchen-rennt-aufgaben", erledigt); }   // alle geschafft: von vorn
     return AUFGABEN.filter(a => !erledigt.includes(a.id)).slice(0, 3);
   };
+  // pro Runde zählen nur die drei angezeigten Aufgaben (nachrückende kommen erst in der nächsten Runde dran)
   function aufgabenPruefen() {
-    const neu = [];
-    let weiter = true;
-    while (weiter && neu.length < AUFGABEN.length) {           // nachrückende Aufgaben gleich mitprüfen
-      weiter = false;
-      for (const a of aktiveAufgaben()) if (!erledigt.includes(a.id) && a.ok()) { erledigt.push(a.id); konto.sterne += a.lohn; neu.push(`${a.text} (+${a.lohn} ★)`); weiter = true; }
-    }
+    const neu = aktiveAufgaben().filter(a => a.ok());
+    for (const a of neu) { erledigt.push(a.id); konto.sterne += a.lohn; }
     schreib("froebelinchen-rennt-aufgaben", erledigt); schreib("froebelinchen-rennt-konto", konto);
     return neu;
   }
