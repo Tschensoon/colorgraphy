@@ -1059,6 +1059,7 @@ export function welt(T, handy) {
       g.fillStyle = "#fff"; g.fillRect(30, 58, 16, 30); g.fillRect(82, 58, 16, 30);
       g.fillStyle = "#bdbdbd"; g.fillRect(30, 80, 16, 10); g.fillRect(82, 80, 16, 10);
     }],
+    marlena: ["#f2a900", (g) => { g.font = "bold 66px Arial, sans-serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText("M", 64, 68); }],   // Marlena vertreibt Anja
     doppelt: ["#8e24aa", (g) => { g.font = "bold 58px Arial, sans-serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText("×2", 64, 68); }],
     schubs: ["#e8577a", (g) => {
       g.beginPath();

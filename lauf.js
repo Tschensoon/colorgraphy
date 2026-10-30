@@ -31,7 +31,7 @@ if (rahmen) {
   function laden() {
     if (!bereit) {
       const text = losKnopf.textContent; losKnopf.disabled = true; losKnopf.textContent = "Lädt die 3D-Welt …";
-      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=31"), import("./lauf-ton.js?v=2"), import("./lauf-flug.js?v=3"), import("./lauf-effekte.js?v=3")])
+      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=32"), import("./lauf-ton.js?v=2"), import("./lauf-flug.js?v=3"), import("./lauf-effekte.js?v=3")])
         .then(([m, w, t, f, e]) => { THREE = m; T = t.ton(); aufbauen(w, f, e); losKnopf.disabled = false; losKnopf.textContent = text; });
     }
     return bereit;
@@ -87,7 +87,7 @@ if (rahmen) {
   let zustand = "start", tempo, punkte, sternZahl, strecke, wackeln = 0, schlussSzene = null;
   const S = { idx: 0, s: 0, spur: 0, x: 0, y: 0, vy: 0, duck: 0, abbiegen: 0, stolper: 0, lauf: 0, sprungPuffer: 0, eis: 0, lande: 0 };
   const A = { nah: false, zeit: 0, abstand: 16, bis: 5, lauf: 0, schritt: 0 };
-  const R = { boote: 0, fluege: 0, anjaPhase: false, tempoF: 1, booster: 0, schubs: 0, welt: 0, zeit: 0, laufZeit: 0, flug: 0, ringe: 0, frauBei: 20, kombo: 0, fahne: false, jubel: false };    // Werte dieser Runde für Aufgaben, Ergebnis und Bestenliste
+  const R = { boote: 0, fluege: 0, anjaPhase: false, tempoF: 1, booster: 0, schubs: 0, marlena: 0, welt: 0, zeit: 0, laufZeit: 0, flug: 0, ringe: 0, frauBei: 20, kombo: 0, fahne: false, jubel: false };    // Werte dieser Runde für Aufgaben, Ergebnis und Bestenliste
   const tipps = new Set();
 
   const richtung = (h) => h === 0 ? [0, -1] : [h, 0];           // Norden = -z, Osten = +x, Westen = -x
@@ -233,8 +233,8 @@ if (rahmen) {
       const bs = zufall(14, L - 14);
       if (!hindernisse.some(o => o.nr === nr && Math.abs(o.s - bs) < 4)) {
         const r = Math.random();
-        let typ = r < .24 ? "turbo" : r < .48 ? "schild" : r < .66 ? "schubs" : r < .83 ? "magnet" : "doppelt";
-        if ((typ === "schild" || typ === "schubs") && (R.anjaPhase || Math.random() < schwerStufe() * .18)) typ = wahl(["turbo", "magnet", "doppelt"]);   // später seltener Schutz
+        let typ = r < .31 ? "schild" : r < .54 ? "marlena" : r < .77 ? "magnet" : "doppelt";
+        if ((typ === "schild" || typ === "marlena") && (R.anjaPhase || Math.random() < schwerStufe() * .18)) typ = wahl(["magnet", "doppelt"]);   // später seltener Schutz
         const sp = wahl([-1, 0, 1]);
         booster.push({ nr, s: bs, spur: sp, typ, mesh: setze(W.booster(typ), bs, sp * SPUR, 1.05), weg: false });
       }
@@ -341,7 +341,7 @@ if (rahmen) {
     aktZone = 0; W.zoneWechsel(0, true); stimmungSetzen(true);
     Object.assign(B, { turbo: 0, schild: 0, ruhe: 0, magnet: 0, doppelt: 0, schubs: null });
     FL.naechsteArt = "luft";
-    Object.assign(R, { boote: 0, fluege: 0, anjaPhase: false, tempoF: 1, booster: 0, schubs: 0, welt: 0, zeit: 0, laufZeit: 0, flug: 0, ringe: 0, frauBei: 20, kombo: 0, fahne: false, jubel: false });
+    Object.assign(R, { boote: 0, fluege: 0, anjaPhase: false, tempoF: 1, booster: 0, schubs: 0, marlena: 0, welt: 0, zeit: 0, laufZeit: 0, flug: 0, ringe: 0, frauBei: 20, kombo: 0, fahne: false, jubel: false });
     tempo = START_TEMPO; punkte = 0; sternZahl = 0; strecke = 0; wackeln = 0; schlussSzene = null;
     Object.assign(S, { idx: 0, s: 0, spur: 0, x: 0, y: 0, vy: 0, duck: 0, abbiegen: 0, stolper: 0, sprungPuffer: 0, eis: 0, lande: 0 });
     Object.assign(A, { nah: false, zeit: 0, abstand: 16, bis: 5 });
@@ -481,7 +481,7 @@ if (rahmen) {
     { id: "bauernhof", text: "Lauf bis zum Bauernhof", lohn: 20, ok: () => R.welt >= 1 },
     { id: "booster2", text: "Nimm 2 Booster in einer Runde", lohn: 20, ok: () => R.booster >= 2 },
     { id: "meter800", text: "Lauf 800 Meter", lohn: 30, ok: () => strecke >= 800 },
-    { id: "schubs", text: "Schubs Anja einmal um", lohn: 25, ok: () => R.schubs >= 1 },
+    { id: "marlena", text: "Lass Marlena einmal Anja vertreiben", lohn: 25, ok: () => R.marlena >= 1 },
     { id: "see", text: "Lauf bis an den See", lohn: 30, ok: () => R.welt >= 2 },
     { id: "sterne60", text: "Sammle 60 Sterne in einer Runde", lohn: 40, ok: () => sternZahl >= 60 },
     { id: "herbst", text: "Lauf bis in den Herbstwald", lohn: 40, ok: () => R.welt >= 3 },
@@ -491,7 +491,7 @@ if (rahmen) {
     { id: "ringe10", text: "Flieg durch 10 Ringe in einer Runde", lohn: 60, ok: () => R.ringe >= 10 },
   ];
   const aktiveAufgaben = () => {
-    if (erledigt.length >= AUFGABEN.length) { erledigt = []; schreib("froebelinchen-rennt-aufgaben", erledigt); }   // alle geschafft: von vorn
+    if (AUFGABEN.every(a => erledigt.includes(a.id))) { erledigt = []; schreib("froebelinchen-rennt-aufgaben", erledigt); }   // alle geschafft: von vorn
     return AUFGABEN.filter(a => !erledigt.includes(a.id)).slice(0, 3);
   };
   function aufgabenPruefen() {
@@ -753,7 +753,7 @@ if (rahmen) {
   const ANJA_RUFE = ["Lauf schneller!", "„Fröbelinchen, bleib stehen!“", "„Ich krieg dich!“", "„Warte doch mal!“"];
   const ANJA_FLUG = ["Flieg schneller!", "„Ich flieg dir hinterher!“", "„Warte, Fröbelinchen!“"];
   function anjaKommt(dauer) {
-    if (B.ruhe > 0 || B.schubs) return;           // nach dem Schubser hat man Ruhe
+    if (B.ruhe > 0 || B.schubs) return;           // Marlena hält Anja gerade fern
     if (!A.nah) { meldung("Achtung, Anja kommt!", (FL.an ? wahl(ANJA_FLUG) : wahl(ANJA_RUFE)).replace("Fröbelinchen", NAME())); T.anja(); }
     A.nah = true; A.zeit = dauer;
   }
@@ -773,10 +773,21 @@ if (rahmen) {
     wackeln = .35; T.stolpern(); if (navigator.vibrate) navigator.vibrate(40);
     anjaKommt(6);
   }
+  const BOOSTER_FUNKEN = { schild: "#6ec6ff", marlena: "#ffd54a", magnet: "#ff6b6b", doppelt: "#c58cff" };
+  // Booster in Luft und Wasser: Schild am häufigsten, Marlena nicht mehr in der Anja-Phase
+  function flugBooster() {
+    const r = Math.random();
+    if (r < .325) return "schild";
+    return wahl(R.anjaPhase ? ["magnet", "doppelt"] : ["marlena", "magnet", "doppelt"]);
+  }
   function boosterNehmen(typ) {
     R.booster++; T.booster();
     if (typ === "turbo") { B.turbo = 6; wackeln = Math.max(wackeln, .2); meldung("Turbo!", `${NAME()} rennt schneller`); }
-    else if (typ === "schild") { B.schild = 5; meldung("Schutzschild!", "5 Sekunden unverwundbar"); }
+    else if (typ === "schild") { B.schild = 7; meldung("Schutzschild!", "7 Sekunden unverwundbar"); }
+    else if (typ === "marlena") {                  // Marlena hält Anja 10 Sekunden lang auf
+      R.marlena++; B.ruhe = 10; A.nah = false; A.zeit = 0; A.bis = Math.max(A.bis, 10 + zufall(3, 6));
+      meldung("Marlena vertreibt Anja!", "10 Sekunden Ruhe vor Anja");
+    }
     else if (typ === "magnet") { B.magnet = 8; meldung("Sterne-Magnet!", "Alle Sterne fliegen zu dir"); }
     else if (typ === "doppelt") { B.doppelt = 10; meldung("Doppelte Punkte!", "10 Sekunden lang alles ×2"); }
     else if (!B.schubs) { B.schubs = { t: 0, umfallen: 0, getroffen: false }; A.nah = true; A.zeit = 99; meldung("Schubs-Booster!", `Hol sie dir, ${NAME()}!`); }
@@ -845,7 +856,7 @@ if (rahmen) {
     if (B.magnet > 0) t += ` · 🧲 ${Math.ceil(B.magnet)}`;
     if (B.doppelt > 0) t += ` · ×2 ${Math.ceil(B.doppelt)}`;
     if (B.schild > 0) t += ` · 🛡 ${Math.ceil(B.schild)}`;
-    if (B.ruhe > 0) t += ` · Ruhe ${Math.ceil(B.ruhe)}`;
+    if (B.ruhe > 0) t += ` · Anja weg ${Math.ceil(B.ruhe)}`;
     if (hud.textContent !== t) hud.textContent = t;
   }
 
@@ -982,7 +993,7 @@ if (rahmen) {
     for (const bo of booster) {
       if (bo.weg || bo.nr !== S.idx || Math.abs(bo.s - S.s) > .9 || Math.round(S.x / SPUR) !== bo.spur) continue;
       bo.weg = true; bo.mesh.visible = false; boosterNehmen(bo.typ);
-      funkeln(bo.mesh.position, { turbo: "#ffcc33", schild: "#6ec6ff", schubs: "#ff7aa2", magnet: "#ff6b6b", doppelt: "#c58cff" }[bo.typ], 18);
+      funkeln(bo.mesh.position, BOOSTER_FUNKEN[bo.typ], 18);
     }
 
     // Anja: kommt am Anfang nach 5 s, danach alle 15–22 s, und wenn man stolpert; ihre Schritte werden lauter, je näher sie ist
@@ -1196,7 +1207,7 @@ if (rahmen) {
     });
     ["kloetze", "ball", "balken", "pfuetze", "stange"].forEach(t => dazu(W.hindernis(t, 4)));
     ["heuballen", "huhn", "enten", "laub", "schneeball", "eis"].forEach(t => dazu(W.weltHindernis(t, 4)));
-    ["turbo", "schild", "schubs", "magnet", "doppelt"].forEach(t => dazu(W.booster(t)));
+    ["schild", "marlena", "magnet", "doppelt"].forEach(t => dazu(W.booster(t)));
     ["logo", "ohren", "kitas"].forEach(t => { dazu(W.froebelHeckenTafel(t)); dazu(W.froebelTafel(t)); });
     ["ohren", "kitas"].forEach(t => dazu(W.froebelSchild(t)));
     dazu(W.toertchen()); dazu(FW.pylone()); dazu(FW.boje()); for (const f of FIGUR_LISTE) if (f.id !== figur) dazu(W.figurBauen(f.id).gruppe);
@@ -1543,7 +1554,7 @@ if (rahmen) {
       for (let i = 0; i < n; i++) flugObjekt("pylon", FW.pylone(), rx(), 0, z - i * zufall(3, 6), { r: 1.15, tiefe: .8 });
     }
     if (Math.random() < .14) {
-      const typ = wahl(["turbo", "schild", "magnet", "doppelt"]), m = W.booster(typ); m.scale.setScalar(1.5);
+      const typ = flugBooster(), m = W.booster(typ); m.scale.setScalar(1.5);
       flugObjekt("booster", m, rx(), Y + .2, z - 9, { art: typ });
     }
     for (const seite of [-1, 1]) {
@@ -1579,7 +1590,7 @@ if (rahmen) {
       }
     }
     if (Math.random() < .14) {                           // Booster (kein Schubser in der Luft)
-      const typ = wahl(["turbo", "schild", "magnet", "doppelt"]), m = W.booster(typ); m.scale.setScalar(1.5);
+      const typ = flugBooster(), m = W.booster(typ); m.scale.setScalar(1.5);
       flugObjekt("booster", m, rx(), ry(), z - 9, { art: typ });
     }
     // Deko: schwebende Inseln und Wolken am Rand, ab und zu ein Regenbogen
@@ -1667,7 +1678,7 @@ if (rahmen) {
       } else if (o.typ === "booster") {
         if (Math.abs(dz) < 1.3 && abst < 1.7) {
           o.weg = true; o.mesh.visible = false; boosterNehmen(o.art);
-          funkeln(o.mesh.position, { turbo: "#ffcc33", schild: "#6ec6ff", magnet: "#ff6b6b", doppelt: "#c58cff" }[o.art], 18);
+          funkeln(o.mesh.position, BOOSTER_FUNKEN[o.art], 18);
         }
       } else if (!o.getroffen && !unverwundbar && Math.abs(dz) < o.tiefe && abst < o.r) {
         o.getroffen = true; flugTreffer(o); if (zustand !== "laeuft") return;
