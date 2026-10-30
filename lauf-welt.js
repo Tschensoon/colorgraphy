@@ -868,8 +868,19 @@ export function welt(T, handy) {
   function heckenStueck(laenge, hoehe = 1.45, dicke = .8) {
     const g = new T.Group();
     teil(uvSkala(new T.BoxGeometry(dicke, hoehe, laenge), laenge / 1.3, hoehe / 1.3), mat.hecke, g, 0, hoehe / 2, 0);
-    // gerundete Oberseite, damit sie wie geschnittener Buchs aussieht und nicht wie eine Kiste
-    const krone = teil(uvSkala(new T.CylinderGeometry(dicke / 2, dicke / 2, laenge, 14, 1, false, 0, Math.PI), laenge / 1.3, 1), mat.hecke, g, 0, hoehe, 0);
+    // gerundete, leicht buckelige Oberseite wie geschnittener Buchs: die Blätter laufen in derselben Größe wie an den Seiten weiter
+    const r = dicke / 2, reihen = Math.max(2, Math.round(laenge * 2.5));
+    const kg = uvSkala(new T.CylinderGeometry(r, r, laenge, handy ? 10 : 16, reihen, false, 0, Math.PI), Math.PI * r / 1.3, laenge / 1.3);
+    const pos = kg.attributes.position, v = new T.Vector3();
+    for (let i = 0; i < pos.count; i++) {
+      v.fromBufferAttribute(pos, i);
+      const w = Math.atan2(v.x, v.z), rand = Math.sin(w);              // an den Kanten zur Seitenwand nicht verschieben, sonst klaffen Lücken
+      const beule = (Math.sin(v.y * 4.1 + w * 3) * .5 + Math.sin(v.y * 9.3 - w * 5 + 1.7) * .3 + Math.sin(v.y * 1.7 + 2.3) * .2) * .045 + .025;
+      const f = 1 + beule * rand / r;
+      pos.setXYZ(i, v.x * f, v.y, v.z * f);
+    }
+    kg.computeVertexNormals();
+    const krone = teil(kg, mat.hecke, g, 0, hoehe, 0);
     krone.rotation.set(Math.PI / 2, Math.PI / 2, 0);
     return g;
   }
