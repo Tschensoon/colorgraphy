@@ -935,8 +935,10 @@ if (rahmen) {
       }
       if (h.bew.vx) {
         h.bew.x += h.bew.vx * dt; if (Math.abs(h.bew.x) > H - .3) h.bew.vx *= -1;
-        const breite = h.typ === "enten" ? .7 : .25;
-        h.spuren = [...new Set([Math.round((h.bew.x - breite) / SPUR), Math.round((h.bew.x + breite) / SPUR)])].filter(x => x >= -1 && x <= 1);
+        // echte Ausdehnung quer zum Weg: Mama Ente vorn, die Küken laufen bis gut 1 m hinterher
+        const vor = h.typ === "enten" ? .4 : .3, hinter = h.typ === "enten" ? 1.15 : .3, r = Math.sign(h.bew.vx);
+        h.bew.von = Math.min(h.bew.x + r * vor, h.bew.x - r * hinter); h.bew.bis = Math.max(h.bew.x + r * vor, h.bew.x - r * hinter);
+        h.spuren = [...new Set([Math.round(h.bew.von / SPUR), Math.round(h.bew.bis / SPUR)])].filter(x => x >= -1 && x <= 1);
         h.mesh.rotation.y = -h.ab.h * Math.PI / 2 + (h.bew.vx > 0 ? -Math.PI / 2 : Math.PI / 2);
       }
       const [hx, hz] = punkt(h.ab, h.s, h.bew.vx ? h.bew.x : h.spuren[0] * SPUR);
@@ -947,7 +949,8 @@ if (rahmen) {
     for (const h of hindernisse) {
       if (h.getroffen || h.nr !== S.idx || Math.abs(h.s - S.s) > h.tiefe) continue;
       const spur = Math.round(S.x / SPUR);
-      if (!h.spuren.includes(spur)) continue;
+      if (h.bew && h.bew.von !== undefined) { if (S.x < h.bew.von - .3 || S.x > h.bew.bis + .3) continue; }   // Tiere quer: nach echter Lage, nicht nach Spur
+      else if (!h.spuren.includes(spur)) continue;
       if (h.art === "eis") {
         h.getroffen = true; S.eis = 1.5; T.spur();
         if (!tipps.has("eis")) { tipps.add("eis"); meldung("Glatteis!", "Lenken geht kurz langsamer"); }
