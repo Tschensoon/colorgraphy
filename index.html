@@ -118,7 +118,7 @@
   ]
 }
 </script>
-<link rel="stylesheet" href="style.css?v=12">
+<link rel="stylesheet" href="style.css?v=13">
 </head>
 <body>
 
@@ -130,8 +130,8 @@
       <a href="#galerie">Galerie</a>
       <a href="#ueber">Über mich</a>
       <a href="#instagram">Instagram</a>
-      <div class="nav-mehr" tabindex="0">
-        <span class="nav-mehr-titel">Mehr</span>
+      <div class="nav-mehr">
+        <button type="button" class="nav-mehr-titel" aria-expanded="false">Mehr</button>
         <div class="nav-mehr-liste">
           <a href="#ausruestung">Ausrüstung</a>
           <a href="lernen.html">Lernen</a>
@@ -157,7 +157,6 @@
         <p class="sub">Hobbyfotografie mit der Sony α7 II. Entdecke die Welt mit meinen Augen.</p>
         <div class="cta-actions">
           <a class="pill" href="#galerie">Galerie ansehen</a>
-          <a class="pill ghost ig-link" href="https://www.instagram.com/" target="_blank" rel="noopener">Auf Instagram folgen</a>
         </div>
       </div>
       <div class="faecher" id="faecher"></div>
@@ -224,7 +223,7 @@
         <h2>Ausrüstung.<br><span class="grad">Mein Werkzeug für Fotos.</span></h2>
       </div>
       <div class="bento">
-        <div class="cell c-a glow rise">
+        <div class="cell c-a glow rise" data-foto="Fleiner See am Morgen.jpg">
           <span class="eyebrow">Sony α7 II</span>
           <div class="big">24 MP</div>
           <p><strong>Vollformat mit 5-Achsen-Stabilisator im Gehäuse.</strong> Jedes Objektiv ist stabilisiert, auch bei langen Zeiten im Wald oder am Abend.</p>
@@ -234,7 +233,7 @@
           <div class="big grad">f/1.8</div>
           <p>Für cremig unscharfe Hintergründe.</p>
         </div>
-        <div class="cell c-c rise">
+        <div class="cell c-c rise" data-foto="Early Minka.jpg" data-ausschnitt="50% 25%">
           <span class="eyebrow">FE 24–105 mm G</span>
           <div class="big">105 mm</div>
           <p>Das Immerdrauf, von weit bis nah ran.</p>
@@ -244,7 +243,7 @@
           <div class="big">15 Jahre</div>
           <p>So lange fotografiere ich schon. Die Neugier ist geblieben.</p>
         </div>
-        <div class="cell c-e glow rise">
+        <div class="cell c-e glow rise" data-foto="Halloween Pumpkinhead.jpg" data-ausschnitt="50% 30%">
           <span class="eyebrow">Entwicklung</span>
           <div class="big">RAW</div>
           <p>Jedes Bild selbst bearbeitet in Lightroom.</p>
@@ -257,7 +256,7 @@
     <div class="wrap">
       <div class="sec-title center">
         <h2 id="innenleben-titel">Was steckt drin?<br><span class="grad">Die α7 II in Einzelteilen.</span></h2>
-        <p class="sub">Scroll weiter und schau zu, wie meine Kamera in ihre Bauteile zerfällt. Zeig auf ein Teil, um zu sehen, was es macht.</p>
+        <p class="sub"><span class="nur-3d">Scroll weiter und schau zu, wie meine Kamera in ihre Bauteile zerfällt. Zeig auf ein Teil, um zu sehen, was es macht.</span><span class="ohne-3d">Alle Bauteile meiner Kamera und was sie machen.</span></p>
       </div>
     </div>
     <div class="xray-track">
@@ -268,6 +267,8 @@
       </div>
     </div>
     <div class="wrap">
+      <details class="xray-liste-klappe" open>
+      <summary>Alle 14 Bauteile als Liste</summary>
       <ol class="xray-list">
         <li data-teil="linsen"><strong>Linsen</strong><span>Mehrere Glaslinsen bündeln das Licht und zeichnen das Bild scharf auf den Sensor. Ein Zoom wie das 24–105 mm hat über ein Dutzend davon.</span></li>
         <li data-teil="blende"><strong>Blende</strong><span>Lamellen bilden eine verstellbare Öffnung. Weit offen kommt viel Licht herein und der Hintergrund wird unscharf, weiter geschlossen ist mehr scharf.</span></li>
@@ -284,6 +285,7 @@
         <li data-teil="rueckwand"><strong>Rückwand</strong><span>Trägt Tasten, Einstellrad und Display und schließt das Gehäuse nach hinten ab.</span></li>
         <li data-teil="gehaeuse"><strong>Gehäuse mit Griff</strong><span>Vorder- und Oberseite sind aus einer Magnesiumlegierung: leicht, stabil und gegen Staub und Feuchtigkeit geschützt.</span></li>
       </ol>
+      </details>
       <p class="xray-note">Vereinfachtes 3D-Modell, angelehnt an die echte Sony α7 II. Nicht jedes Bauteil ist maßstabsgetreu.</p>
     </div>
   </section>
@@ -300,7 +302,7 @@
         </div>
         <div class="qa rise">
           <h3>Was bedeutet Colorgraphy?</h3>
-          <p>Der Name verbindet „Color" und „Photography". Fotografie heißt wörtlich „mit Licht zeichnen", Colorgraphy also „mit Licht und Farbe zeichnen", weil ich bunte Bilder liebe.</p>
+          <p>Der Name verbindet „Color“ und „Photography“. Fotografie heißt wörtlich „mit Licht zeichnen“, Colorgraphy also „mit Licht und Farbe zeichnen“, weil ich bunte Bilder liebe.</p>
         </div>
         <div class="qa rise">
           <h3>Was fotografierst du?</h3>
@@ -325,8 +327,8 @@
 
 <footer>
   <div class="wrap">
-    <span>© 2026 Colorgraphy · Hobbyfotografie ·<a href="lernen.html">Fotografieren lernen</a> ·<a href="impressum.html">Impressum</a> ·<a href="datenschutz.html">Datenschutz</a></span>
-    <span>Hobbyfotografie mit Sony α7 II ·<a class="ig-link" href="https://www.instagram.com/" target="_blank" rel="noopener">Instagram</a></span>
+    <span>© 2026 Colorgraphy · Hobbyfotografie · <a href="lernen.html">Fotografieren lernen</a> · <a href="impressum.html">Impressum</a> · <a href="datenschutz.html">Datenschutz</a></span>
+    <span>Hobbyfotografie mit Sony α7 II · <a class="ig-link" href="https://www.instagram.com/" target="_blank" rel="noopener">Instagram</a></span>
   </div>
 </footer>
 
@@ -496,9 +498,12 @@ function bild(f, sizes){
   const klein = Math.round(f.breite * Math.min(1, 800 / Math.max(f.breite, f.hoehe)));
   img.src = url("vorschau", f);
   if(sizes){ img.srcset = `${url("vorschau", f)} ${klein}w, ${url("fotos", f)} ${f.breite}w`; img.sizes = sizes; }
-  img.alt = f.titel; img.loading = "lazy"; img.decoding = "async";
+  img.alt = f.beschreibung || f.titel; img.loading = "lazy"; img.decoding = "async";
   return img;
 }
+
+// Für Screenreader: Titel, was auf dem Foto zu sehen ist, und was der Klick macht
+const vorlesen = f => `${f.titel}. ${f.beschreibung ? f.beschreibung + " " : ""}Groß ansehen`;
 
 function zeigeBeispiele(){
   photos.forEach(p=>{
@@ -523,30 +528,44 @@ function fotoAkzent(liste){
   const g = toene[Math.floor(Math.random() * toene.length)], a = g[Math.floor(Math.random() * g.length)].farbe;
   const stil = document.documentElement.style;
   stil.setProperty("--accent", a);
-  stil.setProperty("--grad", `linear-gradient(90deg,color-mix(in srgb,${a} 55%,var(--fg)),color-mix(in srgb,${a} 80%,var(--fg)))`);
+  stil.setProperty("--grad", `linear-gradient(90deg,color-mix(in srgb,${a} 55%,var(--fg)),color-mix(in srgb,${a} var(--grad-anteil),var(--fg)))`);
 }
 
 // Fotofächer im Einstieg: feste Auswahl, unabhängig von neuen Uploads (links, rechts, vorn in der Mitte)
-const FAECHER = ["Early Minka.jpg", "Halloween Pumpkinhead.jpg", "Mysthic Puuh.jpg"];
+const FAECHER = ["Early Minka.jpg", "Halloween Pumpkinhead.jpg", "Mystic Puuh.jpg"];
 function fotoFaecher(liste){
   const feld = document.getElementById("faecher");
   FAECHER.map(name => liste.find(f => f.datei === name)).filter(Boolean).forEach(f => {
     const k = document.createElement("button");
-    k.type = "button"; k.setAttribute("aria-label", `${f.titel} groß ansehen`);
+    k.type = "button"; k.setAttribute("aria-label", vorlesen(f));
     const img = bild(f, "(max-width:760px) 45vw, 17rem"); img.loading = "eager"; img.alt = "";
     k.append(img); k.addEventListener("click", () => lightbox(liste, liste.indexOf(f)));
     feld.append(k);
   });
 }
 
+// Ausrüstung: Kacheln zeigen ein echtes Foto samt seinen echten Aufnahmedaten
+function ausruestungFotos(liste){
+  document.querySelectorAll(".cell[data-foto]").forEach(zelle => {
+    const f = liste.find(x => x.datei === zelle.dataset.foto);
+    if(!f) return;
+    const e = f.exif || {}, img = bild(f, "(max-width:820px) 100vw, 44rem"), info = document.createElement("span");
+    img.alt = ""; img.className = "cell-foto"; img.style.objectPosition = zelle.dataset.ausschnitt || "";
+    info.className = "cell-exif";
+    info.textContent = `Foto: ${f.titel} · ` + [e.mm, e.blende, e.zeit, e.iso].filter(Boolean).join(" · ");
+    zelle.prepend(img); zelle.append(info); zelle.classList.add("mit-foto");
+  });
+}
+
 function zeigeFotos(liste){
   fotoAkzent(liste);
   fotoFaecher(liste);
+  ausruestungFotos(liste);
   liste.forEach((f, i)=>{
     const e = f.exif || {};
     const exif = [e.mm, e.blende, e.zeit, e.iso].filter(Boolean).join(" · ");
     const fig = document.createElement("figure");
-    fig.className = "tile rise"; fig.tabIndex = 0; fig.setAttribute("role", "button"); fig.setAttribute("aria-label", `${f.titel} groß ansehen`);
+    fig.className = "tile rise"; fig.tabIndex = 0; fig.setAttribute("role", "button"); fig.setAttribute("aria-label", vorlesen(f));
     fig.addEventListener("click", () => lightbox(liste, i));
     fig.addEventListener("keydown", ev => { if(ev.key === "Enter" || ev.key === " "){ ev.preventDefault(); lightbox(liste, i); } });
     fig.innerHTML = `<figcaption><strong>${esc(f.titel)}</strong>${exif ? `<span class="exif">${esc(exif)}</span>` : ""}</figcaption>`;
@@ -564,7 +583,14 @@ function galerieBlaettern(richtung){
   if(galerieNr < 0) return;
   const kacheln = [...gallery.querySelectorAll(".tile")];
   const spalten = matchMedia("(max-width:640px)").matches ? 0 : matchMedia("(max-width:900px)").matches ? 2 : 3;
-  const proSeite = spalten ? spalten * 2 : kacheln.length;
+  if(!spalten){
+    kacheln.forEach(k => { k.hidden = false; });
+    galerieSeite.hidden = true;
+    if(richtung) gallery.scrollBy({left: richtung * (kacheln[0].offsetWidth + 12), behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth"});
+    galerieReihePfeile();
+    return;
+  }
+  const proSeite = spalten * 2;
   const seiten = Math.max(1, Math.ceil(kacheln.length / proSeite));
   const seite = galerieNr = Math.min(seiten - 1, Math.max(0, galerieNr + richtung));
   // Die letzte Seite bleibt voll: Fehlt etwas, rücken die Fotos davor nach, damit nichts springt und nichts leer wirkt
@@ -573,10 +599,16 @@ function galerieBlaettern(richtung){
   galerieZurueck.hidden = seite === 0;
   galerieWeiter.hidden = seite === seiten - 1;
   galerieSeite.hidden = seiten < 2;
-  galerieSeite.textContent = `${seite + 1} / ${seiten}`;
+  galerieSeite.textContent = `Fotos ${start + 1}–${Math.min(start + proSeite, kacheln.length)} von ${kacheln.length}`;
   if(richtung && !matchMedia("(prefers-reduced-motion: reduce)").matches)
     gallery.animate([{opacity:0, transform:`translateX(${richtung * 28}px)`}, {opacity:1, transform:"none"}], {duration:280, easing:"cubic-bezier(.2,.7,.2,1)"});
 }
+// Handy-Reihe: Pfeile (nur mit Maus sichtbar) blenden sich an den Enden aus
+function galerieReihePfeile(){
+  galerieZurueck.hidden = gallery.scrollLeft < 8;
+  galerieWeiter.hidden = gallery.scrollLeft + gallery.clientWidth > gallery.scrollWidth - 8;
+}
+gallery.addEventListener("scroll", () => { if(matchMedia("(max-width:640px)").matches) galerieReihePfeile(); }, {passive:true});
 galerieZurueck.addEventListener("click", () => { galerieBlaettern(-1); if(galerieZurueck.hidden) galerieWeiter.focus(); });
 galerieWeiter.addEventListener("click", () => { galerieBlaettern(1); if(galerieWeiter.hidden) galerieZurueck.focus(); });
 
@@ -586,7 +618,7 @@ function lightbox(liste, start){
   let i = start;
   const zeigen = () => {
     const f = liste[i], e = f.exif || {};
-    img.src = url("vorschau", f); img.alt = f.titel;       // erst die kleine Vorschau, sofort sichtbar
+    img.src = url("vorschau", f); img.alt = f.beschreibung || f.titel;       // erst die kleine Vorschau, sofort sichtbar
     const gross = new Image(); gross.onload = () => { if(liste[i] === f) img.src = gross.src; }; gross.src = url("fotos", f);
     lb.querySelector("strong").textContent = f.titel;
     lb.querySelector(".exif").textContent = [e.mm, e.blende, e.zeit, e.iso].filter(Boolean).join(" · ");
@@ -668,5 +700,6 @@ document.querySelectorAll(".copy").forEach(b=>{
 <script type="module" src="kamera3d.js"></script>
 <script data-goatcounter="https://colorgraphy.goatcounter.com/count" async src="vendor/goatcounter/count.js"></script>
 <script src="ziehen.js?v=2" defer></script>
+<script src="nav-mehr.js" defer></script>
 </body>
 </html>

@@ -157,6 +157,8 @@ def main():
             "hinzugefuegt": bisher["hinzugefuegt"] if bisher else jetzt,
             "sha": pruefsumme(pfad),
         }
+        if bisher and bisher.get("beschreibung"):
+            eintrag["beschreibung"] = bisher["beschreibung"]
         eintraege.append(eintrag)
         print(f"verarbeitet: {name} ({breite}×{hoehe}) {werte}")
 

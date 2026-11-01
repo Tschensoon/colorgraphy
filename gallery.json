@@ -1,7 +1,8 @@
 [
  {
-  "datei": "Flowes in the sun.jpg",
-  "titel": "Flowes in the sun",
+  "datei": "Flowers in the sun.jpg",
+  "titel": "Flowers in the sun",
+  "beschreibung": "Rosa-weiß gestreifte Blüten im Gegenlicht vor tief stehender Sonne, der Hintergrund leuchtet unscharf und golden.",
   "exif": {
    "mm": "105 mm",
    "blende": "f/5",
@@ -17,6 +18,7 @@
  {
   "datei": "Sunny Road.jpg",
   "titel": "Sunny Road",
+  "beschreibung": "Asphaltstraße aus Bodenhöhe, die im Gegenlicht golden glänzt. Links ein Zaun mit Holzpfosten, am Ende der Straße die tief stehende Sonne.",
   "exif": {
    "mm": "50 mm",
    "blende": "f/14",
@@ -30,8 +32,9 @@
   "farbe": "#deb572"
  },
  {
-  "datei": "Mysthic Puuh.jpg",
-  "titel": "Mysthic Puuh",
+  "datei": "Mystic Puuh.jpg",
+  "titel": "Mystic Puuh",
+  "beschreibung": "Durch einen Bogen aus Zweigen und hohen Gräsern fällt der Blick auf eine sonnige Wiese mit einem dicken Baumstamm und goldenem Herbstlaub.",
   "exif": {
    "mm": "90 mm",
    "blende": "f/9",
@@ -47,6 +50,7 @@
  {
   "datei": "Herbstblatt.jpg",
   "titel": "Herbstblatt",
+  "beschreibung": "Eine Hand hält ein orangerotes Ahornblatt vor eine grüne Wiese, dahinter Bäume und Hügel im Dunst.",
   "exif": {
    "mm": "50 mm",
    "blende": "f/13",
@@ -62,6 +66,7 @@
  {
   "datei": "Fleiner See am Morgen.jpg",
   "titel": "Fleiner See am Morgen",
+  "beschreibung": "See im Morgennebel, goldenes Licht liegt auf dem Wasser. Davor Gras und dunkle Baumstämme.",
   "exif": {
    "mm": "95 mm",
    "blende": "f/11",
@@ -77,6 +82,7 @@
  {
   "datei": "Halloween Pumpkinhead.jpg",
   "titel": "Halloween Pumpkinhead",
+  "beschreibung": "Zwei Personen in dunkler Kleidung mit geschnitzten, leuchtend orangen Kürbisköpfen stehen auf einer Wiese vor dunklen Bäumen.",
   "exif": {
    "mm": "75 mm",
    "blende": "f/10",
@@ -92,6 +98,7 @@
  {
   "datei": "Early Minka.jpg",
   "titel": "Early Minka",
+  "beschreibung": "Grau getigerte Katze mit grünen Augen sitzt im seitlichen Licht auf einem Fliesenboden, dahinter gestapeltes Brennholz.",
   "exif": {
    "mm": "105 mm",
    "blende": "f/4",

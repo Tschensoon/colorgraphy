@@ -10,14 +10,17 @@ const kannWebGL = (() => {
   }
 })();
 
-if (sektion && kannWebGL) {
+const ruhig = matchMedia("(prefers-reduced-motion: reduce)").matches;
+if (sektion && kannWebGL && !ruhig) {
   sektion.classList.add("is-3d");
+  const klappe = sektion.querySelector(".xray-liste-klappe");
+  klappe.open = false;
   const beobachter = new IntersectionObserver((eintraege) => {
     if (!eintraege.some((e) => e.isIntersecting)) return;
     beobachter.disconnect();
     Promise.all([import("./vendor/three/three.module.min.js"), import("./vendor/three/RoomEnvironment.js")])
       .then(([THREE, { RoomEnvironment }]) => aufbauen(THREE, RoomEnvironment))
-      .catch(() => sektion.classList.remove("is-3d"));
+      .catch(() => { sektion.classList.remove("is-3d"); klappe.open = true; });
   }, { rootMargin: "1200px 0px" });
   beobachter.observe(sektion);
 }

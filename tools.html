@@ -81,7 +81,7 @@
   ]
 }
 </script>
-<link rel="stylesheet" href="style.css?v=12">
+<link rel="stylesheet" href="style.css?v=13">
 <link rel="stylesheet" href="tools.css?v=8">
 </head>
 <body>
@@ -94,8 +94,8 @@
       <a href="index.html#galerie">Galerie</a>
       <a href="index.html#ueber">Über mich</a>
       <a href="index.html#instagram">Instagram</a>
-      <div class="nav-mehr" tabindex="0">
-        <span class="nav-mehr-titel">Mehr</span>
+      <div class="nav-mehr">
+        <button type="button" class="nav-mehr-titel" aria-expanded="false">Mehr</button>
         <div class="nav-mehr-liste">
           <a href="index.html#ausruestung">Ausrüstung</a>
           <a href="lernen.html">Lernen</a>
@@ -198,13 +198,14 @@
 
 <footer>
   <div class="wrap">
-    <span>© 2026 Colorgraphy · Hobbyfotografie ·<a href="index.html">Startseite</a> ·<a href="impressum.html">Impressum</a> ·<a href="datenschutz.html">Datenschutz</a></span>
-    <span>Hobbyfotografie mit Sony α7 II ·<a href="https://www.instagram.com/colorgraphy.de/" target="_blank" rel="noopener">Instagram</a></span>
+    <span>© 2026 Colorgraphy · Hobbyfotografie · <a href="index.html">Startseite</a> · <a href="impressum.html">Impressum</a> · <a href="datenschutz.html">Datenschutz</a></span>
+    <span>Hobbyfotografie mit Sony α7 II · <a href="https://www.instagram.com/colorgraphy.de/" target="_blank" rel="noopener">Instagram</a></span>
   </div>
 </footer>
 
 <script>(() => { const z = {"#zuschneider":"tools/zuschneider.html","#splitter":"tools/foto-splitter.html"}[location.hash]; if (z) location.replace(z); })();</script>
 <script src="seite.js?v=11" defer></script>
+<script src="nav-mehr.js" defer></script>
 <script src="ziehen.js?v=2" defer></script>
 <script data-goatcounter="https://colorgraphy.goatcounter.com/count" async src="vendor/goatcounter/count.js"></script>
 </body>
