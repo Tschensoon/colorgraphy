@@ -283,7 +283,7 @@ const konfetti = () => {
   if (ruhig) return;
   const c = $("konfetti"), g = c.getContext("2d"), dpr = Math.min(devicePixelRatio || 1, 2);
   c.width = innerWidth * dpr; c.height = innerHeight * dpr;
-  const farben = ["#ff4d6d", "#ff9f1c", "#ffd23f", "#3ddc84", "#3aa0ff", "#8b5cf6"];
+  const farben = ["#ff4d6d", "#ff9f1c", "#ffd23f", "#3ddc84", "#3aa0ff", "#74c6dc"];
   const teile = Array.from({ length: 160 }, () => ({ x: innerWidth / 2 + (Math.random() - 0.5) * 200, y: innerHeight * 0.55, vx: (Math.random() - 0.5) * 14, vy: -Math.random() * 16 - 6, r: Math.random() * 6.3, vr: (Math.random() - 0.5) * 0.4, w: 6 + Math.random() * 6, f: farben[zufall(6)] }));
   const start = performance.now();
   const bild = (t) => {
@@ -312,11 +312,11 @@ const storyKarte = async (titel, bloecke) => {
   const bg = g.createLinearGradient(0, 0, W, H);
   bg.addColorStop(0, "#120b2a"); bg.addColorStop(0.55, "#2a1557"); bg.addColorStop(1, "#0b1a3a");
   g.fillStyle = bg; g.fillRect(0, 0, W, H);
-  [["#8b5cf6", 900, 300, 520], ["#ff4d6d", 120, 1500, 460], ["#3aa0ff", 980, 1650, 380]].forEach(([f, x, y, r]) => {
+  [["#74c6dc", 900, 300, 520], ["#ff4d6d", 120, 1500, 460], ["#3aa0ff", 980, 1650, 380]].forEach(([f, x, y, r]) => {
     const rg = g.createRadialGradient(x, y, 0, x, y, r); rg.addColorStop(0, f + "66"); rg.addColorStop(1, f + "00"); g.fillStyle = rg; g.fillRect(0, 0, W, H);
   });
   const regenbogen = g.createLinearGradient(90, 0, W - 90, 0);
-  ["#ff4d6d", "#ff9f1c", "#ffd23f", "#3ddc84", "#3aa0ff", "#8b5cf6"].forEach((f, i) => regenbogen.addColorStop(i / 5, f));
+  ["#ff4d6d", "#ff9f1c", "#ffd23f", "#3ddc84", "#3aa0ff", "#74c6dc"].forEach((f, i) => regenbogen.addColorStop(i / 5, f));
   g.fillStyle = regenbogen; g.fillRect(90, 200, W - 180, 10);
   g.fillStyle = "#ffffff"; g.textBaseline = "top";
   g.font = "700 40px Figtree, Arial, sans-serif"; g.fillText("colorgraphy · FOTO-CHALLENGE", 90, 120);
@@ -328,7 +328,7 @@ const storyKarte = async (titel, bloecke) => {
     g.font = "600 46px Figtree, Arial, sans-serif";
     const zeilen = umbrechen(g, text, W - 260), hoehe = 90 + zeilen.length * 60;
     g.fillStyle = "rgba(255,255,255,0.09)"; g.beginPath(); g.roundRect(90, y, W - 180, hoehe, 36); g.fill();
-    g.fillStyle = "#c9b6ff"; g.font = "700 32px Figtree, Arial, sans-serif"; g.fillText(label.toUpperCase(), 130, y + 30);
+    g.fillStyle = "#c5ecf5"; g.font = "700 32px Figtree, Arial, sans-serif"; g.fillText(label.toUpperCase(), 130, y + 30);
     g.fillStyle = "#ffffff"; g.font = "600 46px Figtree, Arial, sans-serif";
     zeilen.forEach((z, i) => g.fillText(z, 130, y + 76 + i * 60));
     y += hoehe + 28;
@@ -345,7 +345,7 @@ const storyKarte = async (titel, bloecke) => {
   }
   g.textAlign = "center";
   g.fillStyle = "#ffffff"; g.font = "800 58px Figtree, Arial, sans-serif"; g.fillText("#colorgraphychallenge", W / 2, H - 260);
-  g.fillStyle = "#c9b6ff"; g.font = "600 40px Figtree, Arial, sans-serif"; g.fillText("Mach mit: colorgraphy.de/challenge", W / 2, H - 180);
+  g.fillStyle = "#c5ecf5"; g.font = "600 40px Figtree, Arial, sans-serif"; g.fillText("Mach mit: colorgraphy.de/challenge", W / 2, H - 180);
   const blob = await new Promise((ok) => c.toBlob(ok, "image/png"));
   const name = `foto-challenge-${tagesSchluessel()}.png`, datei = new File([blob], name, { type: "image/png" });
   if (navigator.canShare && matchMedia("(pointer: coarse)").matches && navigator.canShare({ files: [datei] })) {

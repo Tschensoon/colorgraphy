@@ -372,3 +372,6 @@ body.spiel-offen { overflow: hidden; }
   .du-herzen { top: calc(env(safe-area-inset-top) + 6.4rem); }
   .du-bahn { top: 27%; }
 }
+
+/* Hauptknöpfe auf der hellen Spielkarte: dunkles Grün statt der neutralen Seitenfarbe */
+.lauf-rahmen .pill:not(.ghost){background:#034a3e;color:#fff}

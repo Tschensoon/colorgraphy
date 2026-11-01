@@ -276,7 +276,7 @@ function beiGroesse(el, fn) {
     g.fillStyle = "#3a2f28"; [[bx - 8, by - 52], [bx + 2, by - 52], [bx - 3, by - 30], [bx - 59, by - 20], [bx + 48, by - 10], [bx + 20, by + 8], [bx - 34, by + 8]].forEach(([fx, fy]) => g.fillRect(fx, fy, 4, 7));
     g.fillStyle = "#4a3426"; g.beginPath(); g.arc(bx + 2, by + 36, 8, Math.PI, 0); g.fill();
     g.strokeStyle = "#3a2f28"; g.lineWidth = 1; g.beginPath(); g.moveTo(bx - 3, by - 104); g.lineTo(bx - 3, by - 124); g.stroke();
-    g.fillStyle = "#8b5cf6"; g.beginPath(); g.moveTo(bx - 3, by - 124); g.lineTo(bx + 9, by - 120); g.lineTo(bx - 3, by - 116); g.fill();
+    g.fillStyle = "#74c6dc"; g.beginPath(); g.moveTo(bx - 3, by - 124); g.lineTo(bx + 9, by - 120); g.lineTo(bx - 3, by - 116); g.fill();
     // Bäume
     const baum = (x, y, s, farbe = "#3f6a2e") => {
       g.fillStyle = "#4a3020"; g.fillRect(x - s * 0.08, y - s * 0.6, s * 0.16, s * 0.6);
@@ -507,7 +507,7 @@ const farbname = (h) => {
 (() => {
   const box = document.getElementById("f-fotos");
   if (!box) return;
-  const GRUPPEN = [["rot", "Rot", "#e8364f"], ["orange", "Orange", "#f08a24"], ["gelb", "Gelb", "#f2c230"], ["gruen", "Grün", "#3ca55c"], ["tuerkis", "Türkis", "#22b5b0"], ["blau", "Blau", "#3a7be0"], ["lila", "Lila", "#8b5cf6"], ["pink", "Pink", "#e04aa8"], ["neutral", "Schwarzweiß", "#9a9a9a"]];
+  const GRUPPEN = [["rot", "Rot", "#e8364f"], ["orange", "Orange", "#f08a24"], ["gelb", "Gelb", "#f2c230"], ["gruen", "Grün", "#3ca55c"], ["tuerkis", "Türkis", "#22b5b0"], ["blau", "Blau", "#3a7be0"], ["lila", "Lila", "#74c6dc"], ["pink", "Pink", "#e04aa8"], ["neutral", "Schwarzweiß", "#9a9a9a"]];
   const gruppeVon = (h) => h < 15 || h >= 340 ? "rot" : h < 45 ? "orange" : h < 70 ? "gelb" : h < 160 ? "gruen" : h < 195 ? "tuerkis" : h < 255 ? "blau" : h < 295 ? "lila" : "pink";
   const url = (ordner, f) => ordner + "/" + encodeURIComponent(f.datei) + "?v=" + (f.sha || "").slice(0, 8);
 
@@ -560,7 +560,7 @@ const farbname = (h) => {
       b.addEventListener("click", () => zeigen(g));
       chips.append(b);
     };
-    knopf("alle", "Alle", "conic-gradient(#e8364f,#f2c230,#3ca55c,#3a7be0,#8b5cf6,#e8364f)", da.length);
+    knopf("alle", "Alle", "conic-gradient(#e8364f,#f2c230,#3ca55c,#3a7be0,#74c6dc,#e8364f)", da.length);
     GRUPPEN.forEach(([g, name, farbe]) => { const n = da.filter((e) => e.gruppe === g).length; if (n) knopf(g, name, farbe, n); });
     zeigen("alle");
   });

@@ -4,7 +4,7 @@
 .ch-bereich{padding-top:0}
 .ch-panel{max-width:52rem;margin-inline:auto}
 .ch-karte{position:relative;background:var(--surface);border-radius:var(--radius);padding:clamp(1.3rem,3.5vw,2.2rem);display:grid;gap:1rem;overflow:hidden}
-.ch-karte::before{content:"";position:absolute;inset:0 0 auto;height:4px;background:linear-gradient(90deg,#ff4d6d,#ff9f1c,#ffd23f,#3ddc84,#3aa0ff,#8b5cf6)}
+.ch-karte::before{content:"";position:absolute;inset:0 0 auto;height:4px;background:linear-gradient(90deg,#ff4d6d,#ff9f1c,#ffd23f,#3ddc84,#3aa0ff,#74c6dc)}
 .ch-kopf{display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap}
 .sterne{font-size:.9rem;color:#ffb020;font-weight:700;letter-spacing:.05em}
 .sterne .leer{color:var(--line)}

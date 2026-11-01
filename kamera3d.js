@@ -320,7 +320,7 @@ function aufbauen(T, RoomEnvironment) {
   const karteTex = tex(leinwand(640, 470, (g, w, h) => {
     const v = g.createLinearGradient(0, 0, w, h); v.addColorStop(0, "#2a1650"); v.addColorStop(1, "#0b0b12");
     g.fillStyle = v; g.fillRect(0, 0, w, h);
-    g.fillStyle = "#8b5cf6"; g.fillRect(0, h - 70, w, 70);
+    g.fillStyle = "#74c6dc"; g.fillRect(0, h - 70, w, 70);
     g.fillStyle = "#fff"; g.textBaseline = "middle";
     g.font = `800 120px ${SCHRIFT}`; g.fillText("64", 40, 170);
     g.font = `700 48px ${SCHRIFT}`; g.fillText("GB", 220, 196);

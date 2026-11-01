@@ -8,6 +8,7 @@ Für jedes neue oder geänderte JPG:
 Gelöschte Fotos verschwinden samt Vorschau aus gallery.json.
 Am Ende steht alles in gallery.json, neueste Fotos zuerst.
 """
+import colorsys
 import hashlib
 import json
 import re
@@ -50,6 +51,29 @@ def brennweite(mm):
     """Brennweite auf den nächsten 5er-Schritt gerundet: 49 → 50 mm, 91 → 90 mm, 94 → 95 mm. 24 mm bleibt (kurzes Ende des 24–105 mm)."""
     mm = round(mm)
     return f"{mm if mm == 24 else round(mm / 5) * 5} mm"
+
+
+def hauptfarbe(img):
+    """Kräftigster Farbton eines Fotos, aufgehellt, damit er als Akzent auf Schwarz lesbar ist."""
+    klein = img.convert("RGB")
+    klein.thumbnail((64, 64))
+    toene = {}
+    for r, g, b in klein.get_flattened_data() if hasattr(klein, "get_flattened_data") else klein.getdata():
+        h, s, v = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)
+        if s < .2 or v < .15:
+            continue
+        e = toene.setdefault(int(h * 12) % 12, [0, 0, 0, 0])
+        w = s * v
+        e[0] += w
+        e[1] += r * w
+        e[2] += g * w
+        e[3] += b * w
+    if not toene:
+        return "#c9c9d1"
+    w, r, g, b = max(toene.values())
+    h, _, s = colorsys.rgb_to_hls(r / w / 255, g / w / 255, b / w / 255)
+    r, g, b = colorsys.hls_to_rgb(h, .66, max(s, .6))
+    return f"#{round(r * 255):02x}{round(g * 255):02x}{round(b * 255):02x}"
 
 
 def exif_werte(img):
@@ -109,6 +133,9 @@ def main():
             alt_mm = re.match(r"\d+", bisher.get("exif", {}).get("mm", ""))   # schon vorhandene Fotos auch umstellen
             if alt_mm:
                 bisher["exif"]["mm"] = brennweite(int(alt_mm.group()))
+            if "farbe" not in bisher:
+                with Image.open(VORSCHAU / name) as v:
+                    bisher["farbe"] = hauptfarbe(v)
             eintraege.append(bisher)
             continue
 
@@ -124,6 +151,7 @@ def main():
             "datei": name,
             "titel": titel(name),
             "exif": werte,
+            "farbe": hauptfarbe(sauber),
             "breite": breite,
             "hoehe": hoehe,
             "hinzugefuegt": bisher["hinzugefuegt"] if bisher else jetzt,
