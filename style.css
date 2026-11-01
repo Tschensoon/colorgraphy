@@ -270,7 +270,7 @@ footer .wrap{padding-block:1.75rem;display:flex;justify-content:space-between;ga
 }
 
 /* Einstieg: großer Satz, daneben drei Fotos als Fächer */
-.einstieg{padding-block:clamp(2.5rem,6vw,4.5rem) clamp(.5rem,2vw,1.5rem)}
+.einstieg{padding-block:clamp(2.5rem,6vw,4.5rem) clamp(.5rem,2vw,1.5rem);overflow-x:clip}
 .einstieg .wrap{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:clamp(1.5rem,4vw,3rem);align-items:center}
 .einstieg-text{display:grid;gap:1.2rem;justify-items:start}
 .einstieg h1{font-size:clamp(2.6rem,5.6vw,4.6rem);font-weight:800;line-height:1.02}
