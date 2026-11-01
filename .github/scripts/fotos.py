@@ -46,13 +46,19 @@ def zahl(wert):
         return None
 
 
+def brennweite(mm):
+    """Brennweite auf den nächsten 5er-Schritt gerundet: 49 → 50 mm, 91 → 90 mm, 94 → 95 mm. 24 mm bleibt (kurzes Ende des 24–105 mm)."""
+    mm = round(mm)
+    return f"{mm if mm == 24 else round(mm / 5) * 5} mm"
+
+
 def exif_werte(img):
     exif = img.getexif()
     sub = exif.get_ifd(0x8769)
     werte = {}
     mm = zahl(sub.get(0x920A))
     if mm:
-        werte["mm"] = f"{mm:.0f} mm"
+        werte["mm"] = brennweite(mm)
     blende = zahl(sub.get(0x829D))
     if blende:
         werte["blende"] = f"f/{blende:.1f}".replace(".0", "")
@@ -100,6 +106,9 @@ def main():
         name = pfad.name
         bisher = alt.get(name)
         if bisher and bisher.get("sha") == pruefsumme(pfad) and (VORSCHAU / name).exists():
+            alt_mm = re.match(r"\d+", bisher.get("exif", {}).get("mm", ""))   # schon vorhandene Fotos auch umstellen
+            if alt_mm:
+                bisher["exif"]["mm"] = brennweite(int(alt_mm.group()))
             eintraege.append(bisher)
             continue
 
