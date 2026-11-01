@@ -1,5 +1,20 @@
 [
  {
+  "datei": "Flowes in the sun.jpg",
+  "titel": "Flowes in the sun",
+  "exif": {
+   "mm": "105 mm",
+   "blende": "f/5",
+   "zeit": "1/400 s",
+   "iso": "ISO 100"
+  },
+  "farbe": "#dcb374",
+  "breite": 1600,
+  "hoehe": 2000,
+  "hinzugefuegt": "2026-11-01T15:49:47Z",
+  "sha": "b45f465a9906cc8828b94d53557b5641ce5cf574d641d46ec11361dcdcdc3279"
+ },
+ {
   "datei": "Sunny Road.jpg",
   "titel": "Sunny Road",
   "exif": {
