@@ -35,6 +35,7 @@ if (!document.querySelector(".spiel-rahmen,.lauf-rahmen")) {
   };
   addEventListener("scroll", pruefen, { passive: true });
   addEventListener("resize", pruefen, { passive: true });
+  if (unterzeile) new ResizeObserver(pruefen).observe(unterzeile); // Die Textbox ändert ihre Höhe auch ohne Scrollen
   pruefen();
   knopf.addEventListener("click", () => {
     scrollTo({ top: 0, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
