@@ -625,7 +625,9 @@ function aufbauen(T, RoomEnvironment) {
   // Ablauf
   const explosion = ["tubus", "linsen", "blende", "tasten", "sucher", "rueckwand", "display", "gehaeuse", "akku", "bajonett", "verschluss", "sensor", "platine", "ibis"];
   // Fortschritt 0–1: auseinander, kurz offen lassen (zum Anschauen), wieder zusammen
-  const AUF = [0.04, 0.34], ZU = [0.66, 0.94];
+  const AUF = [0.02, 0.44], ZU = [0.56, 0.98];
+  // Nachlauf nach Zeit statt pro Bild, damit er auf 60 und 165 Hz gleich wirkt
+  const nachlauf = (dt, ms) => 1 - Math.exp(-dt / ms);
   const klemmen = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
   const weich = (x) => x * x * (3 - 2 * x);
   const akzent = new T.Color(0x8b5cf6).multiplyScalar(0.55);
@@ -658,13 +660,15 @@ function aufbauen(T, RoomEnvironment) {
 
   const box3 = new T.Box3(), hilf = new T.Box3(), v = new T.Vector3(), mitte = new T.Vector3();
   const blick = new T.Vector3(), ziel3 = new T.Vector3(), zielGlatt = new T.Vector3(), rechts = new T.Vector3(), oben = new T.Vector3();
-  let abstandGlatt = 0, breite = 1, hoehe = 1, zuletztZustand = "", erstesBild = true;
+  let abstandGlatt = 0, breite = 1, hoehe = 1, zuletztZustand = "", erstesBild = true, untenZiel = 0, untenGlatt = 0;
   let gewaehlt = -1, offen = false; // gewähltes Bauteil (Maus darüber oder angetippt)
   const beruehrung = matchMedia("(hover: none)").matches;
 
   const unterzeileSetzen = (i, zustand) => {
     if (zustand === zuletztZustand) return;
     zuletztZustand = zustand;
+    unterzeile.getAnimations().forEach((a) => a.cancel());
+    unterzeile.animate([{ opacity: 0.35 }, { opacity: 1 }], { duration: 220, easing: "ease-out" });
     if (i >= 0) {
       const t = marken[i];
       unterzeile.innerHTML = `<span class="nr">${String(i + 1).padStart(2, "0")} / ${marken.length}</span><strong></strong><p></p>`;
@@ -679,12 +683,12 @@ function aufbauen(T, RoomEnvironment) {
     }
   };
 
-  const zeichnen = (p) => {
-    const auf = weich(klemmen((p - AUF[0]) / (AUF[1] - AUF[0]))) * (1 - weich(klemmen((p - ZU[0]) / (ZU[1] - ZU[0]))));
+  const zeichnen = (p, dt) => {
+    const auf = klemmen((p - AUF[0]) / (AUF[1] - AUF[0])) * (1 - klemmen((p - ZU[0]) / (ZU[1] - ZU[0])));
     offen = auf > 0.9;
     if (!offen) gewaehlt = -1;
     const aktiv = gewaehlt;
-    unterzeileSetzen(aktiv, aktiv >= 0 ? "teil" + aktiv : auf > 0.5 ? "offen" : p > 0.5 ? "zu" : "start");
+    unterzeileSetzen(aktiv, aktiv >= 0 ? "teil" + aktiv : p < 0.5 ? (auf > 0.5 ? "offen" : "start") : auf > 0.12 ? "offen" : "zu");
     let bewegt = false;
 
     explosion.forEach((key, k) => {
@@ -695,7 +699,7 @@ function aufbauen(T, RoomEnvironment) {
       g.children.forEach((x) => x.userData.streuung && x.position.copy(x.userData.basis).addScaledVector(x.userData.streuung, e));
       // Hervorheben
       const soll = aktiv >= 0 && marken[aktiv].key === key ? 1 : 0;
-      d.licht += (soll - d.licht) * 0.2;
+      d.licht += (soll - d.licht) * nachlauf(dt, 55);
       if (Math.abs(soll - d.licht) < 0.01) d.licht = soll; else bewegt = true;
       d.materialien.forEach(({ m, farbe, staerke }) => {
         m.emissive.copy(farbe).lerp(akzent, d.licht);
@@ -728,7 +732,10 @@ function aufbauen(T, RoomEnvironment) {
     oben.setFromMatrixColumn(kamera.matrixWorld, 1);
 
     // Abstand so wählen, dass alles in den freien Bereich über der Unterzeile passt
-    const unten = unterzeile.offsetHeight + 24;
+    if (erstesBild) untenGlatt = untenZiel;
+    untenGlatt += (untenZiel - untenGlatt) * nachlauf(dt, 90);
+    if (Math.abs(untenZiel - untenGlatt) > 0.5) bewegt = true; else untenGlatt = untenZiel;
+    const unten = untenGlatt;
     const randX = schmal ? 18 : 150, randY = 36;
     const tanV = Math.tan(T.MathUtils.degToRad(kamera.fov / 2));
     const tanY = (tanV * (hoehe - unten - 2 * randY)) / hoehe;
@@ -744,8 +751,9 @@ function aufbauen(T, RoomEnvironment) {
     });
     if (aktiv >= 0 && schmal) abstand *= 0.8;
     if (erstesBild) { zielGlatt.copy(ziel3); abstandGlatt = abstand; erstesBild = false; }
-    zielGlatt.lerp(ziel3, 0.18);
-    abstandGlatt += (abstand - abstandGlatt) * 0.18;
+    const kameraSchritt = nachlauf(dt, 70);
+    zielGlatt.lerp(ziel3, kameraSchritt);
+    abstandGlatt += (abstand - abstandGlatt) * kameraSchritt;
     if (zielGlatt.distanceTo(ziel3) > 0.01 || Math.abs(abstand - abstandGlatt) > 0.01) bewegt = true;
     kamera.position.copy(zielGlatt).addScaledVector(blick, abstandGlatt);
     kamera.lookAt(zielGlatt);
@@ -754,7 +762,7 @@ function aufbauen(T, RoomEnvironment) {
     renderer.render(szene, kamera);
 
     // Beschriftungen an die Teile heften (feste Reihenfolge, damit nichts unter der Maus wegspringt)
-    const sichtbar = auf > 0.92, belegt = [];
+    const sichtbar = auf > 0.96, belegt = [];
     marken.forEach((_, i) => {
       const t = marken[i], ist = i === aktiv;
       hilf.setFromObject(t.teil).getCenter(v);
@@ -793,24 +801,30 @@ function aufbauen(T, RoomEnvironment) {
   };
 
   // Scrollen steuert den Fortschritt, mit etwas Nachlauf
-  let soll = 0, ist = 0, laeuft = false;
+  let soll = 0, ist = 0, laeuft = false, zuletzt = 0;
   const fortschritt = () => {
     const r = spur.getBoundingClientRect();
     return klemmen(-r.top / Math.max(1, r.height - buehne.offsetHeight));
   };
-  const bildSchritt = () => {
-    ist += (soll - ist) * 0.16;
+  const bildSchritt = (jetzt) => {
+    const dt = Math.min(50, Math.max(1, jetzt - zuletzt));
+    zuletzt = jetzt;
+    ist += (soll - ist) * nachlauf(dt, 110);
     if (Math.abs(soll - ist) < 0.0005) ist = soll;
-    const bewegt = zeichnen(ist);
+    const bewegt = zeichnen(ist, dt);
     if (ist !== soll || bewegt) requestAnimationFrame(bildSchritt);
     else laeuft = false;
   };
   const anstossen = () => {
     soll = fortschritt();
-    if (!laeuft) { laeuft = true; requestAnimationFrame(bildSchritt); }
+    if (!laeuft) {
+      laeuft = true;
+      requestAnimationFrame((jetzt) => { zuletzt = jetzt - 16; bildSchritt(jetzt); });
+    }
   };
   const groesse = () => {
     breite = buehne.clientWidth; hoehe = buehne.clientHeight;
+    untenZiel = unterzeile.offsetHeight + 24;
     renderer.setSize(breite, hoehe, false);
     kamera.aspect = breite / hoehe;
     kamera.updateProjectionMatrix();
@@ -846,6 +860,7 @@ function aufbauen(T, RoomEnvironment) {
   }));
 
   new ResizeObserver(groesse).observe(buehne);
+  new ResizeObserver(() => { untenZiel = unterzeile.offsetHeight + 24; anstossen(); }).observe(unterzeile);
   document.fonts?.ready.then(groesse);
   addEventListener("scroll", anstossen, { passive: true });
   groesse();

@@ -256,7 +256,7 @@ footer a{display:inline-block;padding:.5rem 0}
 .xray{padding-bottom:clamp(1.5rem,4vw,3rem)}
 .xray .sec-title{margin-bottom:clamp(1rem,3vw,2rem)}
 .xray-track{display:none}
-.xray.is-3d .xray-track{display:block;position:relative;height:320vh}
+.xray.is-3d .xray-track{display:block;position:relative;height:260vh}
 .xray-stage{position:sticky;top:calc(3rem + env(safe-area-inset-top, 0px));height:calc(100vh - 3rem);height:calc(100svh - 3rem - env(safe-area-inset-top, 0px));overflow:hidden}
 .xray-stage::before{content:"";position:absolute;inset:8% 10% 22%;background:radial-gradient(closest-side,color-mix(in srgb,var(--accent) 20%,transparent),transparent);pointer-events:none}
 .xray-canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
