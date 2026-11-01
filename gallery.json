@@ -1,5 +1,19 @@
 [
  {
+  "datei": "Early Minka.jpg",
+  "titel": "Early Minka",
+  "exif": {
+   "mm": "105 mm",
+   "blende": "f/4",
+   "zeit": "1/125 s",
+   "iso": "ISO 500"
+  },
+  "breite": 1500,
+  "hoehe": 2000,
+  "hinzugefuegt": "2026-11-01T10:48:52Z",
+  "sha": "8502c3ade8479990ad7c8199309b263056048a3c40948c8228ac356ccd57a47c"
+ },
+ {
   "datei": "DSC06487.jpg",
   "titel": "DSC06487",
   "exif": {},
