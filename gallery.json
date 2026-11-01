@@ -1,5 +1,19 @@
 [
  {
+  "datei": "Herbstblatt.jpg",
+  "titel": "Herbstblatt",
+  "exif": {
+   "mm": "49 mm",
+   "blende": "f/13",
+   "zeit": "1/60 s",
+   "iso": "ISO 160"
+  },
+  "breite": 1500,
+  "hoehe": 2000,
+  "hinzugefuegt": "2026-11-01T10:57:09Z",
+  "sha": "bfec20a5e182b8e9d7880390ed658a79ee6fe0e1f859619faaa3187ed74a68a3"
+ },
+ {
   "datei": "Fleiner See am Morgen.jpg",
   "titel": "Fleiner See am Morgen",
   "exif": {
