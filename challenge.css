@@ -67,3 +67,6 @@
   .ch-filter{grid-template-columns:minmax(0,1fr)}
   .statistik{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
+
+/* Sterne im hellen Design mit genug Kontrast */
+:root[data-theme="light"] .sterne{color:#8a5d00}

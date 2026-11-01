@@ -45,7 +45,7 @@ body.spiel-offen { overflow: hidden; }
 .patchnotes ul { list-style: none; margin: 0; padding: 0; font-size: .85rem; line-height: 1.4; }
 .patchnotes li { display: flex; gap: .7rem; padding: .4rem 0; border-top: 1px solid var(--line); }
 .patchnotes li:first-child { border-top: 0; }
-.patchnotes time { flex: none; min-width: 2.8rem; font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
+.patchnotes time { flex: none; min-width: 2.8rem; font-weight: 700; color: var(--link); font-variant-numeric: tabular-nums; }
 .bl-rang { width: 2.2rem; flex: none; opacity: .7; font-variant-numeric: tabular-nums; }
 .bl-name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .bl-punkte { font-weight: 700; font-variant-numeric: tabular-nums; }
@@ -164,7 +164,7 @@ body.spiel-offen { overflow: hidden; }
 .lauf-aufgaben li { list-style: none; display: flex; justify-content: space-between; gap: .6rem; padding: .3rem .6rem; margin-bottom: .25rem; border-radius: 10px; background: rgba(255, 255, 255, .8); }
 .lauf-aufgaben ul { margin: 0; padding: 0; }
 .lauf-aufgaben li.geschafft { background: #d9f5d0; }
-.lauf-aufgaben li em { font-style: normal; font-weight: 700; color: #b07a00; white-space: nowrap; }
+.lauf-aufgaben li em { font-style: normal; font-weight: 700; color: #8a5d00; white-space: nowrap; }
 .lauf-knoepfe { display: flex; gap: .6rem; flex-wrap: wrap; justify-content: center; }
 .lauf-overlay .pill.ghost { color: #034a3e; border-color: rgba(3, 74, 62, .35); background: rgba(255, 255, 255, .7); }
 .lauf-shop { position: absolute; inset: 0; z-index: 2; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .6rem;
@@ -318,7 +318,7 @@ body.spiel-offen { overflow: hidden; }
 .lauf-overlay.ergebnis .le-werte b { font-size: .95rem; }
 
 /* Figuren freischalten: Preis-Kacheln, Bestätigen, Sternestand */
-.lauf-abschnitt .fig-sterne { float: right; text-transform: none; letter-spacing: 0; color: #b07a00; }
+.lauf-abschnitt .fig-sterne { float: right; text-transform: none; letter-spacing: 0; color: #8a5d00; }
 .lauf-figur button.kaufbar { border-style: dashed; border-color: #e0b84a; background: #fffaf0; }
 .lauf-figur button.kaufbar .lf-name { color: #8a5d00; }
 .lauf-figur button.bestaetigen { border-style: solid; border-color: #ffb300; background: #ffe9a8; animation: hud-kombo .5s ease-out; }
@@ -375,3 +375,6 @@ body.spiel-offen { overflow: hidden; }
 
 /* Hauptknöpfe auf der hellen Spielkarte: dunkles Grün statt der neutralen Seitenfarbe */
 .lauf-rahmen .pill:not(.ghost){background:#034a3e;color:#fff}
+
+/* Mindestgröße für kleine Beschriftungen */
+.lf-name { font-size: max(.7rem, 11px); }

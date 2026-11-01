@@ -9,3 +9,9 @@ document.querySelectorAll(".nav-mehr").forEach((mehr) => {
   mehr.addEventListener("focusout", (e) => { if (e.relatedTarget && !mehr.contains(e.relatedTarget)) setze(false); });
   document.addEventListener("click", (e) => { if (!mehr.contains(e.target)) setze(false); });
 });
+
+// Handy-Menü: Esc gibt den Fokus an den Menüknopf zurück, damit er nicht im zugeklappten Menü verloren geht
+const kopfzeile = document.querySelector(".nav");
+kopfzeile?.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && kopfzeile.classList.contains("open")) kopfzeile.querySelector(".menu-btn").focus();
+});
