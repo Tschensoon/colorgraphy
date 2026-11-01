@@ -27,7 +27,7 @@ body{margin:0}img{max-width:100%}[hidden]{display:none!important}
 :root[data-theme="light"] .rainbow{background-image:linear-gradient(90deg,#e8364f,#e08a00,#1fae5f,#1f7fe0,#7c4dff,#e8364f)}
 :root[data-theme="light"] .nav.open nav{box-shadow:0 30px 60px rgba(0,0,0,.15)}
 *{box-sizing:border-box}
-html{scroll-behavior:smooth}
+html{scroll-behavior:smooth;background:var(--bg)}
 body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:1.0625rem;line-height:1.5;-webkit-font-smoothing:antialiased;transition:background-color .3s,color .3s}
 h1,h2,h3{margin:0;font-weight:700;letter-spacing:-.025em;line-height:1.05;text-wrap:balance}
 p{margin:0}
@@ -47,7 +47,7 @@ a{color:inherit}
 .pill.small{padding:.35rem .9rem;font-size:.8rem;box-shadow:none}
 
 /* Navigation: schwebend, transluzent */
-body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top, 0px);z-index:10;background:var(--nav-bg)}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top, 0px);z-index:10;background:var(--bg)}
 .nav{position:sticky;top:env(safe-area-inset-top, 0px);z-index:9;background:var(--nav-bg);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid var(--nav-line)}
 .nav .wrap{display:flex;align-items:center;justify-content:space-between;gap:1rem;height:3rem}
 .brand{font-weight:700;letter-spacing:-.01em;text-decoration:none;font-size:1.05rem}
@@ -56,7 +56,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .nav nav a:hover{opacity:1;color:var(--nav-hover)}
 .nav-actions{display:flex;align-items:center;gap:.25rem}
 .theme-btn{width:44px;height:44px;display:grid;place-items:center;background:none;border:0;border-radius:50%;color:var(--fg);cursor:pointer;padding:0;transition:background-color .2s}
-.theme-btn:hover{background:var(--surface-2)}
+@media (hover:hover){.theme-btn:hover{background:var(--surface-2)}}
 .theme-btn svg{width:20px;height:20px}
 .theme-btn .icon-moon,:root[data-theme="light"] .theme-btn .icon-sun{display:none}
 :root[data-theme="light"] .theme-btn .icon-moon{display:block}
@@ -200,6 +200,7 @@ a,button,label{-webkit-tap-highlight-color:transparent}
 .copy{padding:.6rem 1rem}
 footer a{display:inline-block;padding:.5rem 0}
 .swipe-hint{display:none}
+.galerie-mehr{display:flex;justify-content:center;margin-top:1.5rem}
 @media (max-width:640px){
   .gallery{display:flex;overflow-x:auto;flex-wrap:nowrap;justify-content:flex-start;scroll-snap-type:x mandatory;gap:12px;margin-left:calc(-1 * max(16px, env(safe-area-inset-left, 0px)));margin-right:calc(-1 * max(16px, env(safe-area-inset-right, 0px)));padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));scroll-padding-inline:max(16px, env(safe-area-inset-left, 0px));scrollbar-width:none;-webkit-overflow-scrolling:touch}
   .gallery::-webkit-scrollbar{display:none}
