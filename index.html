@@ -118,7 +118,7 @@
   ]
 }
 </script>
-<link rel="stylesheet" href="style.css?v=11">
+<link rel="stylesheet" href="style.css?v=12">
 </head>
 <body>
 
@@ -170,9 +170,13 @@
         <h2>Galerie.</h2>
         <p class="sub">Eine Auswahl meiner Fotos. Die neuesten findest du auf Instagram.</p>
       </div>
-      <div class="gallery" id="gallery"></div>
+      <div class="galerie-rahmen">
+        <div class="gallery" id="gallery"></div>
+        <button type="button" class="galerie-pfeil zurueck" aria-label="Vorherige Fotos" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+        <button type="button" class="galerie-pfeil weiter" aria-label="Nächste Fotos" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
+      </div>
       <p class="swipe-hint">Wischen für mehr Bilder →</p>
-      <div class="galerie-mehr" hidden><button type="button" class="pill ghost"></button></div>
+      <p class="galerie-seite" aria-live="polite" hidden></p>
       <dialog class="lb" id="lightbox" aria-label="Foto groß ansehen">
         <button type="button" class="lb-x" aria-label="Schließen">✕</button>
         <button type="button" class="lb-pfeil lb-zurueck" aria-label="Vorheriges Foto">‹</button>
@@ -549,29 +553,32 @@ function zeigeFotos(liste){
     fig.prepend(bild(f, "(max-width:640px) 84vw, (max-width:900px) 50vw, min(33vw, 23rem)"));
     gallery.appendChild(fig);
   });
-  galerieReihen = 2;
-  galerieKuerzen();
+  galerieNr = 0;
+  galerieBlaettern(0);
 }
 
-// Galerie: erst zwei Reihen, der Knopf klappt je zwei weitere aus. Am Handy bleibt die Wischreihe komplett.
-let galerieReihen = 0;
-const galerieKnopf = document.querySelector(".galerie-mehr");
-function galerieKuerzen(){
-  if(!galerieReihen) return;
+// Galerie: immer zwei Reihen, die Pfeile wechseln zu den nächsten. Am Handy bleibt die Wischreihe komplett.
+let galerieNr = -1;
+const galerieZurueck = document.querySelector(".galerie-pfeil.zurueck"), galerieWeiter = document.querySelector(".galerie-pfeil.weiter"), galerieSeite = document.querySelector(".galerie-seite");
+function galerieBlaettern(richtung){
+  if(galerieNr < 0) return;
   const kacheln = [...gallery.querySelectorAll(".tile")];
   const spalten = matchMedia("(max-width:640px)").matches ? 0 : matchMedia("(max-width:900px)").matches ? 2 : 3;
-  const zahl = spalten ? galerieReihen * spalten : kacheln.length, rest = kacheln.length - zahl;
-  kacheln.forEach((k, i) => { k.hidden = i >= zahl; });
-  galerieKnopf.hidden = !spalten || (rest <= 0 && galerieReihen === 2);
-  galerieKnopf.firstElementChild.textContent = rest > 0 ? `Mehr Fotos (${rest})` : "Weniger anzeigen";
-  galerieKnopf.dataset.rest = rest;
+  const proSeite = spalten ? spalten * 2 : kacheln.length;
+  const seiten = Math.max(1, Math.ceil(kacheln.length / proSeite));
+  const seite = galerieNr = Math.min(seiten - 1, Math.max(0, galerieNr + richtung));
+  // Die letzte Seite bleibt voll: Fehlt etwas, rücken die Fotos davor nach, damit nichts springt und nichts leer wirkt
+  const start = Math.max(0, Math.min(seite * proSeite, kacheln.length - proSeite));
+  kacheln.forEach((k, i) => { k.hidden = i < start || i >= start + proSeite; });
+  galerieZurueck.hidden = seite === 0;
+  galerieWeiter.hidden = seite === seiten - 1;
+  galerieSeite.hidden = seiten < 2;
+  galerieSeite.textContent = `${seite + 1} / ${seiten}`;
+  if(richtung && !matchMedia("(prefers-reduced-motion: reduce)").matches)
+    gallery.animate([{opacity:0, transform:`translateX(${richtung * 28}px)`}, {opacity:1, transform:"none"}], {duration:280, easing:"cubic-bezier(.2,.7,.2,1)"});
 }
-galerieKnopf.firstElementChild.addEventListener("click", () => {
-  const rest = +galerieKnopf.dataset.rest;
-  galerieReihen = rest > 0 ? galerieReihen + 2 : 2;
-  galerieKuerzen();
-  if(rest <= 0) document.getElementById("galerie").scrollIntoView();
-});
+galerieZurueck.addEventListener("click", () => { galerieBlaettern(-1); if(galerieZurueck.hidden) galerieWeiter.focus(); });
+galerieWeiter.addEventListener("click", () => { galerieBlaettern(1); if(galerieWeiter.hidden) galerieZurueck.focus(); });
 
 // Foto groß ansehen: Popup mit Blättern (Pfeile, Tasten, Wischen); Schließen über ✕, Esc oder Klick daneben
 function lightbox(liste, start){
@@ -620,7 +627,7 @@ fetch("gallery.json", {cache:"no-cache"}).then(r => r.ok ? r.json() : []).catch(
   if(echt.length) zeigeFotos(echt); else zeigeBeispiele();
   paintAll();
 });
-let rt, lastW=innerWidth; window.addEventListener("resize",()=>{if(innerWidth===lastW) return; lastW=innerWidth; galerieKuerzen(); clearTimeout(rt); rt=setTimeout(paintAll,150)});
+let rt, lastW=innerWidth; window.addEventListener("resize",()=>{if(innerWidth===lastW) return; lastW=innerWidth; galerieBlaettern(0); clearTimeout(rt); rt=setTimeout(paintAll,150)});
 
 document.querySelectorAll(".copy").forEach(b=>{
   b.addEventListener("click",()=>{
