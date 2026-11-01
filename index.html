@@ -117,7 +117,7 @@
   ]
 }
 </script>
-<link rel="stylesheet" href="style.css?v=4">
+<link rel="stylesheet" href="style.css?v=5">
 </head>
 <body>
 
@@ -190,6 +190,12 @@
       </div>
       <div class="gallery" id="gallery"></div>
       <p class="swipe-hint">Wischen für mehr Bilder →</p>
+      <dialog class="lb" id="lightbox" aria-label="Foto groß ansehen">
+        <button type="button" class="lb-x" aria-label="Schließen">✕</button>
+        <button type="button" class="lb-pfeil lb-zurueck" aria-label="Vorheriges Foto">‹</button>
+        <figure><img alt=""><figcaption><strong></strong><span class="exif"></span></figcaption></figure>
+        <button type="button" class="lb-pfeil lb-weiter" aria-label="Nächstes Foto">›</button>
+      </dialog>
     </div>
   </section>
 
@@ -530,11 +536,13 @@ function zeigeBeispiele(){
 }
 
 function zeigeFotos(liste){
-  liste.forEach(f=>{
+  liste.forEach((f, i)=>{
     const e = f.exif || {};
     const exif = [e.mm, e.blende, e.zeit, e.iso].filter(Boolean).join(" · ");
     const fig = document.createElement("figure");
-    fig.className = "tile rise";
+    fig.className = "tile rise"; fig.tabIndex = 0; fig.setAttribute("role", "button"); fig.setAttribute("aria-label", `${f.titel} groß ansehen`);
+    fig.addEventListener("click", () => lightbox(liste, i));
+    fig.addEventListener("keydown", ev => { if(ev.key === "Enter" || ev.key === " "){ ev.preventDefault(); lightbox(liste, i); } });
     fig.innerHTML = `<figcaption><strong>${esc(f.titel)}</strong>${exif ? `<span class="exif">${esc(exif)}</span>` : ""}</figcaption>`;
     fig.prepend(bild(f, "(max-width:640px) 84vw, (max-width:900px) 50vw, min(33vw, 23rem)"));
     gallery.appendChild(fig);
@@ -544,11 +552,48 @@ function zeigeFotos(liste){
   const hero = document.getElementById("hero-canvas"), img = bild(held, held.hoehe > held.breite ? "min(100vw, 26rem)" : "min(100vw, 60rem)");
   document.getElementById("hero-vf").classList.toggle("hoch", held.hoehe > held.breite);
   img.loading = "eager"; hero.hidden = true; hero.after(img);
+  img.classList.add("lb-start"); img.addEventListener("click", () => lightbox(liste, 0));
   const hud = document.querySelectorAll("#hero-vf .bottom span");
   if(e.zeit) hud[0].textContent = e.zeit.replace(/ s$/, "");
   if(e.blende) hud[1].textContent = e.blende.replace("f/", "F");
   if(e.iso) hud[3].textContent = e.iso;
 }
+
+// Foto groß ansehen: Popup mit Blättern (Pfeile, Tasten, Wischen); Schließen über ✕, Esc oder Klick daneben
+function lightbox(liste, start){
+  const lb = document.getElementById("lightbox"), img = lb.querySelector("img");
+  let i = start;
+  const zeigen = () => {
+    const f = liste[i], e = f.exif || {};
+    img.src = url("vorschau", f); img.alt = f.titel;       // erst die kleine Vorschau, sofort sichtbar
+    const gross = new Image(); gross.onload = () => { if(liste[i] === f) img.src = gross.src; }; gross.src = url("fotos", f);
+    lb.querySelector("strong").textContent = f.titel;
+    lb.querySelector(".exif").textContent = [e.mm, e.blende, e.zeit, e.iso].filter(Boolean).join(" · ");
+  };
+  lb.blaettern = n => { i = (i + n + liste.length) % liste.length; zeigen(); };
+  lb.classList.toggle("einzeln", liste.length < 2);
+  zeigen();
+  lb.showModal(); document.documentElement.classList.add("lb-offen");
+}
+(() => {
+  const lb = document.getElementById("lightbox");
+  lb.querySelector(".lb-x").addEventListener("click", () => lb.close());
+  lb.querySelector(".lb-zurueck").addEventListener("click", () => lb.blaettern(-1));
+  lb.querySelector(".lb-weiter").addEventListener("click", () => lb.blaettern(1));
+  lb.addEventListener("click", ev => { if(ev.target === lb || ev.target.tagName === "FIGURE") lb.close(); });
+  lb.addEventListener("close", () => document.documentElement.classList.remove("lb-offen"));
+  lb.addEventListener("keydown", ev => {
+    if(lb.classList.contains("einzeln")) return;
+    if(ev.key === "ArrowLeft") lb.blaettern(-1); else if(ev.key === "ArrowRight") lb.blaettern(1);
+  });
+  let x0 = null;
+  lb.addEventListener("touchstart", ev => { x0 = ev.touches.length === 1 ? ev.touches[0].clientX : null; }, {passive:true});
+  lb.addEventListener("touchend", ev => {
+    if(x0 === null || lb.classList.contains("einzeln")) return;
+    const d = ev.changedTouches[0].clientX - x0;
+    if(Math.abs(d) > 50) lb.blaettern(d < 0 ? 1 : -1);
+  });
+})();
 
 function baueFeed(liste){
   for(let i=0;i<9;i++){

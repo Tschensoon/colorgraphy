@@ -128,6 +128,28 @@ section{padding-block:clamp(2.5rem,6vw,4.5rem)}
 .handle{font-family:var(--mono);font-size:1.05rem;word-break:break-all}
 .handle-row{display:flex;gap:.75rem;align-items:center;flex-wrap:wrap;justify-content:center}
 .copy{font:500 .8rem var(--sans);background:var(--surface-2);border:0;color:var(--fg);padding:.4rem .85rem;cursor:pointer;border-radius:999px}
+/* Foto-Popup: echte Fotos in Galerie und Startbild lassen sich groß ansehen */
+.tile[role=button]{cursor:zoom-in}
+.tile[role=button]:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.viewfinder img.lb-start{cursor:zoom-in}
+html.lb-offen{overflow:hidden}
+.lb{position:fixed;inset:0;width:100%;height:100%;max-width:none;max-height:none;margin:0;padding:0;border:0;background:rgba(0,0,0,.92);color:#fff;overflow:hidden}
+.lb:not([open]){display:none}
+.lb[open]{display:flex;align-items:center;justify-content:center;animation:lb-auf .18s ease-out}
+.lb::backdrop{background:transparent}
+@keyframes lb-auf{from{opacity:0}to{opacity:1}}
+.lb figure{flex:1;min-width:0;height:100%;margin:0;padding:1rem 0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.7rem}
+.lb img{min-height:0;max-width:100%;max-height:calc(100% - 3.6rem);width:auto;height:auto;object-fit:contain;border-radius:10px;background:#0b0a12}
+.lb figcaption{display:grid;gap:.15rem;padding:0 1rem;text-align:center}
+.lb figcaption strong{font-size:1.05rem}
+.lb .exif{font-family:var(--mono);font-size:.78rem;color:#c9c6d4}
+.lb .exif:empty{display:none}
+.lb-x,.lb-pfeil{flex:none;border:0;border-radius:50%;background:rgba(255,255,255,.14);color:#fff;font:inherit;line-height:1;cursor:pointer}
+.lb-x:hover,.lb-pfeil:hover{background:rgba(255,255,255,.28)}
+.lb-x{position:absolute;z-index:1;top:calc(env(safe-area-inset-top,0px) + .8rem);right:.8rem;width:2.8rem;height:2.8rem;font-size:1.15rem}
+.lb-pfeil{width:3rem;height:3rem;margin:0 1rem;font-size:2rem;padding-bottom:.2rem}
+.lb.einzeln .lb-pfeil{display:none}
+@media (max-width:640px){.lb-pfeil{display:none}.lb figure{padding:.5rem}}
 .feed{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;max-width:40rem;margin:2.5rem auto 0}
 .sq{position:relative;aspect-ratio:3/4;max-width:100%;display:block;overflow:hidden;border-radius:10px;background:#0b0a12}
 .sq::after{content:"";position:absolute;inset:0;background:rgba(0,0,0,0);transition:background .2s}
