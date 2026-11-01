@@ -1,5 +1,19 @@
 [
  {
+  "datei": "Mysthic Puuh.jpg",
+  "titel": "Mysthic Puuh",
+  "exif": {
+   "mm": "91 mm",
+   "blende": "f/9",
+   "zeit": "1/100 s",
+   "iso": "ISO 800"
+  },
+  "breite": 1500,
+  "hoehe": 2000,
+  "hinzugefuegt": "2026-11-01T10:57:33Z",
+  "sha": "3ecb9cc066142de38560103b543b423295059bcc31ade798fb69804680c88be8"
+ },
+ {
   "datei": "Herbstblatt.jpg",
   "titel": "Herbstblatt",
   "exif": {
