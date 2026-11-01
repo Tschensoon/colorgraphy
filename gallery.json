@@ -1,5 +1,19 @@
 [
  {
+  "datei": "Fleiner See am Morgen.jpg",
+  "titel": "Fleiner See am Morgen",
+  "exif": {
+   "mm": "94 mm",
+   "blende": "f/11",
+   "zeit": "1/100 s",
+   "iso": "ISO 100"
+  },
+  "breite": 1500,
+  "hoehe": 2000,
+  "hinzugefuegt": "2026-11-01T10:56:47Z",
+  "sha": "bf0d9addae5fe42a2c6a78466808fc3c0db56893ed7bac2c0ee88c40b5df982e"
+ },
+ {
   "datei": "Halloween Pumpkinhead.jpg",
   "titel": "Halloween Pumpkinhead",
   "exif": {
