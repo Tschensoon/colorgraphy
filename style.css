@@ -364,7 +364,7 @@ summary{padding-block:.15rem}
 @media (prefers-reduced-transparency:reduce){
   :root{--nav-bg:#000}
   :root[data-theme="light"]{--nav-bg:#fff}
-  .nav,.galerie-pfeil,.tag,.xl-name,.xray-caption{-webkit-backdrop-filter:none;backdrop-filter:none}
+  .nav,.galerie-pfeil,.tag,.xl-name,.xray-caption,.nach-oben{-webkit-backdrop-filter:none;backdrop-filter:none}
 }
 /* Mehr Kontrast */
 @media (prefers-contrast:more){
@@ -380,9 +380,18 @@ summary{padding-block:.15rem}
 @media (forced-colors:active){
   .grad,.rainbow{background:none;color:CanvasText}
   .menu-btn span{forced-color-adjust:none;background:ButtonText}
-  .pill,.galerie-pfeil,.lb-x,.lb-pfeil,.copy,.skip-link{border:1px solid ButtonText}
+  .pill,.galerie-pfeil,.lb-x,.lb-pfeil,.copy,.skip-link,.nach-oben{border:1px solid ButtonText}
   .tile figcaption{background:Canvas}
   .mit-foto::after{display:none}
   .mit-foto>:not(.cell-foto){background:Canvas}
   :focus-visible{outline-color:Highlight}
+}
+
+/* Nach-oben-Knopf, nur in der Handy-Ansicht */
+.nach-oben{display:none}
+@media (max-width:900px){
+  .nach-oben{display:block;position:fixed;z-index:8;right:max(12px,env(safe-area-inset-right,0px));bottom:calc(1rem + env(safe-area-inset-bottom,0px));width:44px;height:44px;padding:11px;border-radius:50%;border:1px solid var(--line);background:var(--nav-bg);color:var(--fg);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:0 6px 18px rgba(0,0,0,.35);cursor:pointer;opacity:0;visibility:hidden;transition:opacity .2s,visibility .2s,bottom .2s}
+  .nach-oben.sichtbar{opacity:1;visibility:visible}
+  .nach-oben svg{display:block;width:100%;height:100%}
+  footer .wrap{padding-bottom:calc(4.5rem + env(safe-area-inset-bottom,0px))}
 }
