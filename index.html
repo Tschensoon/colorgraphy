@@ -117,7 +117,7 @@
   ]
 }
 </script>
-<link rel="stylesheet" href="style.css?v=3">
+<link rel="stylesheet" href="style.css?v=4">
 </head>
 <body>
 
@@ -354,14 +354,14 @@ document.getElementById("ig").textContent = "@" + INSTAGRAM;
 document.querySelectorAll(".ig-name").forEach(s => s.textContent = "@" + INSTAGRAM);
 
 const photos = [
-  {t:"Weinberge im Oktober", scene:"weinberg", exif:"35 mm · f/8 · 1/250 s · ISO 100", wide:true},
+  {t:"Weinberge im Oktober", scene:"weinberg", exif:"35 mm · f/8 · 1/250 s · ISO 100"},
   {t:"Morgennebel am Fluss", scene:"nebel", exif:"105 mm · f/5.6 · 1/320 s · ISO 200"},
   {t:"Goldener Wald", scene:"wald", exif:"24 mm · f/4 · 1/125 s · ISO 400"},
-  {t:"Herbstsonne über den Hügeln", scene:"huegel", exif:"70 mm · f/8 · 1/500 s · ISO 100", wide:true},
+  {t:"Herbstsonne über den Hügeln", scene:"huegel", exif:"70 mm · f/8 · 1/500 s · ISO 100"},
   {t:"Waldweg im Laub", scene:"weg", exif:"50 mm · f/4 · 1/160 s · ISO 320"},
   {t:"Spiegelung am See", scene:"see", exif:"24 mm · f/11 · 1/100 s · ISO 100"},
-  {t:"Erster Frost", scene:"frost", exif:"85 mm · f/2.8 · 1/1000 s · ISO 100", wide:true},
-  {t:"Abendrot über den Weinbergen", scene:"abend", exif:"105 mm · f/5.6 · 1/400 s · ISO 200", wide:true}
+  {t:"Erster Frost", scene:"frost", exif:"85 mm · f/2.8 · 1/1000 s · ISO 100"},
+  {t:"Abendrot über den Weinbergen", scene:"abend", exif:"105 mm · f/5.6 · 1/400 s · ISO 200"}
 ];
 
 // Generierte Herbstlandschaften als Platzhalter, bis echte Fotos da sind
@@ -521,7 +521,7 @@ function bild(f, sizes){
 function zeigeBeispiele(){
   photos.forEach(p=>{
     const fig = document.createElement("figure");
-    fig.className = "tile rise" + (p.wide ? " wide" : "");
+    fig.className = "tile rise";
     fig.setAttribute("aria-label", `${p.t} – Beispielbild`);
     fig.innerHTML = `<canvas class="ph"></canvas><span class="tag">Beispiel</span>
       <figcaption><strong>${p.t}</strong><span class="exif">${p.exif}</span></figcaption>`;
@@ -531,17 +531,18 @@ function zeigeBeispiele(){
 
 function zeigeFotos(liste){
   liste.forEach(f=>{
-    const wide = f.breite / f.hoehe >= 1.25, e = f.exif || {};
+    const e = f.exif || {};
     const exif = [e.mm, e.blende, e.zeit, e.iso].filter(Boolean).join(" · ");
     const fig = document.createElement("figure");
-    fig.className = "tile rise" + (wide ? " wide" : "");
+    fig.className = "tile rise";
     fig.innerHTML = `<figcaption><strong>${esc(f.titel)}</strong>${exif ? `<span class="exif">${esc(exif)}</span>` : ""}</figcaption>`;
-    fig.prepend(bild(f, wide ? "(max-width:640px) 84vw, min(100vw, 68rem)" : "(max-width:640px) 84vw, min(50vw, 34rem)"));
+    fig.prepend(bild(f, "(max-width:640px) 84vw, (max-width:900px) 50vw, min(33vw, 23rem)"));
     gallery.appendChild(fig);
   });
-  // Startbild: das neueste Querformat
-  const held = liste.find(f => f.breite > f.hoehe) || liste[0], e = held.exif || {};
-  const hero = document.getElementById("hero-canvas"), img = bild(held, "min(100vw, 60rem)");
+  // Startbild: das neueste Foto; im Hochformat wird auch der Sucher hochkant, damit nichts abgeschnitten wird
+  const held = liste[0], e = held.exif || {};
+  const hero = document.getElementById("hero-canvas"), img = bild(held, held.hoehe > held.breite ? "min(100vw, 26rem)" : "min(100vw, 60rem)");
+  document.getElementById("hero-vf").classList.toggle("hoch", held.hoehe > held.breite);
   img.loading = "eager"; hero.hidden = true; hero.after(img);
   const hud = document.querySelectorAll("#hero-vf .bottom span");
   if(e.zeit) hud[0].textContent = e.zeit.replace(/ s$/, "");
