@@ -1,5 +1,19 @@
 [
  {
+  "datei": "Sunny Road.jpg",
+  "titel": "Sunny Road",
+  "exif": {
+   "mm": "49 mm",
+   "blende": "f/14",
+   "zeit": "1/60 s",
+   "iso": "ISO 250"
+  },
+  "breite": 1500,
+  "hoehe": 2000,
+  "hinzugefuegt": "2026-11-01T10:57:54Z",
+  "sha": "c657503435df91dc2591f95c4a9b56cf4902b11ef6010fa3e8fb555643915ee9"
+ },
+ {
   "datei": "Mysthic Puuh.jpg",
   "titel": "Mysthic Puuh",
   "exif": {
