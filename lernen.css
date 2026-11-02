@@ -1,7 +1,7 @@
 /* Seite „Lernen“: Kapitel mit Wissen, Labor (interaktive Szene + Regler) und Merke-Kasten */
 .lern-hero .wrap{display:grid;grid-template-columns:minmax(0,1fr);gap:1.2rem;justify-items:center}
 .lern-hero h1{font-size:clamp(2.6rem,8vw,5.2rem);font-weight:800}
-.kapitel{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.8rem;width:100%;max-width:68rem;margin-top:1.5rem}
+.kapitel{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.8rem;width:100%;max-width:68rem;margin-top:1.5rem}
 .kap-karte{background:var(--surface);border-radius:22px;padding:1.2rem 1.3rem;text-decoration:none;display:grid;gap:.25rem;text-align:left;border:1px solid transparent;transition:border-color .2s,transform .2s}
 @media (hover:hover){.kap-karte:hover{border-color:var(--accent);transform:translateY(-2px)}}
 .kap-karte strong{font-size:1.2rem}
@@ -125,3 +125,38 @@
 .tagesbalken i{position:absolute;top:-5px;bottom:-5px;width:3px;border-radius:2px;background:var(--fg);transform:translateX(-50%);box-shadow:0 0 0 2px var(--surface)}
 .balken-skala{display:flex;justify-content:space-between;font:500 .72rem var(--mono);color:var(--muted);margin-top:-.6rem}
 @media (max-width:640px){.zeiten{grid-template-columns:minmax(0,1fr)}.rechner-eingabe label{flex:1 1 140px}}
+
+/* Text für Einsteiger: Lernweg, Tabellen, Wochenplan, Beispielfotos, Glossar */
+.lern-stand{color:var(--muted);font-size:.9rem}
+.lern-text{max-width:52rem;display:grid;gap:1rem}
+.lern-text h2{font-size:clamp(1.8rem,4.5vw,2.8rem)}
+.lern-text>p,.lern-absatz{color:var(--muted);font-size:1.08rem;line-height:1.55}
+.lern-absatz{margin-bottom:1rem}
+.lern-text a,.lern-absatz a,.wissen a,.merke a,.qa a{color:var(--link)}
+.lernweg{display:grid;gap:.7rem;padding-left:1.6rem;margin:0}
+.lernweg li{padding-left:.3rem;color:var(--muted);line-height:1.5}
+.lernweg strong{color:var(--fg)}
+.wissen h4,.qa h4{font-size:1.15rem;letter-spacing:-.01em}
+.tabelle-box{overflow-x:auto;background:var(--surface);border-radius:var(--radius);padding:clamp(.8rem,2.5vw,1.4rem)}
+.tabelle-box table{width:100%;min-width:34rem;border-collapse:collapse;font-size:.95rem}
+.tabelle-box caption{text-align:left;font-weight:700;padding-bottom:.8rem}
+.tabelle-box th,.tabelle-box td{padding:.65rem .7rem;border-top:1px solid var(--line);text-align:left;vertical-align:top}
+.tabelle-box thead th{border-top:0;color:var(--muted);font-size:.82rem;font-weight:600}
+.tabelle-box tbody th{font-weight:600}
+.tabelle-box td{color:var(--muted);font-variant-numeric:tabular-nums}
+.wochen{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}
+.wochen h3{font-size:1.25rem}
+.beispiele{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1rem}
+.beispiel{margin:0;background:var(--surface);border-radius:var(--radius);overflow:hidden;display:flex;flex-direction:column}
+.beispiel img{width:100%;height:auto;aspect-ratio:3/4;object-fit:cover;display:block}
+.beispiel figcaption{padding:1rem 1.1rem 1.2rem;display:grid;gap:.35rem;color:var(--muted);font-size:.92rem;line-height:1.45}
+.beispiel strong{color:var(--fg);font-size:1.05rem}
+.b-exif{font:500 .74rem var(--mono);color:var(--link)}
+.glossar{display:grid;gap:0;margin:0;background:var(--surface);border-radius:var(--radius);padding:.4rem clamp(1rem,3vw,1.5rem)}
+.glossar div{display:grid;grid-template-columns:10rem minmax(0,1fr);gap:.8rem;padding:.75rem 0;border-top:1px solid var(--line)}
+.glossar div:first-child{border-top:0}
+.glossar dt{font-weight:700}
+.glossar dd{margin:0;color:var(--muted)}
+@media (max-width:1000px){.beispiele{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:640px){.kapitel{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:640px){.wochen,.beispiele{grid-template-columns:minmax(0,1fr)}.glossar div{grid-template-columns:minmax(0,1fr);gap:.15rem}}
