@@ -54,6 +54,7 @@ export function ton() {
     stolpern() { const t = jetzt(); note(140, t, .25, { typ: "sine", laut: .35, gleit: .5 }); rauschen(t, .18, { laut: .15, filter: 800 }); },
     anja() { const t = jetzt(); for (let i = 0; i < 2; i++) { note(hz(81), t + i * .36, .16, { typ: "square", laut: .07 }); note(hz(76), t + i * .36 + .18, .16, { typ: "square", laut: .07 }); } },
     schritt(laut) { const t = jetzt(); rauschen(t, .05, { laut: .12 * laut, filter: 600, typ: "lowpass" }); note(90, t, .06, { typ: "sine", laut: .12 * laut }); },
+    folie() { const t = jetzt(); rauschen(t, .1, { laut: .22, filter: 5200 }); rauschen(t + .05, .07, { laut: .14, filter: 7800 }); note(620 + Math.random() * 180, t, .07, { typ: "sine", laut: .05 }); },
     schubs() { const t = jetzt(); note(220, t, .45, { typ: "sine", laut: .3, gleit: 3 }); note(160, t + .25, .35, { typ: "triangle", laut: .2, gleit: .4 }); },
     ring() { const t = jetzt(); rauschen(t, .25, { laut: .08, filter: 1800, typ: "bandpass" }); [79, 84, 88].forEach((m, i) => note(hz(m), t + i * .05, .3, { typ: "sine", laut: .11 })); },
     abflug() { const t = jetzt(); note(140, t, 1.4, { typ: "sawtooth", laut: .05, gleit: 2.5 }); rauschen(t, 1.2, { laut: .07, filter: 900, typ: "lowpass" }); },

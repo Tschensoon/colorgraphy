@@ -31,7 +31,7 @@ if (rahmen) {
   function laden() {
     if (!bereit) {
       const text = losKnopf.textContent; losKnopf.disabled = true; losKnopf.textContent = "Lädt die 3D-Welt …";
-      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=35"), import("./lauf-ton.js?v=2"), import("./lauf-flug.js?v=3"), import("./lauf-effekte.js?v=3")])
+      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=36"), import("./lauf-ton.js?v=3"), import("./lauf-flug.js?v=3"), import("./lauf-effekte.js?v=3")])
         .then(([m, w, t, f, e]) => { THREE = m; T = t.ton(); aufbauen(w, f, e); losKnopf.disabled = false; losKnopf.textContent = text; });
     }
     return bereit;
@@ -147,6 +147,7 @@ if (rahmen) {
     schattenF = W.kontaktSchatten(1.1, 2.1); schattenA = W.kontaktSchatten(.9, .9); szene.add(schattenF, schattenA);
     tempoLinien = document.createElement("div"); tempoLinien.className = "lauf-tempo"; blende.after(tempoLinien);
     duellAufbauen();
+    folieAufbauen();
     qualitaetSetzen(qualitaet);
     neu();
     groesse(); new ResizeObserver(groesse).observe(huelle);
@@ -335,15 +336,15 @@ if (rahmen) {
   }
 
   function neu() {
-    duellAus(); flugAus();
+    duellAus(); folieAus(); flugAus();
     for (const ab of abschnitte) { szene.remove(ab.gruppe); W.entsorgen(ab.gruppe); }
     for (const p of teilchen) { szene.remove(p.k); teilchenLager[p.k.userData.art].push(p.k); }
     teilchen = [];
     abschnitte = []; hindernisse = []; sterne = []; booster = []; startNr = 0;
-    FL.ab = FLUG_AB; FL.rueck = 0;
+    FL.ab = PHASEN_ABSTAND[0]; FL.rueck = 0; FL.phaseNr = 0;
     aktZone = 0; W.zoneWechsel(0, true); stimmungSetzen(true);
     Object.assign(B, { turbo: 0, schild: 0, ruhe: 0, magnet: 0, doppelt: 0, schubs: null });
-    FL.naechsteArt = "luft";
+    FL.naechsteArt = "folie";
     Object.assign(R, { boote: 0, fluege: 0, anjaPhase: false, tempoF: 1, booster: 0, schubs: 0, welt: 0, zeit: 0, laufZeit: 0, flug: 0, ringe: 0, frauBei: 20, kombo: 0, fahne: false, jubel: false });
     tempo = START_TEMPO; punkte = 0; sternZahl = 0; strecke = 0; wackeln = 0; schlussSzene = null;
     Object.assign(S, { idx: 0, s: 0, spur: 0, x: 0, y: 0, vy: 0, duck: 0, abbiegen: 0, stolper: 0, sprungPuffer: 0, eis: 0, lande: 0 });
@@ -357,6 +358,10 @@ if (rahmen) {
 
   // ---------- Steuerung ----------
   function eingabe(art) {
+    if (FO.an) {                      // Einpacken: Pfeiltasten im Wechsel zählen wie ein Wisch
+      if (zustand === "laeuft" && (art === "links" || art === "rechts")) folieWisch((art === "links" ? -1 : 1) * Math.max(40, huelle.clientWidth * .08));
+      return;
+    }
     if (zustand !== "laeuft" || FL.an || DU.an) return;
     const ab = abschnitte.find(a => a.nr === S.idx);
     if (art === "links" || art === "rechts") {
@@ -394,6 +399,7 @@ if (rahmen) {
   huelle.addEventListener("touchmove", (e) => {
     if (zustand === "laeuft") e.preventDefault();
     if (!wisch) return;
+    if (FO.an) { const t = e.touches[0]; folieWisch(t.clientX - wisch.lx); wisch.lx = t.clientX; return; }
     if (FL.an) {                      // im Flug folgt das Flugzeug dem Finger (relativ, egal wo man hinfasst)
       const t = e.touches[0], k = 18 / Math.max(300, huelle.clientWidth);
       FL.zx = Math.max(-FX, Math.min(FX, FL.zx + (t.clientX - wisch.lx) * k));
@@ -407,6 +413,11 @@ if (rahmen) {
     eingabe(Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? "links" : "rechts") : (dy < 0 ? "hoch" : "runter"));
   }, { passive: false });
   huelle.addEventListener("touchend", () => { wisch = null; });
+  // Einpacken geht auch mit gedrückter Maustaste
+  let mausX = null;
+  huelle.addEventListener("pointerdown", (e) => { if (e.pointerType === "mouse") mausX = e.clientX; });
+  addEventListener("pointermove", (e) => { if (mausX !== null && e.pointerType === "mouse" && FO.an) { folieWisch(e.clientX - mausX); mausX = e.clientX; } });
+  addEventListener("pointerup", () => { mausX = null; });
 
   // ---------- Pause und Ton ----------
   function pauseUm() {
@@ -471,7 +482,7 @@ if (rahmen) {
     ergebnis.querySelector(".le-punkte b").textContent = p;
     ergebnis.querySelector(".le-sterne").textContent = sternZahl;
     ergebnis.querySelector(".le-meter").textContent = Math.round(strecke);
-    ergebnis.querySelector(".le-welt").textContent = DU.an ? "Kissenschlacht" : FL.an ? (FL.art === "wasser" ? "Wasserwelt" : "Luftwelt") : W.zonen[Math.min(R.welt, W.zonen.length - 1)].name;
+    ergebnis.querySelector(".le-welt").textContent = FO.an ? "Einpacken" : DU.an ? "Kissenschlacht" : FL.an ? (FL.art === "wasser" ? "Wasserwelt" : "Luftwelt") : W.zonen[Math.min(R.welt, W.zonen.length - 1)].name;
     ergebnis.querySelector(".le-rekord").hidden = !neuerRekord;
     if (neuerRekord) T.rekord(); else T.ende();
     if (!tutorialFertig) { tutorialFertig = true; schreib("froebelinchen-rennt-tutorial", true); }
@@ -500,7 +511,7 @@ if (rahmen) {
     { id: "herbst", text: "Lauf bis in den Herbstwald", lohn: 40, ok: () => R.welt >= 3 },
     { id: "winter", text: "Lauf bis ins Winterland", lohn: 60, ok: () => R.welt >= 4 },
     { id: "meter2500", text: "Lauf 2500 Meter", lohn: 80, ok: () => strecke >= 2500 },
-    { id: "luftwelt", text: "Schaff 3000 Punkte und flieg in die Luftwelt", lohn: 100, ok: () => R.flug >= 1 },
+    { id: "luftwelt", text: "Flieg in die Luftwelt", lohn: 100, ok: () => R.flug >= 1 },
     { id: "ringe10", text: "Flieg durch 10 Ringe in einer Runde", lohn: 60, ok: () => R.ringe >= 10 },
   ];
   const aktiveAufgaben = () => {
@@ -898,6 +909,7 @@ if (rahmen) {
   // ---------- Spielschritt ----------
   function schritt(dt) {
     if (DU.an) { duellSchritt(dt); return; }
+    if (FO.an) { folieSchritt(dt); return; }
     if (FL.an) { flugSchritt(dt); return; }
     // die Tempokurve zählt nur die Zeit zu Fuß: nach Flug, Boot oder Kissenschlacht geht es im alten Tempo weiter
     const tempoZiel = START_TEMPO + (MAX_TEMPO - START_TEMPO) * (1 - Math.exp(-R.laufZeit / 130));
@@ -912,10 +924,10 @@ if (rahmen) {
     S.s += v * dt; strecke += v * dt; punkte += v * dt * faktor;
     S.stolper = Math.max(0, S.stolper - dt);
     // 3000 Punkte: weiß überblenden, dann geht es im Flugzeug weiter (Level 2)
-    if (!FL.abflug && punkte >= FL.ab) { FL.abflug = .001; T.abflug(); meldung(`${FL.ab} Punkte!`, FL.naechsteArt === "duell" ? `${JAGD()} fordert ${NAME()} zur Kissenschlacht heraus!` : FL.naechsteArt === "wasser" ? `${NAME()} springt ins Boot …` : `${NAME()} steigt ins Flugzeug …`); }
+    if (!FL.abflug && punkte >= FL.ab) { FL.abflug = .001; T.abflug(); meldung(`${FL.ab} Punkte!`, FL.naechsteArt === "folie" ? `Rolle bereit: ${NAME()} wird eingepackt!` : FL.naechsteArt === "duell" ? `${JAGD()} fordert ${NAME()} zur Kissenschlacht heraus!` : FL.naechsteArt === "wasser" ? `${NAME()} springt ins Boot …` : `${NAME()} steigt ins Flugzeug …`); }
     if (FL.abflug) {
       FL.abflug += dt; blende.style.opacity = Math.min(1, FL.abflug / .9);
-      if (FL.abflug >= .9) { if (FL.naechsteArt === "duell") duellStart(); else flugStart(); return; }
+      if (FL.abflug >= .9) { if (FL.naechsteArt === "folie") folieStart(); else if (FL.naechsteArt === "duell") duellStart(); else flugStart(); return; }
     }
     if (FL.rueck) { FL.rueck += dt; blende.style.opacity = Math.max(0, 1 - FL.rueck / .8); if (FL.rueck > .8) FL.rueck = 0; }
 
@@ -1051,6 +1063,7 @@ if (rahmen) {
     if (zustand === "laeuft") { schritt(dt); leistungMessen(echt); }
     else if (zustand === "fang") schlussSchritt(dt);
     if (DU.an) { duellBild(dt); return; }
+    if (FO.an) { folieBild(dt); return; }
     if (FL.an) { flugBild(dt); return; }
     const ab = abschnitte.find(a => a.nr === S.idx);
     const [px, pz] = punkt(ab, S.s, S.x), yaw = -ab.h * Math.PI / 2;
@@ -1479,13 +1492,207 @@ if (rahmen) {
     zeichnen();
   }
 
+  // ---------- Einpacken: die Figur sitzt auf dem Stuhl und wird in Frischhaltefolie gewickelt ----------
+  // Hin und her wischen (Pfeiltasten ← →, mit der Maus ziehen): jeder Strich in die andere Richtung legt eine Lage um die Figur.
+  // Wer zu lange wartet, dem rutscht eine Lage wieder ab. Geschafft gibt es den vollen Bonus, sonst Punkte pro Lage; die Runde läuft in beiden Fällen weiter.
+  const FOLIE_ZEIT = 20, FOLIE_LAGEN = 16, FOLIE_ABRUTSCH = 1.5;
+  const FO = { an: false, zeit: 0, intro: 0, lagen: [], profil: [], letzte: 0, summe: 0, ruhe: 0, ende: 0, ausblenden: 0, winkel: 0, winkelZiel: 0, zappeln: 0, sieg: false, oben: 2, unten: 1, hals: 0 };
+  let fBuehne, fStuhl, fRolle, fStreifen, folieUI;
+  function folieAufbauen() {
+    fBuehne = W.duellBuehne(); fBuehne.visible = false; szene.add(fBuehne);
+    fStuhl = W.stuhl(); fBuehne.add(fStuhl);
+    fRolle = W.folienRolle(); fBuehne.add(fRolle);
+    fStreifen = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), W.folieStoff); fBuehne.add(fStreifen);
+    folieUI = document.createElement("div"); folieUI.className = "folie"; folieUI.hidden = true;
+    folieUI.innerHTML = `<div class="fo-kopf"><div class="fo-balken"><i></i><span></span></div><div class="fo-zeit">20</div></div><p class="fo-tipp" aria-hidden="true"><b>⇠</b><span>${handy ? "Wisch hin und her" : "Pfeiltasten im Wechsel oder Maus ziehen"}</span><b>⇢</b></p>`;
+    tempoLinien.after(folieUI);
+  }
+  function folieAnzeige() {
+    const n = FO.lagen.length;
+    folieUI.querySelector(".fo-zeit").textContent = Math.max(0, Math.ceil(FOLIE_ZEIT - FO.zeit));
+    folieUI.querySelector(".fo-balken i").style.transform = `scaleX(${n / FOLIE_LAGEN})`;
+    folieUI.querySelector(".fo-balken span").textContent = `${n} / ${FOLIE_LAGEN} Lagen`;
+  }
+  // Sitzhaltung: lange Tiere richten sich auf, alle lassen die Beine nach vorn hängen
+  function folieHinsetzen() {
+    const g = spieler.gruppe, ohneBeine = (fn) => spieler.koerper.traverse(o => { if (!o.isMesh) return; let p = o; while (p) { if (spieler.beine.some(b => b.oben === p)) return; p = p.parent; } fn(o); });
+    fBuehne.add(g); g.position.set(0, 0, 0); g.rotation.set(0, Math.PI + .28, 0); g.scale.setScalar(1);
+    spieler.koerper.position.set(0, 0, 0); spieler.koerper.rotation.set(0, 0, 0); spieler.hals.rotation.set(0, 0, 0);
+    g.updateMatrixWorld(true);
+    const box = new THREE.Box3(), h = new THREE.Box3();
+    ohneBeine(o => box.union(h.setFromObject(o)));
+    const groesse = box.getSize(new THREE.Vector3());
+    const lang = Math.max(groesse.x, groesse.z) > groesse.y * .7 && !spieler.mensch && spieler.rueckenY >= -.1;
+    spieler.koerper.rotation.x = lang ? 1 : 0;
+    FO.hals = lang ? -1 : 0; spieler.hals.rotation.x = FO.hals;
+    spieler.beine.forEach(b => { const hinten = b.oben.position.z > 0.05; b.oben.rotation.set(lang ? (hinten ? .55 : -.95) : 1.35, 0, 0); b.unten.rotation.set(lang && !hinten ? 0 : -1.3, 0, 0); });
+    g.updateMatrixWorld(true);
+    box.makeEmpty(); ohneBeine(o => box.union(h.setFromObject(o)));
+    g.position.y = W.STUHL_SITZ - box.min.y + .02;
+    const mitte = box.getCenter(new THREE.Vector3());
+    g.position.x -= mitte.x; g.position.z -= mitte.z - .05;
+    g.updateMatrixWorld(true);
+    // Umriss von unten nach oben aus den echten Punkten der Figur: jede Lage liegt eng um das, was auf ihrer Höhe ist
+    const v = new THREE.Vector3(), punkteListe = [];
+    let unten = Infinity, oben = -Infinity;
+    const huelleTeile = (fn) => lang ? spieler.koerper.traverse(o => { if (!o.isMesh) return; let p = o; while (p) { if (spieler.beine.some(b => b.oben === p && b.oben.position.z > .05)) return; p = p.parent; } fn(o); }) : ohneBeine(fn);
+    huelleTeile(o => {
+      const pos = o.geometry && o.geometry.attributes.position;
+      if (!pos) return;
+      const weite = Math.max(1, Math.floor(pos.count / 400));
+      for (let i = 0; i < pos.count; i += weite) {
+        v.fromBufferAttribute(pos, i).applyMatrix4(o.matrixWorld);
+        punkteListe.push(v.x, v.y, v.z); unten = Math.min(unten, v.y); oben = Math.max(oben, v.y);
+      }
+    });
+    FO.unten = unten; FO.oben = oben + .04;
+    const schritt = (FO.oben - FO.unten) / FOLIE_LAGEN;
+    const scheiben = Array.from({ length: FOLIE_LAGEN }, () => ({ x0: Infinity, x1: -Infinity, z0: Infinity, z1: -Infinity }));
+    for (let i = 0; i < punkteListe.length; i += 3) {
+      const k = scheiben[Math.min(FOLIE_LAGEN - 1, Math.floor((punkteListe[i + 1] - FO.unten) / schritt))];
+      k.x0 = Math.min(k.x0, punkteListe[i]); k.x1 = Math.max(k.x1, punkteListe[i]);
+      k.z0 = Math.min(k.z0, punkteListe[i + 2]); k.z1 = Math.max(k.z1, punkteListe[i + 2]);
+    }
+    FO.profil = [];
+    let vorher = null;
+    scheiben.forEach((k, i) => {
+      if (k.x0 === Infinity && vorher) Object.assign(k, vorher);
+      else if (k.x0 === Infinity) Object.assign(k, { x0: -.3, x1: .3, z0: -.3, z1: .3 });
+      vorher = k;
+      FO.profil.push({ y: FO.unten + (i + .5) * schritt, h: schritt * 1.35, x: (k.x0 + k.x1) / 2, z: (k.z0 + k.z1) / 2, rx: (k.x1 - k.x0) / 2 + .05, rz: (k.z1 - k.z0) / 2 + .05 });
+    });
+  }
+  function folieStart() {
+    FO.an = true; FL.art = "folie";
+    for (const ab of abschnitte) ab.gruppe.visible = false;
+    for (const o of [boden, ferneGruppe, W.luft]) o.visible = false;
+    schattenF.visible = schattenA.visible = false; anja.gruppe.visible = false; sternchen.forEach(st => { st.visible = false; });
+    fBuehne.visible = true; blase.visible = false;
+    fStuhl.position.set(0, .12, 0);
+    Object.assign(FO, { zeit: 0, intro: 1.4, letzte: 0, summe: 0, ruhe: 0, ende: 0, ausblenden: 0, winkel: .6, winkelZiel: .6, zappeln: 0, sieg: false });
+    folieLagenWeg();
+    folieHinsetzen();
+    folieUI.hidden = false; folieUI.classList.remove("fertig"); folieAnzeige();
+    szene.fog.near = 40; szene.fog.far = 140; szene.fog.color.set("#f3e6cf"); himmelKugel.material.color.set("#ffffff");
+    stimmungSetzen(); kamPos = null; wackeln = 0;
+    T.welt(); T.musik(1);
+    meldung(`${NAME()} muss eingepackt werden!`, handy ? "Wisch hin und her, so schnell du kannst" : "Pfeiltasten im Wechsel oder mit der Maus hin und her ziehen");
+  }
+  function folieLageWeg(l) { fBuehne.remove(l.mesh); l.mesh.children.forEach(k => k.geometry.dispose()); l.mesh.geometry.dispose(); }
+  function folieLagenWeg() { FO.lagen.forEach(folieLageWeg); FO.lagen = []; }
+  function folieAus() {
+    if (!fBuehne) return;
+    if (FO.an || fBuehne.visible) {
+      szene.add(spieler.gruppe); spieler.gruppe.position.set(0, 0, 0); spieler.gruppe.rotation.set(0, 0, 0);
+      spieler.koerper.position.set(0, 0, 0); spieler.koerper.rotation.set(0, 0, 0); spieler.hals.rotation.set(0, 0, 0);
+      spieler.beine.forEach(b => { b.oben.rotation.set(0, 0, 0); b.unten.rotation.set(0, 0, 0); });
+      for (const o of [boden, ferneGruppe]) o.visible = true;
+      W.luft.visible = qualitaet < 3; for (const ab of abschnitte) ab.gruppe.visible = true;
+      szene.fog.near = 45; szene.fog.far = 120;
+    }
+    folieLagenWeg();
+    FO.an = false; fBuehne.visible = false; folieUI.hidden = true;
+  }
+  function folieLage() {
+    const i = FO.lagen.length;
+    if (i >= FOLIE_LAGEN) return;
+    const p = FO.profil[i], geo = new THREE.CylinderGeometry(1, 1, p.h, 40, 1, true), m = new THREE.Mesh(geo, W.folieStoff);
+    m.position.set(p.x, p.y, p.z); m.rotation.set((Math.random() - .5) * .1, Math.random() * 6, (Math.random() - .5) * .1); m.renderOrder = 5;
+    const rand = []; for (let k = 0; k < 40; k++) { const w = k / 40 * Math.PI * 2; rand.push(new THREE.Vector3(Math.cos(w), p.h / 2, Math.sin(w))); }
+    const kante = new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(rand), W.folieKante); kante.renderOrder = 6; m.add(kante);
+    fBuehne.add(m);
+    FO.lagen.push({ mesh: m, p, neu: 1 });
+    punkte += 50; FO.ruhe = 0; FO.zappeln = .22; T.folie(); folieAnzeige();
+    if (FO.lagen.length >= FOLIE_LAGEN) folieFertig(true);
+  }
+  function folieFertig(sieg) {
+    if (FO.ende) return;
+    FO.sieg = sieg; FO.ende = 2.2; folieUI.classList.add("fertig");
+    if (sieg) {
+      punkte += 1000; sternZahl += 25; T.rekord();
+      meldung("Frisch verpackt!", `${NAME()} hält sich jetzt ewig · +1.000 Punkte · +25 ★`);
+      const wo = new THREE.Vector3(0, FO.oben, 0); for (const farbe of ["#ffd54a", "#3baa35", "#ff7aa2", "#6ec6ff"]) funkeln(wo, farbe, 10);
+    } else {
+      T.stolpern(); meldung(`${NAME()} ist entwischt!`, `${FO.lagen.length} von ${FOLIE_LAGEN} Lagen · weiter geht's`);
+    }
+  }
+  // Ein Strich zählt, wenn er lang genug ist und die Richtung gewechselt hat
+  function folieWisch(dx) {
+    if (!FO.an || zustand !== "laeuft" || FO.ende || FO.intro > 0 || !dx) return;
+    const r = Math.sign(dx);
+    if (Math.sign(FO.summe) !== r) FO.summe = 0;
+    FO.summe += dx;
+    if (r !== FO.letzte && Math.abs(FO.summe) > Math.max(36, huelle.clientWidth * .07)) { FO.letzte = r; FO.summe = 0; FO.winkelZiel += Math.PI; folieLage(); }
+  }
+  function folieSchritt(dt) {
+    R.zeit += dt;
+    if (FL.abflug) { FL.abflug += dt; blende.style.opacity = Math.max(0, 1 - (FL.abflug - .9) / .8); if (FL.abflug > 1.7) FL.abflug = 0; }
+    if (FO.ausblenden) {
+      FO.ausblenden += dt; blende.style.opacity = Math.min(1, FO.ausblenden / .9);
+      if (FO.ausblenden >= .9) { FO.ausblenden = 0; flugLanden(); }
+      return;
+    }
+    if (FO.ende) { FO.ende -= dt; if (FO.ende <= 0) { FO.ende = 0; FO.ausblenden = .001; T.abflug(); } return; }
+    if (FO.intro > 0) { FO.intro -= dt; return; }
+    FO.zeit += dt; FO.ruhe += dt;
+    if (FO.zeit >= FOLIE_ZEIT) { folieFertig(false); return; }
+    if (FO.ruhe >= FOLIE_ABRUTSCH && FO.lagen.length) {   // zu lange gewartet: die oberste Lage rutscht ab
+      FO.ruhe = 0; FO.zappeln = .35; punkte = Math.max(0, punkte - 50);
+      folieLageWeg(FO.lagen.pop());
+      T.ducken();
+    }
+    folieAnzeige();
+    hudZeigen();
+  }
+  function folieBild(dt) {
+    const t = performance.now() / 1000, g = spieler.gruppe;
+    FO.zappeln = Math.max(0, FO.zappeln - dt);
+    // Sie zappelt, wenn eine neue Lage kommt, und freut sich oder staunt am Ende
+    const z = FO.zappeln > 0 ? Math.sin(t * 34) * FO.zappeln * .22 : Math.sin(t * 1.6) * .012;
+    g.rotation.z = z;
+    spieler.hals.rotation.x = FO.hals + Math.sin(t * 1.7) * .05 + (FO.sieg && FO.ende ? Math.sin(t * 16) * .06 : 0);
+    if (spieler.schwanz) spieler.schwanz.rotation.x = Math.sin(t * 4) * .15;
+    // Neue Lagen legen sich von außen eng an die Figur
+    for (const l of FO.lagen) {
+      l.neu = Math.max(0, l.neu - dt * 5.5);
+      const k = 1 + l.neu * l.neu * .75;
+      l.mesh.scale.set(l.p.rx * k, 1, l.p.rz * k);
+    }
+    // Die Rolle läuft auf Höhe der obersten Lage um die Figur, ein Folienstreifen führt zur Figur
+    FO.winkel += (FO.winkelZiel - FO.winkel) * Math.min(1, dt * 14);
+    const p = FO.profil[Math.min(FO.lagen.length, FOLIE_LAGEN - 1)] || { x: 0, y: 1.5, z: 0, rx: .5, rz: .5, h: .2 };
+    const rx = p.rx + .42, rz = p.rz + .42, c = Math.cos(FO.winkel), s = Math.sin(FO.winkel);
+    fRolle.visible = fStreifen.visible = !(FO.ende && FO.sieg);
+    fRolle.position.set(p.x + c * rx, p.y, p.z + s * rz);
+    const kx = p.x + Math.cos(FO.winkel - .7) * p.rx, kz = p.z + Math.sin(FO.winkel - .7) * p.rz;
+    const dx = fRolle.position.x - kx, dz = fRolle.position.z - kz, lang = Math.hypot(dx, dz);
+    fStreifen.position.set((fRolle.position.x + kx) / 2, p.y, (fRolle.position.z + kz) / 2);
+    fStreifen.rotation.set(0, -Math.atan2(dz, dx), 0); fStreifen.scale.set(lang, Math.max(.3, p.h * 1.6), 1);
+    // Kamera von vorn, so weit weg, dass Stuhl und Figur ganz ins Bild passen
+    const hoch = kamera.aspect < .8, hoehe = FO.oben + .5, mitteY = hoehe * .52;
+    const fov = hoch ? 46 : 38, halb = Math.tan(fov * Math.PI / 360);
+    const abstand = Math.max((hoehe * .58) / halb, 1.9 / (halb * kamera.aspect));
+    kamera.position.set(Math.sin(t * .25) * .5, mitteY + .5, abstand);
+    if (wackeln > 0) { wackeln = Math.max(0, wackeln - dt); kamera.position.x += (Math.random() - .5) * wackeln * .5; }
+    kamera.lookAt(0, mitteY, 0);
+    kamera.fov += (fov - kamera.fov) * Math.min(1, dt * 6); kamera.updateProjectionMatrix();
+    himmelKugel.position.copy(kamera.position); sonnenBild.position.set(kamera.position.x - 85, 95, kamera.position.z + 50);
+    schattenNachfuehren(0, 0);
+    gesicht(dt, .3);
+    W.animieren(t); lichtSchritt(dt);
+    teilchenSchritt(dt);
+    zeichnen();
+  }
+
   // ---------- Level 2: Luftwelt ----------
   // Ab 3000 Punkten fliegt Fröbelinchen eine Minute lang in ihrem Spielzeug-Flugzeug nach Norden (-z). Finger ziehen bzw. Pfeiltasten lenken
   // frei nach links, rechts, oben und unten. Durch Ringe fliegen gibt Punkte; Ballons, Gewitterwolken und Vögel bringen sie
   // ins Trudeln, dann holt Anja in ihrem eigenen Flieger auf (wie das Stolpern am Boden).
+  // Abstand bis zur nächsten Sonderphase: die erste kommt schon nach gut einer Minute, damit jede Runde etwas erlebt. Danach alle 3000 Punkte.
+  const PHASEN_ABSTAND = [1000, 1200, 2500, 2500];
   const FLUG_AB = 3000, FLUG_ERSTER = 60, FLUG_WEITERE = 30, FX = 7, FY0 = 3, FY1 = 13;   // erster Flug eine Minute, jeder weitere 30 Sekunden
   const WASSER_Y = .2;                              // Höhe des Boots über dem Wasser (Wasser bei y = 0)
-  const FL = { art: "luft", naechsteArt: "luft", an: false, abflug: 0, x: 0, y: 7, z: 0, zx: 0, zy: 7, v: 18, neig: 0, nick: 0, naechst: 0, strecke: 0, trudeln: 0,
+  const FL = { art: "folie", naechsteArt: "folie", phaseNr: 0, an: false, abflug: 0, x: 0, y: 7, z: 0, zx: 0, zy: 7, v: 18, neig: 0, nick: 0, naechst: 0, strecke: 0, trudeln: 0,
     regenbogen: 0, objekte: [], tasten: { x: 0, y: 0 }, ax: 0, ay: 7, ab: 3000, zeit: 0, landung: 0, rueck: 0, gewarnt: false };
   let FW, flieger, anjaFlieger, meer, flugGruppe, blende, strahlen, boot, anjaBoot, wasser;
   const fahrzeug = () => FL.art === "wasser" ? boot : flieger, anjaFahrzeug = () => FL.art === "wasser" ? anjaBoot : anjaFlieger;
@@ -1547,7 +1754,7 @@ if (rahmen) {
   }
   // Nach einer Minute: weiß überblenden und in der Laufwelt auf einem neuen Wegstück weiterrennen
   function flugLanden() {
-    duellAus(); flugAus();
+    duellAus(); folieAus(); flugAus();
     for (const ab of abschnitte) { szene.remove(ab.gruppe); W.entsorgen(ab.gruppe); }
     abschnitte = []; hindernisse = []; sterne = []; booster = [];
     startNr = S.idx + 1;
@@ -1556,13 +1763,15 @@ if (rahmen) {
     aktZone = abschnitte[0].zone; W.zoneWechsel(aktZone, true); stimmungSetzen();
     Object.assign(A, { nah: false, zeit: 0, abstand: 18, bis: 8 });
     kamYaw = 0; kamPos = null;
-    FL.ab = Math.floor(punkte) + FLUG_AB;          // nächste Phase nach 3000 zu Fuß gesammelten Punkten, abwechselnd Luft und Wasser
-    const FOLGE = ["luft", "wasser", "duell"], warNass = FL.art === "wasser", warDuell = FL.art === "duell";
+    FL.phaseNr++;
+    const bisNaechste = PHASEN_ABSTAND[FL.phaseNr] ?? FLUG_AB;
+    FL.ab = Math.floor(punkte) + bisNaechste;      // gezählt werden die zu Fuß gesammelten Punkte
+    const FOLGE = ["folie", "luft", "wasser", "duell"], warNass = FL.art === "wasser", warDuell = FL.art === "duell" || FL.art === "folie";
     FL.naechsteArt = FOLGE[(FOLGE.indexOf(FL.art) + 1) % FOLGE.length];
     FL.rueck = .001; blende.style.opacity = 1;
     T.welt(); T.musik(aktZone);
     meldung(warDuell ? "Weiter geht's!" : warNass ? "Wieder an Land!" : "Gelandet!",
-      `${W.zonen[aktZone].name} · ${{ luft: "nächster Flug", wasser: "Bootsfahrt", duell: "Kissenschlacht" }[FL.naechsteArt]} in ${FLUG_AB.toLocaleString("de-DE")} Punkten`);
+      `${W.zonen[aktZone].name} · ${{ luft: "nächster Flug", wasser: "Bootsfahrt", duell: "Kissenschlacht", folie: "Einpacken" }[FL.naechsteArt]} in ${bisNaechste.toLocaleString("de-DE")} Punkten`);
   }
 
   // Eine „Reihe“ im Himmel: Ring mit Sternenspur, Sternenbogen oder Hindernisse; dazu Inseln und Wolken am Rand

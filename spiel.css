@@ -378,3 +378,22 @@ body.spiel-offen { overflow: hidden; }
 
 /* Mindestgröße für kleine Beschriftungen */
 .lf-name { font-size: max(.7rem, 11px); }
+
+/* Einpacken in Frischhaltefolie */
+.folie { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
+.folie[hidden] { display: none; }
+.fo-kopf { position: absolute; top: calc(env(safe-area-inset-top) + 12px); left: 50%; transform: translateX(-50%); width: min(70%, 480px); display: grid; grid-template-columns: 1fr auto; gap: .6rem; align-items: center; }
+.fo-balken { position: relative; height: 1.4rem; border-radius: 999px; background: rgba(0, 30, 25, .55); overflow: hidden; border: 2px solid #fff; }
+.fo-balken i { position: absolute; inset: 0; background: linear-gradient(90deg, #8fd3ff, #d9f1ff); transform: scaleX(0); transform-origin: left; transition: transform .15s; }
+.fo-balken span { position: absolute; inset: 0; z-index: 1; text-align: center; font-weight: 800; font-size: .76rem; line-height: 1.2rem; color: #fff; text-shadow: 0 1px 2px #00302a, 0 0 4px #00302a; }
+.fo-zeit { min-width: 2.4rem; text-align: center; font-weight: 900; font-size: 1.5rem; color: #fff; text-shadow: 0 2px 6px rgba(0, 0, 0, .7); }
+.fo-tipp { position: absolute; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 1.2rem); transform: translateX(-50%); display: flex; align-items: center; gap: .7rem; margin: 0; padding: .5rem 1.1rem; border-radius: 999px; background: rgba(0, 30, 25, .72); color: #fff; font-weight: 700; font-size: .95rem; white-space: nowrap; transition: opacity .3s; }
+.fo-tipp b { font-size: 1.3rem; line-height: 1; }
+.folie.fertig .fo-tipp { opacity: 0; }
+@media (prefers-reduced-motion: no-preference) {
+  .fo-tipp b:first-child { animation: fo-links .7s ease-in-out infinite alternate; }
+  .fo-tipp b:last-child { animation: fo-rechts .7s ease-in-out infinite alternate; }
+  @keyframes fo-links { to { transform: translateX(-5px); } }
+  @keyframes fo-rechts { to { transform: translateX(5px); } }
+}
+@media (max-width: 720px) { .fo-kopf { top: calc(env(safe-area-inset-top) + 4.4rem); width: calc(100% - 2rem); } }

@@ -1342,6 +1342,32 @@ export function welt(T, handy) {
     }
     return g;
   }
+  // Einpack-Phase: Kita-Stuhl, Rolle Frischhaltefolie und die Folie selbst
+  const STUHL_SITZ = .78;
+  function stuhl() {
+    const g = new T.Group(), rot = std({ color: "#e53935", roughness: .55 });
+    teil(kiste(1.2, .1, 1.1), mat.holz, g, 0, STUHL_SITZ - .05, 0);
+    for (const x of [-1, 1]) for (const z of [-1, 1]) teil(zyl(.05, .04, STUHL_SITZ - .1, 10), rot, g, x * .52, (STUHL_SITZ - .1) / 2, z * .47);
+    for (const x of [-1, 1]) teil(zyl(.04, .04, 1, 10), rot, g, x * .52, STUHL_SITZ + .45, -.5);
+    teil(kiste(1.2, .36, .07), mat.holz, g, 0, STUHL_SITZ + .78, -.5);
+    g.traverse(o => { if (o.isMesh) o.receiveShadow = true; });
+    return g;
+  }
+  const folieBild = leinwand(256, 64, (g, w, h) => {
+    g.fillStyle = "#eaf6ff"; g.fillRect(0, 0, w, h);
+    for (let i = 0; i < 26; i++) {
+      g.strokeStyle = `rgba(255,255,255,${.3 + Math.random() * .7})`; g.lineWidth = 1 + Math.random() * 3;
+      const x = Math.random() * w; g.beginPath(); g.moveTo(x, 0); g.lineTo(x + (Math.random() - .5) * 60, h); g.stroke();
+    }
+  });
+  const folieStoff = new T.MeshStandardMaterial({ map: folieBild, color: "#ffffff", emissive: "#bfe6ff", emissiveIntensity: .32, roughness: .1, metalness: .05, transparent: true, opacity: .5, side: T.DoubleSide, depthWrite: false });
+  const folieKante = new T.LineBasicMaterial({ color: "#ffffff", transparent: true, opacity: .75 });
+  function folienRolle() {
+    const g = new T.Group();
+    teil(zyl(.09, .09, .92, 18), std({ color: "#b98a5a", roughness: .9 }), g);
+    teil(zyl(.19, .19, .78, 24), new T.MeshStandardMaterial({ color: "#d6eeff", roughness: .1, metalness: .15, transparent: true, opacity: .7 }), g);
+    return g;
+  }
   function froebelBanner(b, h) {
     const g = new T.Group(), geo = new T.PlaneGeometry(b, h);
     for (const dreh of [0, Math.PI]) { const m = teil(geo, FM.banner, g); m.rotation.y = dreh; m.position.z = dreh ? -.012 : .012; }
@@ -1941,6 +1967,6 @@ export function welt(T, handy) {
   }
   const luft = new T.Group(); luft.add(wetter, voegel);
 
-  return { marlenaBauen, kissen, duellBuehne, wasserNormal: wellen, rekordFahne, figurBauen, FIGUREN, leoBauen, FIGUR_INFO, toertchen, frauBauen, sprechblase, froebelBanner, froebelHeckenTafel, froebelTafel, froebelSchild, kontaktSchatten, grasBueschel, dampf, weltHindernis, entsorgen, pfeilSchild, bodenPfeil, AUSSTATTUNG, ausstattungSetzen, zonen: ZONEN, zoneFuer, dekoFuer, heckeFuer, blumenFuer, bodenFlaeche, bodenFolgen, verbinden, zoneWechsel, zoneSchritt,
+  return { stuhl, STUHL_SITZ, folienRolle, folieStoff, folieKante, marlenaBauen, kissen, duellBuehne, wasserNormal: wellen, rekordFahne, figurBauen, FIGUREN, leoBauen, FIGUR_INFO, toertchen, frauBauen, sprechblase, froebelBanner, froebelHeckenTafel, froebelTafel, froebelSchild, kontaktSchatten, grasBueschel, dampf, weltHindernis, entsorgen, pfeilSchild, bodenPfeil, AUSSTATTUNG, ausstattungSetzen, zonen: ZONEN, zoneFuer, dekoFuer, heckeFuer, blumenFuer, bodenFlaeche, bodenFolgen, verbinden, zoneWechsel, zoneSchritt,
     animieren, wetterSchritt, voegelSchritt, luft, mat, geo, giraffeBauen, anjaBauen, boden, heckenStueck, blumen, ferne, sonnenScheibe, funke, staub, kante, dekoNeu, hindernis, stern, panzer, booster, blase, himmel, wolken, gras };
 }
