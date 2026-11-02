@@ -924,7 +924,7 @@ if (rahmen) {
     S.s += v * dt; strecke += v * dt; punkte += v * dt * faktor;
     S.stolper = Math.max(0, S.stolper - dt);
     // 3000 Punkte: weiß überblenden, dann geht es im Flugzeug weiter (Level 2)
-    if (!FL.abflug && punkte >= FL.ab) { FL.abflug = .001; T.abflug(); meldung(`${FL.ab} Punkte!`, FL.naechsteArt === "folie" ? `Rolle bereit: ${NAME()} wird eingepackt!` : FL.naechsteArt === "duell" ? `${JAGD()} fordert ${NAME()} zur Kissenschlacht heraus!` : FL.naechsteArt === "wasser" ? `${NAME()} springt ins Boot …` : `${NAME()} steigt ins Flugzeug …`); }
+    if (!FL.abflug && punkte >= FL.ab) { FL.abflug = .001; T.abflug(); meldung(`${FL.ab} Punkte!`, FL.naechsteArt === "folie" ? "Rolle bereit: Fröbelinchen wird eingepackt!" : FL.naechsteArt === "duell" ? `${JAGD()} fordert ${NAME()} zur Kissenschlacht heraus!` : FL.naechsteArt === "wasser" ? `${NAME()} springt ins Boot …` : `${NAME()} steigt ins Flugzeug …`); }
     if (FL.abflug) {
       FL.abflug += dt; blende.style.opacity = Math.min(1, FL.abflug / .9);
       if (FL.abflug >= .9) { if (FL.naechsteArt === "folie") folieStart(); else if (FL.naechsteArt === "duell") duellStart(); else flugStart(); return; }
@@ -1493,14 +1493,16 @@ if (rahmen) {
   }
 
   // ---------- Einpacken: die Figur sitzt auf dem Stuhl und wird in Frischhaltefolie gewickelt ----------
+  // Eingepackt wird immer Fröbelinchen, auch wenn man mit einer anderen Figur läuft: Die Figur wartet so lange unsichtbar.
   // Hin und her wischen (Pfeiltasten ← →, mit der Maus ziehen): jeder Strich in die andere Richtung legt eine Lage um die Figur.
   // Wer zu lange wartet, dem rutscht eine Lage wieder ab. Geschafft gibt es den vollen Bonus, sonst Punkte pro Lage; die Runde läuft in beiden Fällen weiter.
   const FOLIE_ZEIT = 20, FOLIE_LAGEN = 16, FOLIE_ABRUTSCH = 1.5;
   const FO = { an: false, zeit: 0, intro: 0, lagen: [], profil: [], letzte: 0, summe: 0, ruhe: 0, ende: 0, ausblenden: 0, winkel: 0, winkelZiel: 0, zappeln: 0, sieg: false, oben: 2, unten: 1, hals: 0 };
-  let fBuehne, fStuhl, fRolle, fStreifen, folieUI;
+  let fBuehne, fStuhl, fRolle, fStreifen, folieUI, fGiraffe;
   function folieAufbauen() {
     fBuehne = W.duellBuehne(); fBuehne.visible = false; szene.add(fBuehne);
     fStuhl = W.stuhl(); fBuehne.add(fStuhl);
+    fGiraffe = W.figurBauen("giraffe"); fGiraffe.gruppe.visible = false; fBuehne.add(fGiraffe.gruppe);
     fRolle = W.folienRolle(); fBuehne.add(fRolle);
     fStreifen = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), W.folieStoff); fBuehne.add(fStreifen);
     folieUI = document.createElement("div"); folieUI.className = "folie"; folieUI.hidden = true;
@@ -1515,17 +1517,17 @@ if (rahmen) {
   }
   // Sitzhaltung: lange Tiere richten sich auf, alle lassen die Beine nach vorn hängen
   function folieHinsetzen() {
-    const g = spieler.gruppe, ohneBeine = (fn) => spieler.koerper.traverse(o => { if (!o.isMesh) return; let p = o; while (p) { if (spieler.beine.some(b => b.oben === p)) return; p = p.parent; } fn(o); });
+    const g = FO.f.gruppe, ohneBeine = (fn) => FO.f.koerper.traverse(o => { if (!o.isMesh) return; let p = o; while (p) { if (FO.f.beine.some(b => b.oben === p)) return; p = p.parent; } fn(o); });
     fBuehne.add(g); g.position.set(0, 0, 0); g.rotation.set(0, Math.PI + .28, 0); g.scale.setScalar(1);
-    spieler.koerper.position.set(0, 0, 0); spieler.koerper.rotation.set(0, 0, 0); spieler.hals.rotation.set(0, 0, 0);
+    FO.f.koerper.position.set(0, 0, 0); FO.f.koerper.rotation.set(0, 0, 0); FO.f.hals.rotation.set(0, 0, 0);
     g.updateMatrixWorld(true);
     const box = new THREE.Box3(), h = new THREE.Box3();
     ohneBeine(o => box.union(h.setFromObject(o)));
     const groesse = box.getSize(new THREE.Vector3());
-    const lang = Math.max(groesse.x, groesse.z) > groesse.y * .7 && !spieler.mensch && spieler.rueckenY >= -.1;
-    spieler.koerper.rotation.x = lang ? 1 : 0;
-    FO.hals = lang ? -1 : 0; spieler.hals.rotation.x = FO.hals;
-    spieler.beine.forEach(b => { const hinten = b.oben.position.z > 0.05; b.oben.rotation.set(lang ? (hinten ? .55 : -.95) : 1.35, 0, 0); b.unten.rotation.set(lang && !hinten ? 0 : -1.3, 0, 0); });
+    const lang = Math.max(groesse.x, groesse.z) > groesse.y * .7 && !FO.f.mensch && FO.f.rueckenY >= -.1;
+    FO.f.koerper.rotation.x = lang ? 1 : 0;
+    FO.hals = lang ? -1 : 0; FO.f.hals.rotation.x = FO.hals;
+    FO.f.beine.forEach(b => { const hinten = b.oben.position.z > 0.05; b.oben.rotation.set(lang ? (hinten ? .55 : -.95) : 1.35, 0, 0); b.unten.rotation.set(lang && !hinten ? 0 : -1.3, 0, 0); });
     g.updateMatrixWorld(true);
     box.makeEmpty(); ohneBeine(o => box.union(h.setFromObject(o)));
     g.position.y = W.STUHL_SITZ - box.min.y + .02;
@@ -1535,7 +1537,7 @@ if (rahmen) {
     // Umriss von unten nach oben aus den echten Punkten der Figur: jede Lage liegt eng um das, was auf ihrer Höhe ist
     const v = new THREE.Vector3(), punkteListe = [];
     let unten = Infinity, oben = -Infinity;
-    const huelleTeile = (fn) => lang ? spieler.koerper.traverse(o => { if (!o.isMesh) return; let p = o; while (p) { if (spieler.beine.some(b => b.oben === p && b.oben.position.z > .05)) return; p = p.parent; } fn(o); }) : ohneBeine(fn);
+    const huelleTeile = (fn) => lang ? FO.f.koerper.traverse(o => { if (!o.isMesh) return; let p = o; while (p) { if (FO.f.beine.some(b => b.oben === p && b.oben.position.z > .05)) return; p = p.parent; } fn(o); }) : ohneBeine(fn);
     huelleTeile(o => {
       const pos = o.geometry && o.geometry.attributes.position;
       if (!pos) return;
@@ -1568,6 +1570,8 @@ if (rahmen) {
     for (const o of [boden, ferneGruppe, W.luft]) o.visible = false;
     schattenF.visible = schattenA.visible = false; anja.gruppe.visible = false; sternchen.forEach(st => { st.visible = false; });
     fBuehne.visible = true; blase.visible = false;
+    FO.f = figur === "giraffe" ? spieler : fGiraffe;      // wer selbst Fröbelinchen spielt, behält die eigene Ausstattung
+    spieler.gruppe.visible = FO.f === spieler; fGiraffe.gruppe.visible = FO.f === fGiraffe;
     fStuhl.position.set(0, .12, 0);
     Object.assign(FO, { zeit: 0, intro: 1.4, letzte: 0, summe: 0, ruhe: 0, ende: 0, ausblenden: 0, winkel: .6, winkelZiel: .6, zappeln: 0, sieg: false });
     folieLagenWeg();
@@ -1576,13 +1580,14 @@ if (rahmen) {
     szene.fog.near = 40; szene.fog.far = 140; szene.fog.color.set("#f3e6cf"); himmelKugel.material.color.set("#ffffff");
     stimmungSetzen(); kamPos = null; wackeln = 0;
     T.welt(); T.musik(1);
-    meldung(`${NAME()} muss eingepackt werden!`, handy ? "Wisch hin und her, so schnell du kannst" : "Pfeiltasten im Wechsel oder mit der Maus hin und her ziehen");
+    meldung("Fröbelinchen muss eingepackt werden!", handy ? "Wisch hin und her, so schnell du kannst" : "Pfeiltasten im Wechsel oder mit der Maus hin und her ziehen");
   }
   function folieLageWeg(l) { fBuehne.remove(l.mesh); l.mesh.children.forEach(k => k.geometry.dispose()); l.mesh.geometry.dispose(); }
   function folieLagenWeg() { FO.lagen.forEach(folieLageWeg); FO.lagen = []; }
   function folieAus() {
     if (!fBuehne) return;
     if (FO.an || fBuehne.visible) {
+      fGiraffe.gruppe.visible = false; spieler.gruppe.visible = true;
       szene.add(spieler.gruppe); spieler.gruppe.position.set(0, 0, 0); spieler.gruppe.rotation.set(0, 0, 0);
       spieler.koerper.position.set(0, 0, 0); spieler.koerper.rotation.set(0, 0, 0); spieler.hals.rotation.set(0, 0, 0);
       spieler.beine.forEach(b => { b.oben.rotation.set(0, 0, 0); b.unten.rotation.set(0, 0, 0); });
@@ -1610,10 +1615,10 @@ if (rahmen) {
     FO.sieg = sieg; FO.ende = 2.2; folieUI.classList.add("fertig");
     if (sieg) {
       punkte += 1000; sternZahl += 25; T.rekord();
-      meldung("Frisch verpackt!", `${NAME()} hält sich jetzt ewig · +1.000 Punkte · +25 ★`);
+      meldung("Frisch verpackt!", "Fröbelinchen hält sich jetzt ewig · +1.000 Punkte · +25 ★");
       const wo = new THREE.Vector3(0, FO.oben, 0); for (const farbe of ["#ffd54a", "#3baa35", "#ff7aa2", "#6ec6ff"]) funkeln(wo, farbe, 10);
     } else {
-      T.stolpern(); meldung(`${NAME()} ist entwischt!`, `${FO.lagen.length} von ${FOLIE_LAGEN} Lagen · weiter geht's`);
+      T.stolpern(); meldung("Fröbelinchen ist entwischt!", `${FO.lagen.length} von ${FOLIE_LAGEN} Lagen · weiter geht's`);
     }
   }
   // Ein Strich zählt, wenn er lang genug ist und die Richtung gewechselt hat
@@ -1645,13 +1650,13 @@ if (rahmen) {
     hudZeigen();
   }
   function folieBild(dt) {
-    const t = performance.now() / 1000, g = spieler.gruppe;
+    const t = performance.now() / 1000, g = FO.f.gruppe;
     FO.zappeln = Math.max(0, FO.zappeln - dt);
     // Sie zappelt, wenn eine neue Lage kommt, und freut sich oder staunt am Ende
     const z = FO.zappeln > 0 ? Math.sin(t * 34) * FO.zappeln * .22 : Math.sin(t * 1.6) * .012;
     g.rotation.z = z;
-    spieler.hals.rotation.x = FO.hals + Math.sin(t * 1.7) * .05 + (FO.sieg && FO.ende ? Math.sin(t * 16) * .06 : 0);
-    if (spieler.schwanz) spieler.schwanz.rotation.x = Math.sin(t * 4) * .15;
+    FO.f.hals.rotation.x = FO.hals + Math.sin(t * 1.7) * .05 + (FO.sieg && FO.ende ? Math.sin(t * 16) * .06 : 0);
+    if (FO.f.schwanz) FO.f.schwanz.rotation.x = Math.sin(t * 4) * .15;
     // Neue Lagen legen sich von außen eng an die Figur
     for (const l of FO.lagen) {
       l.neu = Math.max(0, l.neu - dt * 5.5);
