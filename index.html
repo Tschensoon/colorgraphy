@@ -549,7 +549,7 @@ function fotoAkzent(liste){
 }
 
 // Fotofächer im Einstieg: feste Auswahl, unabhängig von neuen Uploads (links, rechts, vorn in der Mitte)
-const FAECHER = ["Early Minka.jpg", "Halloween Pumpkinhead.jpg", "Mystic Puuh.jpg"];
+const FAECHER = ["South Tirol Landscape.JPG", "Halloween Pumpkinhead.jpg", "Drei Zinnen.JPG"];
 function fotoFaecher(liste){
   const feld = document.getElementById("faecher");
   FAECHER.map(name => liste.find(f => f.datei === name)).filter(Boolean).forEach(f => {
