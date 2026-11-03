@@ -91,7 +91,6 @@
   .fakten{gap:.35rem}
   .fakten div{padding:.45rem .5rem}
 }
-.nav nav a[aria-current="page"]{opacity:1;color:var(--nav-hover);font-weight:600}
 
 /* Kapitel 4: Bildgestaltung */
 #g-bild{cursor:crosshair;touch-action:manipulation}
