@@ -1,5 +1,75 @@
 [
  {
+  "datei": "Welcome to the Jungle.JPG",
+  "titel": "Welcome to the Jungle",
+  "exif": {
+   "mm": "30 mm",
+   "blende": "f/4.5",
+   "zeit": "1/60 s",
+   "iso": "ISO 25600"
+  },
+  "farbe": "#bcdc74",
+  "breite": 1280,
+  "hoehe": 1600,
+  "hinzugefuegt": "2026-11-03T06:50:03Z",
+  "sha": "d8fb5f9804f3842c74785e13529f6ef344788de5219575648568d4977a248137"
+ },
+ {
+  "datei": "South Tirol Landscape.JPG",
+  "titel": "South Tirol Landscape",
+  "exif": {
+   "mm": "35 mm",
+   "blende": "f/8",
+   "zeit": "1/160 s",
+   "iso": "ISO 320"
+  },
+  "farbe": "#d3dc74",
+  "breite": 1440,
+  "hoehe": 1800,
+  "hinzugefuegt": "2026-11-03T06:50:03Z",
+  "sha": "e0a9dd3610c0b0656b50ee0302366a05f3f438e3a235f5e99df3097b42241a13"
+ },
+ {
+  "datei": "Pragser Wildsee.JPG",
+  "titel": "Pragser Wildsee",
+  "exif": {},
+  "farbe": "#74d1dc",
+  "breite": 1066,
+  "hoehe": 1332,
+  "hinzugefuegt": "2026-11-03T06:50:03Z",
+  "sha": "f96d375ba2ab768225610ded665b6d9b04e25c55b6bd30f0bde8a3e196752854"
+ },
+ {
+  "datei": "Mystical Girl.JPG",
+  "titel": "Mystical Girl",
+  "exif": {
+   "mm": "40 mm",
+   "blende": "f/8",
+   "zeit": "1/400 s",
+   "iso": "ISO 1000"
+  },
+  "farbe": "#74bedc",
+  "breite": 1080,
+  "hoehe": 1349,
+  "hinzugefuegt": "2026-11-03T06:50:03Z",
+  "sha": "1882917b623a7446bb64e2e0b836ab3036afaea6a6ffaf4407a5e767b61fb13f"
+ },
+ {
+  "datei": "Drei Zinnen.JPG",
+  "titel": "Drei Zinnen",
+  "exif": {
+   "mm": "30 mm",
+   "blende": "f/9",
+   "zeit": "1/320 s",
+   "iso": "ISO 400"
+  },
+  "farbe": "#dc9474",
+  "breite": 1280,
+  "hoehe": 1600,
+  "hinzugefuegt": "2026-11-03T06:50:03Z",
+  "sha": "6aa5ed1f9337cd91b0601519d91c76fa27210d03960d873db5bbef32c0b065c4"
+ },
+ {
   "datei": "Flowers in the sun.jpg",
   "titel": "Flowers in the sun",
   "beschreibung": "Rosa-weiß gestreifte Blüten im Gegenlicht vor tief stehender Sonne, der Hintergrund leuchtet unscharf und golden.",
