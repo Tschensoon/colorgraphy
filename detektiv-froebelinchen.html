@@ -34,6 +34,10 @@ button:focus-visible{outline:3px solid var(--gelb);outline-offset:2px}
 #schleier{position:absolute;z-index:15;inset:0;background:#dff3ff;pointer-events:none;opacity:0;transition:opacity .35s}
 #statistik{left:50%;transform:translateX(-50%);top:var(--oben);font:600 .7rem ui-monospace,Consolas,monospace;white-space:nowrap;background:var(--dunkel);padding:.15rem .5rem;border-radius:6px;z-index:9;text-shadow:none}
 
+#schliessen{display:none;position:absolute;z-index:7;top:var(--oben);left:var(--links);width:44px;height:44px;border-radius:50%;border:2px solid rgba(255,255,255,.75);background:rgba(20,22,30,.72);font-size:1.05rem;font-weight:800;padding:0;touch-action:none}
+#spiel.touch.laeuft #schliessen{display:block}
+#spiel.touch.laeuft #ziel{left:calc(var(--links) + 44px + .55rem)}
+
 /* Steuerung am Handy: nur was gerade gebraucht wird, jedes Element hat seinen festen Platz */
 #stick-zone,#aktion,#aussteigen,#pedale{display:none}
 #stick-zone{position:absolute;z-index:4;left:0;bottom:0;width:50%;height:66%;touch-action:none}
@@ -70,6 +74,7 @@ button:focus-visible{outline:3px solid var(--gelb);outline-offset:2px}
 </head>
 <body>
 <div id="spiel">
+  <button id="schliessen" type="button" aria-label="Spiel schließen">✕</button>
   <div class="hud" id="ziel"></div>
   <div class="hud" id="sterne" aria-label="Fahndungssterne"></div>
   <canvas id="karte" width="256" height="256" aria-hidden="true"></canvas>
@@ -93,7 +98,7 @@ button:focus-visible{outline:3px solid var(--gelb);outline-offset:2px}
     <p style="font-size:.82rem;opacity:.75"><a href="index.html">Zurück zu Colorgraphy</a> · <a href="impressum.html">Impressum</a> · <a href="datenschutz.html">Datenschutz</a></p>
   </div></div>
 </div>
-<script type="module" src="detektiv-froebelinchen.js?v=4"></script>
+<script type="module" src="detektiv-froebelinchen.js?v=5"></script>
 <script data-goatcounter="https://colorgraphy.goatcounter.com/count" async src="vendor/goatcounter/count.js"></script>
 </body>
 </html>

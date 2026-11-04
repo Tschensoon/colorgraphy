@@ -465,6 +465,24 @@ function wahlOeffnen() {
   });
   feld.hidden = false; box.querySelector("button").focus();
 }
+// Schließen: erst nachfragen, weil der Fortschritt nicht gespeichert wird
+function schliessenFragen() {
+  if (!S.an || S.wahl || S.gefangen > 0) return;
+  S.wahl = true; eingabeLeeren(); hudAlt = ""; hudUhr = 0;
+  const feld = $("wahl"), box = feld.firstElementChild;
+  box.innerHTML = `<h2 id="wahl-titel">Spiel schließen? Dein Fortschritt wird nicht gespeichert.</h2>
+    <button type="button" id="weiterspielen">Weiterspielen</button>
+    <button type="button" id="beenden">Spiel schließen</button>`;
+  $("weiterspielen").onclick = () => { feld.hidden = true; S.wahl = false; letzt = performance.now(); hudAlt = ""; hudUhr = 0; };
+  $("beenden").onclick = async () => {
+    try { if (document.fullscreenElement) await document.exitFullscreen(); } catch (e) {}
+    location.href = "index.html";
+  };
+  feld.hidden = false; $("weiterspielen").focus();
+}
+$("schliessen").addEventListener("pointerdown", (e) => { e.preventDefault(); e.stopPropagation(); schliessenFragen(); });
+$("schliessen").addEventListener("click", (e) => { if (e.detail === 0) schliessenFragen(); });
+
 function missionGeschafft() { S.schritt = SCHRITTE.length; S.fertig = true; bannerZeigen("Mission geschafft!", 4); }
 function jagdStart() { S.sterne = 2; S.jagd = 25; aylinRolle.visible = true; hudAlt = ""; hudUhr = 0; }
 function jagdEnde() {
@@ -809,7 +827,7 @@ aufloesungSetzen();
 schrittSpiel(SCHRITT_ZEIT); darstellen(0, 1, 0); hudSchritt(1); renderer.render(szene, kamera);
 const los = $("los"); los.disabled = false; los.textContent = "Mission starten";
 los.addEventListener("click", () => {
-  $("start").hidden = true; S.an = true; hudAlt = ""; hudUhr = 0; hudUhr = 0;
+  $("start").hidden = true; S.an = true; hudAlt = ""; hudUhr = 0; huelle.classList.add("laeuft"); hudUhr = 0;
   if (handy && document.documentElement.requestFullscreen) document.documentElement.requestFullscreen({ navigationUI: "hide" }).catch(() => {});
   messZeit = 0; messBilder = 0; letzt = performance.now();
 });
