@@ -2,6 +2,7 @@
 // Figuren und Oberflächen kommen aus der Welt von „Fröbelinchen rennt“ (lauf-welt.js). Figuren schauen nach -z.
 import * as THREE from "./vendor/three/three.module.min.js";
 import { welt } from "./lauf-welt.js?v=36";
+import { figurenWerkstatt } from "./detektiv-figuren.js?v=1";
 
 const T = THREE;
 let handy = matchMedia("(pointer: coarse)").matches;
@@ -189,8 +190,9 @@ schreibtisch(-40, -29, true); schreibtisch(-26, -31, false); schreibtisch(-44, -
 }
 
 // ---------- Figuren und Auto ----------
-const anja = W.figurBauen("anja"); szene.add(anja.gruppe);
-const aylin = W.frauBauen(); szene.add(aylin.gruppe);
+const menschen = figurenWerkstatt(T, handy);
+const anja = menschen.bauen("anja"); szene.add(anja.gruppe);
+const aylin = menschen.bauen("aylin"); szene.add(aylin.gruppe);
 const AYLIN_PLATZ = { x: -31, z: -27 };
 const aylinRolle = W.folienRolle(); aylinRolle.scale.setScalar(.45); aylin.arme[1].unten.add(aylinRolle); aylinRolle.position.set(0, -.3, -.1); aylinRolle.rotation.x = Math.PI / 2; aylinRolle.visible = false;
 
@@ -616,7 +618,13 @@ const figurenTakt = (f, k, lauf, tempo) => {
   const an = Math.min(1, tempo / 2.8), s = Math.min(1, tempo / 5);
   f.beine.forEach((b, i) => { const ph = lauf + i * Math.PI; b.oben.rotation.x = Math.sin(ph) * (.42 + .35 * s) * an; b.unten.rotation.x = -Math.max(0, Math.sin(ph + 1.6)) * (.75 + .6 * s) * an; });
   f.arme.forEach((a, i) => { const ph = lauf + i * Math.PI; a.oben.rotation.x = -Math.sin(ph) * (.35 + .35 * s) * an; a.unten.rotation.x = .15 + .95 * s * an; });
-  k.rotation.x = -.07 * s; k.position.y = Math.abs(Math.sin(lauf)) * .04 * an;
+  k.rotation.x = -.07 * s; k.position.y = f.huefteY + Math.abs(Math.sin(lauf)) * .04 * an;
+  // Beim Laufen drehen Hüfte und Brust gegeneinander, im Stehen atmet die Figur und schaut sich um
+  k.rotation.y = Math.sin(lauf) * .09 * an;
+  f.brust.rotation.y = -Math.sin(lauf) * .16 * an;
+  f.brust.rotation.x = Math.sin(zeit * 1.7) * .012 * (1 - an);
+  f.kopf.rotation.y = Math.sin(zeit * .47) * .14 * (1 - an);
+  f.kopf.rotation.x = -.04 * an;
 };
 const kamZiel = new T.Vector3(), kamWunsch = new T.Vector3(), kamBlick = new T.Vector3();
 let fovBasis = 62, fovAktuell = 62;
