@@ -1344,8 +1344,28 @@ if (rahmen) {
       <div class="du-knoepfe"><button type="button" data-b="A">A<small>Taste A</small></button><button type="button" data-b="B">B<small>Taste B</small></button></div>`;
     tempoLinien.after(duellUI);
     duellUI.querySelectorAll(".du-knoepfe button").forEach(k => k.addEventListener("pointerdown", (e) => { e.preventDefault(); duellTaste(k.dataset.b); }));
+    // Direkt auf den Kreis oder den Buchstaben tippen zählt auch
+    duellBahn().addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      const z = duellUI.querySelector(".du-ziel").getBoundingClientRect();
+      const amKreis = Math.abs(e.clientX - (z.left + z.width / 2)) <= z.width / 2 + 24;
+      const best = duellImKreis();
+      if (best && (amKreis || e.target === best.el)) duellTaste(best.b);
+      else if (amKreis || e.target.classList.contains("du-buchstabe")) duellTaste(null);
+
+    });
   }
   const duellBahn = () => duellUI.querySelector(".du-bahn");
+  // Treffer zählt, solange der Buchstabe sichtbar im Kreis liegt. Nie enger als vorher, auf breiten Bildschirmen bleibt es also gleich.
+  function duellToleranz() {
+    const breite = duellBahn().clientWidth, kreis = duellUI.querySelector(".du-ziel").offsetWidth;
+    DU.tol = breite ? Math.max(TOLERANZ, (kreis / 2 + kreis * .2) / breite) : TOLERANZ;
+  }
+  function duellImKreis() {
+    let best = null;
+    for (const l of DU.buchstaben) if (!l.weg && Math.abs(l.x - ZIEL) <= DU.tol && (!best || Math.abs(l.x - ZIEL) < Math.abs(best.x - ZIEL))) best = l;
+    return best;
+  }
   function duellAnzeige() {
     duellUI.querySelector(".du-zeit").textContent = Math.max(0, Math.ceil(DUELL_ZEIT - DU.zeit));
     duellUI.querySelector(".du-herzen").textContent = "❤️".repeat(3 - DU.fehler) + "🤍".repeat(DU.fehler);
@@ -1372,11 +1392,11 @@ if (rahmen) {
     gegner.gruppe.position.set(1.8, .12, 0); gegner.gruppe.rotation.set(0, Math.PI / 2, 0);
     DU.buchstaben.forEach(l => l.el.remove());
     Object.assign(DU, { zeit: 0, intro: 1.6, fehler: 0, leben: 1, buchstaben: [], naechster: 0, ende: 0, sieg: false, ausblenden: 0, schlag: 0, gegen: 0, rueckF: 0, rueckM: 0 });
-    duellUI.querySelector(".du-name").textContent = NAME(); duellUI.hidden = false; duellAnzeige();
+    duellUI.querySelector(".du-name").textContent = NAME(); duellUI.hidden = false; duellToleranz(); duellAnzeige();
     szene.fog.near = 40; szene.fog.far = 140; szene.fog.color.set("#f3e6cf"); himmelKugel.material.color.set("#ffffff");
     stimmungSetzen(); kamPos = null; wackeln = 0;
     T.welt(); T.musik(1);
-    meldung("Kissenschlacht!", handy ? "Tipp A oder B, wenn der Buchstabe im Kreis ist" : "Drück A oder B, wenn der Buchstabe im Kreis ist");
+    meldung("Kissenschlacht!", handy ? "Tipp auf den Buchstaben, wenn er im Kreis ist" : "Drück A oder B, wenn der Buchstabe im Kreis ist");
   }
   function duellAus() {
     if (!buehne) return;
@@ -1412,9 +1432,8 @@ if (rahmen) {
   }
   function duellTaste(b) {
     if (!DU.an || zustand !== "laeuft" || DU.ende || DU.intro > 0) return;
-    let best = null;
-    for (const l of DU.buchstaben) if (!l.weg && Math.abs(l.x - ZIEL) <= TOLERANZ && (!best || Math.abs(l.x - ZIEL) < Math.abs(best.x - ZIEL))) best = l;
-    if (!best) { duellFehler("Zu früh!"); return; }
+    const best = duellImKreis();
+    if (!best) { meldung("Noch nicht!", "Warte, bis der Buchstabe im Kreis ist"); return; }   // kostet kein Herz
     if (best.b !== b) { buchstabeWeg(best, "daneben"); duellFehler("Falscher Buchstabe!"); return; }
     buchstabeWeg(best, "weg"); duellBlitz("richtig");
     DU.schlag = .35; DU.rueckM = .35; DU.leben -= .06; punkte += 50; T.schubs(); GE.freude = .35;
@@ -1440,6 +1459,7 @@ if (rahmen) {
     DU.naechster -= dt;
     if (DU.naechster <= 0) {
       DU.naechster = Math.max(.62, 1.2 - DU.zeit * .018);
+      duellToleranz();
       const b = Math.random() < .5 ? "A" : "B", el = document.createElement("div");
       el.className = "du-buchstabe " + b.toLowerCase(); el.textContent = b; duellBahn().append(el);
       DU.buchstaben.push({ b, x: 1.08, el, weg: false });
@@ -1448,8 +1468,9 @@ if (rahmen) {
     for (const l of DU.buchstaben) {
       if (l.weg) continue;
       l.x -= v * dt; l.el.style.left = (l.x * 100).toFixed(2) + "%";
-      if (l.x < ZIEL - TOLERANZ) { buchstabeWeg(l, "daneben"); duellFehler("Verpasst!"); if (zustand !== "laeuft") return; }
+      if (l.x < ZIEL - DU.tol) { buchstabeWeg(l, "daneben"); duellFehler("Verpasst!"); if (zustand !== "laeuft") return; }
     }
+    duellUI.classList.toggle("bereit", !!duellImKreis());
     DU.buchstaben = DU.buchstaben.filter(l => !l.weg);
     duellAnzeige();
     hudZeigen();

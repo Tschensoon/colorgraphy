@@ -347,11 +347,12 @@ body.spiel-offen { overflow: hidden; }
 .du-balken.rechts span { text-align: right; }
 .du-zeit { min-width: 2.4rem; text-align: center; font-weight: 900; font-size: 1.5rem; color: #fff; text-shadow: 0 2px 6px rgba(0, 0, 0, .5); }
 .du-herzen { position: absolute; top: calc(env(safe-area-inset-top) + 2.8rem); left: 50%; transform: translateX(-50%); font-size: 1.25rem; letter-spacing: .25rem; filter: drop-shadow(0 1px 2px rgba(0,0,0,.4)); }
-.du-bahn { position: absolute; left: 0; right: 0; top: 24%; height: 5rem; }
+.du-bahn { position: absolute; left: 0; right: 0; top: 24%; height: 5rem; pointer-events: auto; touch-action: none; cursor: pointer; }
 .du-ziel { position: absolute; left: 22%; top: 50%; width: 4.8rem; height: 4.8rem; transform: translate(-50%, -50%); border-radius: 50%;
   border: 5px dashed #fff; box-shadow: 0 0 0 4px rgba(3, 74, 62, .35), inset 0 0 18px rgba(255, 255, 255, .6); transition: border-color .15s; }
 .duell.fehler .du-ziel { border-color: #ff5252; }
 .duell.richtig .du-ziel { border-color: #7cff7c; }
+.duell.bereit:not(.fehler):not(.richtig) .du-ziel { border-color: #ffd54a; box-shadow: 0 0 0 4px rgba(255, 213, 74, .45); }
 .du-buchstabe { position: absolute; top: 50%; width: 3.8rem; height: 3.8rem; transform: translate(-50%, -50%); border-radius: 50%; display: grid; place-items: center;
   font-weight: 900; font-size: 2.1rem; line-height: 1; color: #fff; border: 3px solid #fff; box-shadow: 0 6px 16px rgba(0, 0, 0, .25); }
 .du-buchstabe.a { background: #1e88e5; } .du-buchstabe.b { background: #e8577a; }
