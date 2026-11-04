@@ -2,7 +2,7 @@
 // Figuren und Oberflächen kommen aus der Welt von „Fröbelinchen rennt“ (lauf-welt.js). Figuren schauen nach -z.
 import * as THREE from "./vendor/three/three.module.min.js";
 import { welt } from "./lauf-welt.js?v=36";
-import { figurenWerkstatt } from "./detektiv-figuren.js?v=1";
+import { figurenWerkstatt } from "./detektiv-figuren.js?v=2";
 
 const T = THREE;
 let handy = matchMedia("(pointer: coarse)").matches;
