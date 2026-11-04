@@ -2,7 +2,7 @@
 // Figuren und Oberflächen kommen aus der Welt von „Fröbelinchen rennt“ (lauf-welt.js). Figuren schauen nach -z.
 import * as THREE from "./vendor/three/three.module.min.js";
 import { welt } from "./lauf-welt.js?v=36";
-import { figurenWerkstatt } from "./detektiv-figuren.js?v=2";
+import { figurenWerkstatt } from "./detektiv-figuren.js?v=3";
 
 const T = THREE;
 let handy = matchMedia("(pointer: coarse)").matches;
@@ -27,7 +27,7 @@ if (handy) wolkenGruppe.children.filter((_, i) => i % 2).forEach(w => wolkenGrup
 const pmrem = new T.PMREMGenerator(renderer), himmelSzene = new T.Scene();
 himmelSzene.add(W.himmel()); szene.environment = pmrem.fromScene(himmelSzene, .02).texture;
 const kamera = new T.PerspectiveCamera(62, 1, .4, 300);
-szene.add(new T.HemisphereLight("#cfe6ff", "#6c8f3c", .9));
+szene.add(new T.HemisphereLight("#cfe6ff", "#a89a84", .95));
 const sonne = new T.DirectionalLight("#ffe7c4", 2.7);
 sonne.castShadow = true; sonne.shadow.mapSize.set(handy ? 1024 : 2048, handy ? 1024 : 2048);
 Object.assign(sonne.shadow.camera, { left: -32, right: 32, top: 32, bottom: -32, near: 1, far: 110 });
