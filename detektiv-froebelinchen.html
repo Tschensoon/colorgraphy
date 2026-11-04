@@ -9,35 +9,55 @@
 <link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <style>
-:root{--gelb:#ffc83d;--text:#fff;--dunkel:rgba(8,10,16,.82)}
+:root{--gelb:#ffc83d;--text:#fff;--dunkel:rgba(8,10,16,.84);--oben:max(.6rem,env(safe-area-inset-top));--links:max(.9rem,env(safe-area-inset-left));--rechts:max(.9rem,env(safe-area-inset-right));--unten:max(.9rem,env(safe-area-inset-bottom));--karte:clamp(5.2rem,25vmin,7.4rem)}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;height:100%;overflow:hidden;background:#101218;color:var(--text);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overscroll-behavior:none}
 button{font:inherit;color:inherit;cursor:pointer}
 button:focus-visible{outline:3px solid var(--gelb);outline-offset:2px}
-#spiel{position:fixed;inset:0;touch-action:none;user-select:none;-webkit-user-select:none}
+#spiel{position:fixed;inset:0;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
 #spiel canvas.bild{position:absolute;inset:0;width:100%;height:100%;display:block}
-.hud{position:absolute;pointer-events:none;text-shadow:0 1px 3px #000,0 0 2px #000}
-#ziel{top:max(.7rem,env(safe-area-inset-top));left:.8rem;right:9.8rem;font-weight:800;font-size:clamp(.95rem,2.6vw,1.2rem)}
-#ziel small{display:block;font-weight:600;opacity:.85;font-size:.82em}
-#sterne{top:max(.7rem,env(safe-area-inset-top));right:.8rem;width:8rem;text-align:right;font-size:1.25rem;color:var(--gelb);letter-spacing:.05em}
-#karte{position:absolute;top:calc(max(.7rem,env(safe-area-inset-top)) + 1.9rem);right:.8rem;width:8rem;height:8rem;border-radius:50%;border:3px solid rgba(255,255,255,.85);box-shadow:0 2px 12px rgba(0,0,0,.5);pointer-events:none;background:#000}
-#tempo{right:.9rem;top:calc(max(.7rem,env(safe-area-inset-top)) + 10.2rem);font:800 1.05rem ui-monospace,Consolas,monospace}
-#hinweis{left:50%;transform:translateX(-50%);bottom:calc(max(1rem,env(safe-area-inset-bottom)) + .2rem);background:var(--dunkel);padding:.35rem .9rem;border-radius:999px;font-weight:700;white-space:nowrap;text-shadow:none}
-#untertitel{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(max(1rem,env(safe-area-inset-bottom)) + 8.5rem);width:min(92vw,38rem);background:var(--dunkel);border:0;border-radius:14px;padding:.8rem 1rem;text-align:left}
+.hud{position:absolute;z-index:3;pointer-events:none;text-shadow:0 1px 3px #000,0 0 2px #000}
+#ziel{top:var(--oben);left:var(--links);right:calc(var(--karte) + var(--rechts) + .8rem);font-weight:800;font-size:clamp(.9rem,2.4vmax,1.15rem);line-height:1.25}
+#ziel small{display:block;font-weight:600;opacity:.85;font-size:.82em;margin-top:.1rem}
+#karte{position:absolute;z-index:3;top:var(--oben);right:var(--rechts);width:var(--karte);height:var(--karte);border-radius:50%;border:2px solid rgba(255,255,255,.85);box-shadow:0 2px 10px rgba(0,0,0,.45);pointer-events:none;background:#000}
+#sterne{top:calc(var(--oben) + var(--karte) + .25rem);right:var(--rechts);width:var(--karte);text-align:center;font-size:1.1rem;line-height:1.2;color:var(--gelb)}
+#tempo{top:calc(var(--oben) + var(--karte) + .25rem);right:var(--rechts);width:var(--karte);text-align:center;font:800 .95rem ui-monospace,Consolas,monospace}
+#hinweis{left:50%;transform:translateX(-50%);bottom:var(--unten);background:var(--dunkel);padding:.35rem .9rem;border-radius:999px;font-weight:700;white-space:nowrap;text-shadow:none}
+#untertitel{position:absolute;z-index:8;left:50%;transform:translateX(-50%);bottom:var(--unten);width:min(94vw,40rem);background:var(--dunkel);border-radius:14px;padding:.75rem 1rem;pointer-events:none;line-height:1.35}
 #untertitel b{color:var(--gelb)}
-#untertitel span{display:block;font-size:.8rem;opacity:.7;margin-top:.3rem}
-#wahl{position:absolute;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.45);padding:1rem}
-#wahl>div{width:min(100%,27rem);background:#1a1d26;border-radius:18px;padding:1.1rem;display:grid;gap:.6rem}
-#wahl h2{margin:0;font-size:1.15rem}
-#wahl button{min-height:48px;text-align:left;background:#2a2e3b;border:1px solid #454b5e;border-radius:12px;padding:.6rem .9rem}
-#banner{position:absolute;inset:0;display:grid;place-items:center;text-align:center;pointer-events:none;font:900 clamp(2.2rem,9vw,5.5rem)/1.05 Impact,"Arial Black",system-ui,sans-serif;letter-spacing:.02em;color:var(--gelb);text-shadow:0 3px 0 #000,0 0 16px #000;padding:1rem}
-#schleier{position:absolute;inset:0;background:#dff3ff;pointer-events:none;opacity:0;transition:opacity .35s}
-#stick{position:absolute;left:max(1rem,env(safe-area-inset-left));bottom:max(1rem,env(safe-area-inset-bottom));width:8.4rem;height:8.4rem;border-radius:50%;background:rgba(255,255,255,.14);border:2px solid rgba(255,255,255,.5);touch-action:none}
-#stick i{position:absolute;left:50%;top:50%;width:3.5rem;height:3.5rem;margin:-1.75rem;border-radius:50%;background:rgba(255,255,255,.72);box-shadow:0 2px 8px rgba(0,0,0,.4)}
-.rund{position:absolute;border-radius:50%;border:2px solid rgba(255,255,255,.7);background:rgba(20,22,30,.62);font-weight:800;font-size:.82rem;touch-action:none;display:grid;place-items:center;padding:.2rem;text-align:center;line-height:1.05}
-#rennen{right:max(1rem,env(safe-area-inset-right));bottom:max(1rem,env(safe-area-inset-bottom));width:5.2rem;height:5.2rem}
-#aktion{right:max(6.8rem,env(safe-area-inset-right));bottom:max(1.5rem,env(safe-area-inset-bottom));width:5rem;height:5rem;background:var(--gelb);color:#17140a;border-color:#fff}
-#start{position:absolute;inset:0;background:linear-gradient(rgba(8,10,16,.55),rgba(8,10,16,.9));display:grid;place-items:center;padding:1.2rem;overflow:auto;touch-action:auto}
+#untertitel span{display:block;font-size:.8rem;opacity:.7;margin-top:.25rem}
+#wahl{position:absolute;z-index:20;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.45);padding:1rem;overflow:auto;touch-action:auto}
+#wahl>div{width:min(100%,27rem);background:#1a1d26;border-radius:18px;padding:1.1rem;display:grid;gap:.55rem}
+#wahl h2{margin:0;font-size:1.08rem;line-height:1.25}
+#wahl button{min-height:46px;text-align:left;background:#2a2e3b;border:1px solid #454b5e;border-radius:12px;padding:.5rem .9rem}
+#banner{position:absolute;z-index:16;inset:0;display:grid;place-items:center;text-align:center;pointer-events:none;font:900 clamp(2.2rem,9vw,5.5rem)/1.05 Impact,"Arial Black",system-ui,sans-serif;letter-spacing:.02em;color:var(--gelb);text-shadow:0 3px 0 #000,0 0 16px #000;padding:1rem}
+#schleier{position:absolute;z-index:15;inset:0;background:#dff3ff;pointer-events:none;opacity:0;transition:opacity .35s}
+#statistik{left:50%;transform:translateX(-50%);top:var(--oben);font:600 .7rem ui-monospace,Consolas,monospace;white-space:nowrap;background:var(--dunkel);padding:.15rem .5rem;border-radius:6px;z-index:9;text-shadow:none}
+
+/* Steuerung am Handy: nur was gerade gebraucht wird, jedes Element hat seinen festen Platz */
+#stick-zone,#aktion,#aussteigen,#pedale{display:none}
+#stick-zone{position:absolute;z-index:4;left:0;bottom:0;width:50%;height:66%;touch-action:none}
+#stick{position:absolute;left:var(--links);bottom:var(--unten);width:7.4rem;height:7.4rem;border-radius:50%;background:rgba(255,255,255,.12);border:2px solid rgba(255,255,255,.5);opacity:.6;pointer-events:none}
+#stick.aktiv{opacity:1}
+#stick i{position:absolute;left:50%;top:50%;width:3.2rem;height:3.2rem;margin:-1.6rem;border-radius:50%;background:rgba(255,255,255,.75);box-shadow:0 2px 8px rgba(0,0,0,.4)}
+#stick.renn i{background:var(--gelb)}
+.im-auto #stick{width:9.6rem;height:4.6rem;border-radius:999px}
+#aktion{position:absolute;z-index:6;right:var(--rechts);bottom:var(--unten);width:5.2rem;height:5.2rem;border-radius:50%;border:2px solid #fff;background:var(--gelb);color:#17140a;font-weight:800;font-size:.86rem;place-items:center;padding:.2rem;touch-action:none}
+#pedale{position:absolute;z-index:6;right:var(--rechts);bottom:var(--unten);gap:.45rem;touch-action:none}
+#pedale div{display:grid;place-items:center;border-radius:18px;border:2px solid rgba(255,255,255,.7);font-weight:800;font-size:.85rem;background:rgba(20,22,30,.6);transition:background .08s,transform .08s}
+#gas{width:5.2rem;height:6.4rem;background:rgba(46,158,90,.72)!important}
+#bremse{width:4.3rem;height:5.2rem;align-self:end;background:rgba(214,60,60,.68)!important}
+#gas.an{background:rgb(66,200,120)!important;transform:scale(.96)}
+#bremse.an{background:rgb(240,80,80)!important;transform:scale(.96)}
+#aussteigen{position:absolute;z-index:6;right:var(--rechts);bottom:calc(var(--unten) + 6.9rem);min-height:44px;padding:0 .9rem;border-radius:999px;border:2px solid rgba(255,255,255,.7);background:rgba(20,22,30,.72);font-weight:700;font-size:.82rem;touch-action:none}
+#spiel.touch.spielt #stick-zone{display:block}
+#spiel.touch.spielt.nah-am-auto:not(.im-auto) #aktion{display:grid}
+#spiel.touch.spielt.im-auto #pedale{display:flex}
+#spiel.touch.spielt.im-auto #aussteigen{display:block}
+@media (max-width:360px){.im-auto #stick{width:7.6rem}#stick{width:6.6rem;height:6.6rem}}
+@media (max-height:340px){#gas{height:5.2rem}#bremse{height:4.6rem}#aussteigen{bottom:calc(var(--unten) + 5.7rem)}}
+
+#start{position:absolute;z-index:30;inset:0;background:linear-gradient(rgba(8,10,16,.55),rgba(8,10,16,.9));display:grid;place-items:center;padding:1.2rem;overflow:auto;touch-action:auto}
 #start>div{width:min(100%,34rem);display:grid;gap:.9rem}
 #start h1{margin:0;font:900 clamp(2.4rem,9vw,4.4rem)/1 Impact,"Arial Black",system-ui,sans-serif;color:var(--gelb);text-shadow:0 3px 0 #000}
 #start p{margin:0}
@@ -46,7 +66,6 @@ button:focus-visible{outline:3px solid var(--gelb);outline-offset:2px}
 #los{justify-self:start;border:0;border-radius:999px;background:var(--gelb);color:#17140a;font-weight:800;padding:.85rem 1.6rem;min-height:48px}
 #los:disabled{opacity:.6}
 [hidden]{display:none!important}
-@media (max-height:480px){#untertitel{bottom:.8rem}#karte{width:6rem;height:6rem}#tempo{top:8rem}#ziel{right:7.8rem}#sterne{width:6rem}}
 </style>
 </head>
 <body>
@@ -58,10 +77,12 @@ button:focus-visible{outline:3px solid var(--gelb);outline-offset:2px}
   <div class="hud" id="hinweis" hidden></div>
   <div id="schleier"></div>
   <div id="banner" hidden></div>
-  <div id="stick" hidden><i></i></div>
-  <button class="rund" id="aktion" type="button" hidden></button>
-  <button class="rund" id="rennen" type="button" hidden>Rennen</button>
-  <button id="untertitel" type="button" hidden></button>
+  <div id="stick-zone"><div id="stick"><i></i></div></div>
+  <button id="aktion" type="button">Einsteigen</button>
+  <button id="aussteigen" type="button">Aussteigen</button>
+  <div id="pedale" aria-hidden="true"><div id="bremse">Bremse</div><div id="gas">Gas</div></div>
+  <div class="hud" id="statistik" hidden></div>
+  <div id="untertitel" role="status" hidden></div>
   <div id="wahl" hidden><div role="dialog" aria-modal="true" aria-labelledby="wahl-titel"></div></div>
   <div id="start"><div>
     <h1>Detektiv Fröbelinchen</h1>
@@ -72,7 +93,7 @@ button:focus-visible{outline:3px solid var(--gelb);outline-offset:2px}
     <p style="font-size:.82rem;opacity:.75"><a href="index.html">Zurück zu Colorgraphy</a> · <a href="impressum.html">Impressum</a> · <a href="datenschutz.html">Datenschutz</a></p>
   </div></div>
 </div>
-<script type="module" src="detektiv-froebelinchen.js?v=1"></script>
+<script type="module" src="detektiv-froebelinchen.js?v=2"></script>
 <script data-goatcounter="https://colorgraphy.goatcounter.com/count" async src="vendor/goatcounter/count.js"></script>
 </body>
 </html>

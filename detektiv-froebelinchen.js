@@ -4,7 +4,7 @@ import * as THREE from "./vendor/three/three.module.min.js";
 import { welt } from "./lauf-welt.js?v=36";
 
 const T = THREE;
-const handy = matchMedia("(pointer: coarse)").matches;
+let handy = matchMedia("(pointer: coarse)").matches;
 const $ = (id) => document.getElementById(id);
 const huelle = $("spiel");
 
@@ -13,15 +13,19 @@ const renderer = new T.WebGLRenderer({ antialias: !handy, powerPreference: "high
 renderer.domElement.className = "bild";
 renderer.outputColorSpace = T.SRGBColorSpace;
 renderer.toneMapping = T.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
-renderer.shadowMap.enabled = true; renderer.shadowMap.type = T.PCFShadowMap;
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = handy ? T.BasicShadowMap : T.PCFShadowMap;
 huelle.prepend(renderer.domElement);
 const W = welt(T, handy);
 const szene = new T.Scene();
-szene.fog = new T.Fog("#dcedf6", 60, 175);
-const himmel = W.himmel(); szene.add(himmel, W.wolken(), W.ferne());
+szene.fog = new T.Fog("#dcedf6", handy ? 45 : 60, handy ? 135 : 175);
+const himmel = W.himmel(), wolkenGruppe = W.wolken(), fernsicht = W.ferne(); szene.add(himmel, wolkenGruppe, fernsicht);
+// Die fernen Hügel sind nur Silhouetten: grobe Kugeln reichen und sparen viele Dreiecke
+const grobeKugel = new T.SphereGeometry(1, 10, 7);
+fernsicht.traverse(o => { if (o.isMesh && !o.isInstancedMesh && o.geometry.type === "SphereGeometry") o.geometry = grobeKugel; });
+if (handy) wolkenGruppe.children.filter((_, i) => i % 2).forEach(w => wolkenGruppe.remove(w));
 const pmrem = new T.PMREMGenerator(renderer), himmelSzene = new T.Scene();
 himmelSzene.add(W.himmel()); szene.environment = pmrem.fromScene(himmelSzene, .02).texture;
-const kamera = new T.PerspectiveCamera(62, 1, .4, 420);
+const kamera = new T.PerspectiveCamera(62, 1, .4, 300);
 szene.add(new T.HemisphereLight("#cfe6ff", "#6c8f3c", .9));
 const sonne = new T.DirectionalLight("#ffe7c4", 2.7);
 sonne.castShadow = true; sonne.shadow.mapSize.set(handy ? 1024 : 2048, handy ? 1024 : 2048);
@@ -96,7 +100,7 @@ function haus(x, z, nr, dreh = 0) {
 
 // Büro mit begehbarem Innenraum: vier Wände, Tür nach Süden, das Dach verschwindet, sobald Anja drinnen ist
 const wandMat = std({ color: "#f1ece0", roughness: .9 }), fensterMat = std({ color: "#7fb3d1", roughness: .15, metalness: .4 });
-let dachBuero;
+let dachBuero, froebelBuehne;
 {
   const { x0, x1, z0, z1 } = BUERO, h = 4, d = .5;
   const wand = (ax0, ax1, az0, az1) => { kiste(ax1 - ax0, h, az1 - az0, wandMat, (ax0 + ax1) / 2, h / 2, (az0 + az1) / 2); hindernis(ax0, ax1, az0, az1, h); };
@@ -127,7 +131,7 @@ schreibtisch(-40, -29, true); schreibtisch(-26, -31, false); schreibtisch(-44, -
 
 // Fröbelinchen sitzt eingewickelt auf dem Stuhl (Haltung wie im Einpack-Level) und schaut zur Tür
 {
-  const buehne = new T.Group(); szene.add(buehne);
+  const buehne = froebelBuehne = new T.Group(); szene.add(buehne);
   buehne.add(W.stuhl());
   const f = W.figurBauen("giraffe"), g = f.gruppe; buehne.add(g);
   g.rotation.set(0, Math.PI + .28, 0);
@@ -170,7 +174,7 @@ schreibtisch(-40, -29, true); schreibtisch(-26, -31, false); schreibtisch(-44, -
     if (liegtFrei(x, z) && !(x > BUERO.x0 && x < BUERO.x1 && z > BUERO.z0 && z < BUERO.z1)) orte.push([x, z, 1 + zuf() * .6]);
   }
   const stamm = new T.InstancedMesh(new T.CylinderGeometry(.16, .3, 1, 8), W.mat.rinde, orte.length);
-  const krone = new T.InstancedMesh(W.geo.blatt, W.mat.laub, orte.length * 5);
+  const krone = new T.InstancedMesh(handy ? new T.IcosahedronGeometry(1, 1) : W.geo.blatt, W.mat.laub, orte.length * 5);
   stamm.castShadow = krone.castShadow = true;
   const hilfe = new T.Object3D();
   orte.forEach(([x, z, s], i) => {
@@ -191,7 +195,7 @@ const AYLIN_PLATZ = { x: -31, z: -27 };
 const aylinRolle = W.folienRolle(); aylinRolle.scale.setScalar(.45); aylin.arme[1].unten.add(aylinRolle); aylinRolle.position.set(0, -.3, -.1); aylinRolle.rotation.x = Math.PI / 2; aylinRolle.visible = false;
 
 function autoBauen() {
-  const g = new T.Group(), lack = new T.MeshPhysicalMaterial({ color: "#d7263d", roughness: .32, metalness: .35, clearcoat: 1, clearcoatRoughness: .25 });
+  const g = new T.Group(), lack = new (handy ? T.MeshStandardMaterial : T.MeshPhysicalMaterial)({ color: "#d7263d", roughness: .32, metalness: .35, ...(handy ? {} : { clearcoat: 1, clearcoatRoughness: .25 }) });
   const glas = std({ color: "#1b2733", roughness: .1, metalness: .6 }), schwarz = std({ color: "#17181c", roughness: .85 }), felge = std({ color: "#c9ccd2", roughness: .35, metalness: .8 });
   kiste(2, .6, 4.5, lack, 0, .68, 0, g);
   kiste(1.75, .62, 2.3, lack, 0, 1.28, .25, g);
@@ -225,17 +229,79 @@ const marker = new T.Group();
   szene.add(marker);
 }
 
+// ---------- Weniger Zeichenaufrufe: unbewegte Teile werden je Material zu einem Netz ----------
+function zusammenfassen(wurzel, auslassen) {
+  wurzel.updateMatrixWorld(true);
+  const invers = new T.Matrix4().copy(wurzel.matrixWorld).invert(), gruppen = new Map(), matrix = new T.Matrix4();
+  const besuche = (o) => {
+    if (auslassen.includes(o)) return;
+    o.children.slice().forEach(besuche);
+    if (!o.isMesh || o.isInstancedMesh || Array.isArray(o.material) || o.material.transparent || o.material.vertexColors || o.children.length) return;
+    const pos = o.geometry.attributes.position; if (!pos) return;
+    const schluessel = `${o.material.uuid}|${o.castShadow}|${o.receiveShadow}`;
+    if (!gruppen.has(schluessel)) gruppen.set(schluessel, []);
+    gruppen.get(schluessel).push(o);
+  };
+  besuche(wurzel);
+  let gespart = 0;
+  for (const liste of gruppen.values()) {
+    if (liste.length < 2) continue;
+    const p = [], n = [], u = [];
+    for (const o of liste) {
+      let g = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone();
+      g.applyMatrix4(matrix.multiplyMatrices(invers, o.matrixWorld));
+      const ap = g.attributes.position, an = g.attributes.normal, au = g.attributes.uv;
+      for (let i = 0; i < ap.count; i++) {
+        p.push(ap.getX(i), ap.getY(i), ap.getZ(i));
+        if (an) n.push(an.getX(i), an.getY(i), an.getZ(i)); else n.push(0, 1, 0);
+        if (au) u.push(au.getX(i), au.getY(i)); else u.push(0, 0);
+      }
+      g.dispose(); o.parent.remove(o);
+    }
+    const geo = new T.BufferGeometry();
+    geo.setAttribute("position", new T.Float32BufferAttribute(p, 3));
+    geo.setAttribute("normal", new T.Float32BufferAttribute(n, 3));
+    geo.setAttribute("uv", new T.Float32BufferAttribute(u, 2));
+    const m = new T.Mesh(geo, liste[0].material); m.castShadow = liste[0].castShadow; m.receiveShadow = liste[0].receiveShadow;
+    wurzel.add(m); gespart += liste.length - 1;
+  }
+  return gespart;
+}
+
+const radTeile = auto.raeder.map(r => r.r);
+zusammenfassen(auto.g, radTeile);
+zusammenfassen(szene, [himmel, sonne, sonne.target, anja.gruppe, aylin.gruppe, auto.g, marker, dachBuero, froebelBuehne]);
+
+// Schatten: am Computer laufend. Am Handy einmalig für die ganze Karte gerechnet, Bewegtes bekommt einen weichen Fleck am Boden.
+const schattenFiguren = [anja.gruppe, aylin.gruppe, auto.g];
+dachBuero.castShadow = false;
+if (handy) {
+  schattenFiguren.forEach(g => g.traverse(o => { o.castShadow = false; }));
+  Object.assign(sonne.shadow.camera, { left: -125, right: 125, top: 125, bottom: -125, near: 1, far: 320 });
+  sonne.shadow.camera.updateProjectionMatrix();
+  sonne.shadow.mapSize.set(2048, 2048);
+  sonne.position.set(62, 115, 44); sonne.target.position.set(0, 0, 0); sonne.target.updateMatrixWorld();
+  sonne.shadow.autoUpdate = false; sonne.shadow.needsUpdate = true;
+}
+const flecken = handy ? [[anja.gruppe, W.kontaktSchatten(.9, .9)], [aylin.gruppe, W.kontaktSchatten(.9, .9)], [auto.g, W.kontaktSchatten(2.3, 4.9)]] : [];
+flecken.forEach(([, f]) => szene.add(f));
+
 // ---------- Zustand ----------
+const SCHRITT_ZEIT = 1 / 60;
 const START = { x: TUER_X, z: 3 };
+const koerper = (x, z, dreh) => ({ x, z, dreh, ax: x, az: z, adreh: dreh, vx: 0, vz: 0 });
+const AYLIN_START = { x: AYLIN_PLATZ.x, z: AYLIN_PLATZ.z, dreh: Math.PI };
 const S = {
-  an: false, x: START.x, z: START.z, dreh: 0, lauf: 0, tempo: 0, imAuto: false, camYaw: 0, camZiehen: 0, camDist: 6,
-  auto: { x: -27, z: -4, dreh: Math.PI, v: 0, lenk: 0 },
-  schritt: 0, dialog: null, dialogNach: null, wahl: false, sterne: 0, jagd: 0, aylin: { x: AYLIN_PLATZ.x, z: AYLIN_PLATZ.z, dreh: Math.PI, lauf: 0 }, gefangen: 0, bon: false, fertig: false, banner: 0,
+  an: false, ich: koerper(START.x, START.z, 0), lauf: 0, tempo: 0, imAuto: false, aussteigen: false,
+  wagen: { ...koerper(-27, -4, Math.PI), vf: 0, lenk: 0, stossBereit: 0 },
+  aylin: { ...koerper(AYLIN_START.x, AYLIN_START.z, AYLIN_START.dreh), lauf: 0 },
+  camYaw: 0, camZiehen: 0, camDist: 6, schuettel: 0, kamSprung: true,
+  schritt: 0, dialog: null, dialogNach: null, dialogSeit: 0, wahl: false, sterne: 0, jagd: 0, gefangen: 0, bon: false, fertig: false, banner: 0,
 };
-const ein = { x: 0, y: 0, tasten: new Set(), renn: false, stick: { x: 0, y: 0 } };
+const ein = { x: 0, y: 0, gas: 0, stickX: 0, stickY: 0, pedal: 0, tasten: new Set() };
 
 const SCHRITTE = [
-  { ziel: "Geh in dein Büro.", marker: [-36.5, -24], r: 1.9, nurZuFuss: true, dialog: [
+  { ziel: "Geh in dein Büro.", marker: [-36.5, -24], r: 1.5, nurZuFuss: true, dialog: [
     ["Anja", "Eine Woche Urlaub. Und dann das. Fröbelinchen sitzt da und rührt sich nicht mehr."],
     ["Aylin", "Ich war's nicht! Ich hab sogar ein Beweisfoto. Ich hab nur die Folie gekauft, die wir gebraucht haben. Mehr nicht."],
     ["Anja", "Das prüfe ich. In der Drogerie kennen sie alle."],
@@ -245,16 +311,16 @@ const SCHRITTE = [
     ["Verkäuferin", "Aylin? Klar. Mittwoch, 14:10 Uhr. Drei Rollen Frischhaltefolie. Hier ist der Kassenbon."],
     ["Anja", "Drei Rollen. Am Schreibtisch liegen aber nur zwei."],
   ], danach: () => { S.bon = true; } },
-  { ziel: "Fahr zurück ins Büro und stell Aylin zur Rede.", marker: [-31, -24.7], r: 2, nurZuFuss: true, wahl: true },
+  { ziel: "Fahr zurück ins Büro und stell Aylin zur Rede.", marker: [-31, -24.7], r: 1.5, nurZuFuss: true, wahl: true },
 ];
 
 // ---------- Kollision ----------
 function schieben(p, r) {
   for (const k of kasten) {
+    if (p.x < k.x0 - r || p.x > k.x1 + r || p.z < k.z0 - r || p.z > k.z1 + r) continue;
     const nx = Math.max(k.x0, Math.min(p.x, k.x1)), nz = Math.max(k.z0, Math.min(p.z, k.z1));
     const dx = p.x - nx, dz = p.z - nz, d2 = dx * dx + dz * dz;
     if (d2 >= r * r) continue;
-    p.stoss = true;
     if (d2 > 1e-6) { const d = Math.sqrt(d2); p.x = nx + dx / d * r; p.z = nz + dz / d * r; }
     else {
       const wege = [[p.x - k.x0 + r, -1, 0], [k.x1 - p.x + r, 1, 0], [p.z - k.z0 + r, 0, -1], [k.z1 - p.z + r, 0, 1]].sort((a, b) => a[0] - b[0]);
@@ -262,23 +328,32 @@ function schieben(p, r) {
     }
   }
   for (const k of kreise) {
-    const dx = p.x - k.x, dz = p.z - k.z, d = Math.hypot(dx, dz), min = r + k.r;
-    if (d < min && d > 1e-4) { p.x = k.x + dx / d * min; p.z = k.z + dz / d * min; p.stoss = true; }
+    const dx = p.x - k.x, dz = p.z - k.z, min = r + k.r;
+    if (Math.abs(dx) > min || Math.abs(dz) > min) continue;
+    const d = Math.hypot(dx, dz);
+    if (d < min && d > 1e-4) { p.x = k.x + dx / d * min; p.z = k.z + dz / d * min; }
   }
-  const g = GRENZE - r; if (Math.abs(p.x) > g || Math.abs(p.z) > g) { p.stoss = true; p.x = Math.max(-g, Math.min(g, p.x)); p.z = Math.max(-g, Math.min(g, p.z)); }
+  const g = GRENZE - r; p.x = Math.max(-g, Math.min(g, p.x)); p.z = Math.max(-g, Math.min(g, p.z));
 }
-const aufStrasse = (x, z) => STRASSEN.some(s => x > s[0] && x < s[1] && z > s[2] && z < s[3]) || FLAECHEN.some(s => x > s[0] && x < s[1] && z > s[2] && z < s[3]);
-const drinnen = () => !S.imAuto && S.x > BUERO.x0 && S.x < BUERO.x1 && S.z > BUERO.z0 && S.z < BUERO.z1;
+const imRechteck = (x, z, l) => x > l[0] && x < l[1] && z > l[2] && z < l[3];
+const aufStrasse = (x, z) => STRASSEN.some(s => imRechteck(x, z, s)) || FLAECHEN.some(s => imRechteck(x, z, s));
+const imBuero = (x, z) => x > BUERO.x0 && x < BUERO.x1 && z > BUERO.z0 && z < BUERO.z1;
 const winkelDiff = (a, b) => { let d = (a - b) % (Math.PI * 2); if (d > Math.PI) d -= Math.PI * 2; if (d < -Math.PI) d += Math.PI * 2; return d; };
 const naehere = (a, b, k) => a + winkelDiff(b, a) * k;
+const zu = (v, ziel, schritt) => v < ziel ? Math.min(ziel, v + schritt) : Math.max(ziel, v - schritt);
 
 // ---------- Eingabe ----------
 const gedrueckt = (...c) => c.some(k => ein.tasten.has(k));
 function eingabeLesen() {
-  let x = ein.stick.x + (gedrueckt("KeyD", "ArrowRight") ? 1 : 0) - (gedrueckt("KeyA", "ArrowLeft") ? 1 : 0);
-  let y = ein.stick.y + (gedrueckt("KeyS", "ArrowDown") ? 1 : 0) - (gedrueckt("KeyW", "ArrowUp") ? 1 : 0);
+  const tx = (gedrueckt("KeyD", "ArrowRight") ? 1 : 0) - (gedrueckt("KeyA", "ArrowLeft") ? 1 : 0);
+  const ty = (gedrueckt("KeyS", "ArrowDown") ? 1 : 0) - (gedrueckt("KeyW", "ArrowUp") ? 1 : 0);
+  let x = ein.stickX + tx, y = ein.stickY + ty;
   const l = Math.hypot(x, y); if (l > 1) { x /= l; y /= l; }
   ein.x = x; ein.y = y;
+  ein.gas = Math.max(-1, Math.min(1, -ty + ein.pedal));
+}
+function eingabeLeeren() {
+  ein.tasten.clear(); ein.pedal = 0; pedalZeigen(); stickLoslassen();
 }
 addEventListener("keydown", (e) => {
   if (!S.an) return;
@@ -287,38 +362,73 @@ addEventListener("keydown", (e) => {
   ein.tasten.add(e.code);
 });
 addEventListener("keyup", (e) => ein.tasten.delete(e.code));
-addEventListener("blur", () => ein.tasten.clear());
+addEventListener("blur", () => { if (S.an) eingabeLeeren(); });
+addEventListener("contextmenu", (e) => e.preventDefault());
+document.addEventListener("gesturestart", (e) => e.preventDefault());
 
-const stick = $("stick"), knauf = stick.firstElementChild;
-let stickId = null;
-const stickSetzen = (e) => {
-  const r = stick.getBoundingClientRect(), max = r.width * .38;
-  let dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2);
-  const l = Math.hypot(dx, dy); if (l > max) { dx *= max / l; dy *= max / l; }
+// Der Joystick erscheint dort, wo der Daumen aufsetzt. Fährt Anja, lenkt er nur noch nach links und rechts.
+const fangen = (el, id) => { try { el.setPointerCapture(id); } catch (e) {} };
+const zone = $("stick-zone"), stick = $("stick"), knauf = stick.firstElementChild;
+let stickId = null, stickMitteX = 0, stickMitteY = 0;
+function stickSetzen(e) {
+  const r = stick.getBoundingClientRect(), maxX = r.width * .36, maxY = S.imAuto ? 0 : r.height * .36;
+  let dx = e.clientX - stickMitteX, dy = e.clientY - stickMitteY;
+  if (S.imAuto) { dx = Math.max(-maxX, Math.min(maxX, dx)); dy = 0; ein.stickX = dx / maxX; ein.stickY = 0; }
+  else {
+    const l = Math.hypot(dx, dy); if (l > maxX) { dx *= maxX / l; dy *= maxX / l; }
+    ein.stickX = dx / maxX; ein.stickY = dy / maxX;
+  }
   knauf.style.transform = `translate(${dx}px,${dy}px)`;
-  ein.stick.x = dx / max; ein.stick.y = dy / max;
-};
-stick.addEventListener("pointerdown", (e) => { e.preventDefault(); e.stopPropagation(); stickId = e.pointerId; stick.setPointerCapture(e.pointerId); stickSetzen(e); });
-stick.addEventListener("pointermove", (e) => { if (e.pointerId === stickId) stickSetzen(e); });
-const stickLos = (e) => { if (e.pointerId !== stickId) return; stickId = null; ein.stick.x = ein.stick.y = 0; knauf.style.transform = ""; };
-stick.addEventListener("pointerup", stickLos); stick.addEventListener("pointercancel", stickLos);
-const rennen = $("rennen");
-rennen.addEventListener("pointerdown", (e) => { e.preventDefault(); e.stopPropagation(); ein.renn = true; });
-for (const n of ["pointerup", "pointercancel", "pointerleave"]) rennen.addEventListener(n, () => { ein.renn = false; });
-$("aktion").addEventListener("click", () => aktion());
-$("untertitel").addEventListener("click", () => dialogWeiter());
-
-// Kamera ziehen: Maus oder ein Finger außerhalb der Knöpfe
-let zugId = null, zugX = 0;
-renderer.domElement.addEventListener("pointerdown", (e) => { zugId = e.pointerId; zugX = e.clientX; renderer.domElement.setPointerCapture(e.pointerId); });
-renderer.domElement.addEventListener("pointermove", (e) => {
-  if (e.pointerId !== zugId) return;
-  S.camYaw -= (e.clientX - zugX) * .006; zugX = e.clientX; S.camZiehen = 1.6;
+  stick.classList.toggle("renn", !S.imAuto && Math.hypot(ein.stickX, ein.stickY) > RENN_AB);
+}
+function stickLoslassen() {
+  stickId = null; ein.stickX = ein.stickY = 0; knauf.style.transform = "";
+  stick.style.left = stick.style.top = ""; stick.classList.remove("aktiv", "renn");
+}
+zone.addEventListener("pointerdown", (e) => {
+  if (stickId !== null) return;
+  e.preventDefault(); stickId = e.pointerId; fangen(zone, e.pointerId);
+  const z = zone.getBoundingClientRect(), r = stick.getBoundingClientRect();
+  const x = Math.max(z.left + r.width / 2 + 6, Math.min(z.right - r.width / 2, e.clientX));
+  const y = Math.max(z.top + r.height / 2, Math.min(z.bottom - r.height / 2 - 6, e.clientY));
+  stick.style.left = `${x - z.left - r.width / 2}px`; stick.style.top = `${y - z.top - r.height / 2}px`;
+  stickMitteX = x; stickMitteY = y; stick.classList.add("aktiv");
+  stickSetzen(e);
 });
-for (const n of ["pointerup", "pointercancel"]) renderer.domElement.addEventListener(n, (e) => { if (e.pointerId === zugId) zugId = null; });
+zone.addEventListener("pointermove", (e) => { if (e.pointerId === stickId) stickSetzen(e); });
+const zoneLos = (e) => { if (e.pointerId === stickId) stickLoslassen(); };
+zone.addEventListener("pointerup", zoneLos); zone.addEventListener("pointercancel", zoneLos);
+
+// Pedale: der Daumen darf zwischen Bremse und Gas hin- und herrutschen
+const pedale = $("pedale"), bremse = $("bremse"), gasPedal = $("gas");
+let pedalId = null;
+function pedalZeigen() { gasPedal.classList.toggle("an", ein.pedal > 0); bremse.classList.toggle("an", ein.pedal < 0); }
+function pedalLesen(e) { ein.pedal = e.clientX < gasPedal.getBoundingClientRect().left - 3 ? -1 : 1; pedalZeigen(); }
+pedale.addEventListener("pointerdown", (e) => { e.preventDefault(); pedalId = e.pointerId; fangen(pedale, e.pointerId); pedalLesen(e); });
+pedale.addEventListener("pointermove", (e) => { if (e.pointerId === pedalId) pedalLesen(e); });
+const pedalLos = (e) => { if (e.pointerId === pedalId) { pedalId = null; ein.pedal = 0; pedalZeigen(); } };
+pedale.addEventListener("pointerup", pedalLos); pedale.addEventListener("pointercancel", pedalLos);
+
+for (const id of ["aktion", "aussteigen"]) $(id).addEventListener("pointerdown", (e) => { e.preventDefault(); e.stopPropagation(); aktion(); });
+
+// Kamera ziehen: Maus oder ein Finger außerhalb der Steuerung. Beim Dialog geht jeder Tipp weiter.
+let zugId = null, zugX = 0;
+huelle.addEventListener("pointerdown", (e) => {
+  if (S.dialog && performance.now() - S.dialogSeit > 280) dialogWeiter();
+});
+const bildFlaeche = renderer.domElement;
+bildFlaeche.addEventListener("pointerdown", (e) => { zugId = e.pointerId; zugX = e.clientX; fangen(bildFlaeche, e.pointerId); });
+bildFlaeche.addEventListener("pointermove", (e) => {
+  if (e.pointerId !== zugId) return;
+  S.camYaw -= (e.clientX - zugX) * .0065; zugX = e.clientX; S.camZiehen = 1.4;
+});
+for (const n of ["pointerup", "pointercancel"]) bildFlaeche.addEventListener(n, (e) => { if (e.pointerId === zugId) zugId = null; });
 
 // ---------- Mission ----------
-function zeigeDialog(zeilen, nach) { S.dialog = zeilen.slice(); S.dialogNach = nach; S.auto.v = 0; dialogZeigen(); }
+function zeigeDialog(zeilen, nach) {
+  S.dialog = zeilen.slice(); S.dialogNach = nach; S.dialogSeit = performance.now();
+  eingabeLeeren(); dialogZeigen(); hudAlt = ""; hudUhr = 0;
+}
 function dialogZeigen() {
   const u = $("untertitel"), z = S.dialog[0];
   u.innerHTML = `<b>${z[0]}:</b> ${z[1]}<span>${handy ? "Tippen" : "E oder Klick"}: weiter</span>`;
@@ -326,18 +436,18 @@ function dialogZeigen() {
 }
 function dialogWeiter() {
   if (!S.dialog) return;
-  S.dialog.shift();
+  S.dialog.shift(); S.dialogSeit = performance.now();
   if (S.dialog.length) return dialogZeigen();
-  S.dialog = null; $("untertitel").hidden = true;
+  S.dialog = null; $("untertitel").hidden = true; hudAlt = ""; hudUhr = 0;
   const n = S.dialogNach; S.dialogNach = null; n && n();
 }
 function schrittFertig() {
   const s = SCHRITTE[S.schritt];
   s.danach && s.danach();
-  S.schritt++;
+  S.schritt++; hudAlt = ""; hudUhr = 0;
 }
 function wahlOeffnen() {
-  S.wahl = true;
+  S.wahl = true; eingabeLeeren();
   const feld = $("wahl"), box = feld.firstElementChild;
   box.innerHTML = `<h2 id="wahl-titel">„Ich hab nur gekauft, was wir gebraucht haben.“ Was legst du Aylin vor?</h2>
     <button type="button" data-w="0">Dein Urlaubsfoto vom Strand</button>
@@ -353,154 +463,231 @@ function wahlOeffnen() {
   });
   feld.hidden = false; box.querySelector("button").focus();
 }
-function missionGeschafft() {
-  S.schritt = SCHRITTE.length; S.fertig = true;
-  bannerZeigen("Mission geschafft!", 4);
-}
-function jagdStart() { S.sterne = 2; S.jagd = 25; aylinRolle.visible = true; }
+function missionGeschafft() { S.schritt = SCHRITTE.length; S.fertig = true; bannerZeigen("Mission geschafft!", 4); }
+function jagdStart() { S.sterne = 2; S.jagd = 25; aylinRolle.visible = true; hudAlt = ""; hudUhr = 0; }
 function jagdEnde() {
-  S.sterne = 0; S.jagd = 0; aylinRolle.visible = false;
-  Object.assign(S.aylin, { x: AYLIN_PLATZ.x, z: AYLIN_PLATZ.z, dreh: Math.PI });
+  S.sterne = 0; S.jagd = 0; aylinRolle.visible = false; hudAlt = ""; hudUhr = 0;
+  Object.assign(S.aylin, { x: AYLIN_START.x, z: AYLIN_START.z, ax: AYLIN_START.x, az: AYLIN_START.z, dreh: AYLIN_START.dreh, adreh: AYLIN_START.dreh });
 }
 function bannerZeigen(t, dauer) { const b = $("banner"); b.textContent = t; b.hidden = false; S.banner = dauer; }
+function aussteigenJetzt() {
+  const a = S.wagen, i = S.ich;
+  S.imAuto = false; S.aussteigen = false; a.vf = 0; a.vx = a.vz = 0; a.lenk = 0;
+  const seite = a.dreh + Math.PI / 2, p = { x: a.x - Math.sin(seite) * 2.2, z: a.z - Math.cos(seite) * 2.2 };
+  schieben(p, .4);
+  i.x = i.ax = p.x; i.z = i.az = p.z; i.dreh = i.adreh = a.dreh; i.vx = i.vz = 0;
+  anja.gruppe.visible = true; eingabeLeeren(); hudAlt = ""; hudUhr = 0;
+}
 function aktion() {
   if (!S.an || S.gefangen > 0 || S.wahl) return;
   if (S.dialog) return dialogWeiter();
-  if (S.imAuto) {
-    if (Math.abs(S.auto.v) > 5) return;
-    S.imAuto = false; S.auto.v = 0;
-    const seite = S.auto.dreh + Math.PI / 2;      // links neben dem Auto aussteigen
-    const p = { x: S.auto.x - Math.sin(seite) * 2.2, z: S.auto.z - Math.cos(seite) * 2.2 }; schieben(p, .4);
-    S.x = p.x; S.z = p.z; S.dreh = S.auto.dreh; anja.gruppe.visible = true;
-    return;
-  }
-  if (Math.hypot(S.x - S.auto.x, S.z - S.auto.z) < 3.6) { S.imAuto = true; anja.gruppe.visible = false; }
+  if (S.imAuto) { S.aussteigen = true; return; }            // bremst selbst und steigt dann aus
+  if (Math.hypot(S.ich.x - S.wagen.x, S.ich.z - S.wagen.z) < EINSTIEG) { S.imAuto = true; anja.gruppe.visible = false; eingabeLeeren(); hudAlt = ""; hudUhr = 0; }
 }
 
-// ---------- Spielschritt ----------
-const figurenTakt = (f, k, lauf, tempo) => {
-  const an = Math.min(1, tempo / 2.5);
-  f.beine.forEach((b, i) => { const ph = lauf + i * Math.PI; b.oben.rotation.x = Math.sin(ph) * .75 * an; b.unten.rotation.x = -Math.max(0, Math.sin(ph + 1.6)) * 1.35 * an; });
-  f.arme.forEach((a, i) => { const ph = lauf + i * Math.PI; a.oben.rotation.x = -Math.sin(ph) * .7 * an; a.unten.rotation.x = .15 + .95 * an; });
-  k.rotation.x = -.06 * an; k.position.y = Math.abs(Math.sin(lauf)) * .04 * an;
-};
-function schritt(dt, t) {
+// ---------- Spielschritt mit fester Taktung ----------
+const RENN_AB = .82, EINSTIEG = 3.6, RADSTAND = 2.7;
+const TEMPO_STRASSE = 29, TEMPO_GRAS = 15, TEMPO_RUECK = 9;
+function schrittFuss(dt, frei) {
+  const i = S.ich; i.ax = i.x; i.az = i.z; i.adreh = i.dreh;
+  const l = frei ? Math.min(1, Math.hypot(ein.x, ein.y)) : 0;
+  const renn = (handy && l > RENN_AB) || gedrueckt("ShiftLeft", "ShiftRight");
+  const ziel = l < .1 ? 0 : (renn ? 6.9 : 1.6 + 2 * Math.min(1, l / RENN_AB));
+  let zvx = 0, zvz = 0;
+  if (l >= .1) {
+    const s = Math.sin(S.camYaw), c = Math.cos(S.camYaw), rx = (c * ein.x + s * ein.y) / l, rz = (-s * ein.x + c * ein.y) / l;
+    zvx = rx * ziel; zvz = rz * ziel;
+    i.dreh = naehere(i.dreh, Math.atan2(-rx, -rz), Math.min(1, 12 * dt));
+    if (S.camZiehen <= 0 && ein.y < .35) S.camYaw = naehere(S.camYaw, i.dreh, Math.min(1, .8 * dt));
+  }
+  const rate = (l >= .1 ? 26 : 34) * dt;
+  i.vx = zu(i.vx, zvx, rate); i.vz = zu(i.vz, zvz, rate);
+  const p = { x: i.x + i.vx * dt, z: i.z + i.vz * dt };
+  schieben(p, .38);
+  const dxW = p.x - S.wagen.x, dzW = p.z - S.wagen.z, dW = Math.hypot(dxW, dzW);     // das Auto ist auch ein Hindernis
+  if (dW < 2.1 && dW > 1e-3) { p.x = S.wagen.x + dxW / dW * 2.1; p.z = S.wagen.z + dzW / dW * 2.1; }
+  i.vx = (p.x - i.x) / dt; i.vz = (p.z - i.z) / dt;
+  i.x = p.x; i.z = p.z;
+  S.tempo = Math.hypot(i.vx, i.vz); S.lauf += S.tempo * dt * 1.9;
+}
+function schrittAuto(dt, frei) {
+  const a = S.wagen; a.ax = a.x; a.az = a.z; a.adreh = a.dreh;
+  const hand = gedrueckt("Space");
+  let gas = frei && !S.aussteigen ? ein.gas : 0;
+  let roh = frei && !S.aussteigen ? ein.x : 0;
+  roh = Math.abs(roh) < .06 ? 0 : Math.sign(roh) * Math.pow((Math.abs(roh) - .06) / .94, 1.5);    // sanft um die Mitte, damit Geradeausfahren leicht ist
+  a.lenk = zu(a.lenk, roh, (Math.abs(roh) < Math.abs(a.lenk) ? 7.5 : 4.5) * dt);
+  const strasse = aufStrasse(a.x, a.z), max = strasse ? TEMPO_STRASSE : TEMPO_GRAS;
+
+  // Längs: Gas, Bremse, Rückwärtsgang
+  let v = a.vf;
+  if (!frei || S.aussteigen) v = zu(v, 0, 32 * dt);
+  else if (gas > 0) v += v < -.3 ? 34 * gas * dt : 17 * (1 - Math.pow(Math.max(0, v) / max, 2)) * gas * dt;
+  else if (gas < 0) v += v > .3 ? 36 * gas * dt : 9 * gas * dt;
+  else v = zu(v, 0, (2.6 + Math.abs(v) * .05) * dt);
+  if (hand) v = zu(v, 0, 9 * dt);
+  if (v > max) v = Math.max(max, v - 14 * dt);
+  a.vf = Math.max(-TEMPO_RUECK, v);
+
+  // Lenken wie beim Fahrrad: das Tempo bestimmt die Drehung. Bei hohem Tempo schlagen die Räder weniger ein.
+  const einschlag = (.66 - .47 * Math.min(1, Math.abs(a.vf) / TEMPO_STRASSE)) * a.lenk;
+  const drehrate = a.vf / RADSTAND * Math.tan(einschlag) * (hand ? 1.35 : 1);
+  a.dreh += drehrate * dt;
+
+  // Seitlich: Das Auto rutscht kurz in der Kurve, die Reifen fangen es wieder ein
+  const fx = -Math.sin(a.dreh), fz = -Math.cos(a.dreh), rx = Math.cos(a.dreh), rz = -Math.sin(a.dreh);
+  let vs = a.vx * rx + a.vz * rz;
+  vs *= Math.exp(-(hand ? 1.5 : strasse ? 8.5 : 5) * dt);
+  a.vx = fx * a.vf + rx * vs; a.vz = fz * a.vf + rz * vs;
+
+  // Kollision: vorn und hinten je ein Kreis. Das Auto gleitet an Wänden entlang, nur der Anteil gegen die Wand geht verloren.
+  let nx = a.x + a.vx * dt, nz = a.z + a.vz * dt, schubX = 0, schubZ = 0, dreh = 0;
+  for (const seite of [1.28, -1.28]) {
+    const px = nx + fx * seite, pz = nz + fz * seite, p = { x: px, z: pz };
+    schieben(p, 1.06);
+    const dx = p.x - px, dz = p.z - pz;
+    if (dx || dz) {
+      if (Math.abs(dx) > Math.abs(schubX)) schubX = dx;
+      if (Math.abs(dz) > Math.abs(schubZ)) schubZ = dz;
+      dreh -= seite * (dx * rx + dz * rz) * .12;
+    }
+  }
+  if (schubX || schubZ) {
+    nx += schubX; nz += schubZ;
+    const l = Math.hypot(schubX, schubZ), ox = schubX / l, oz = schubZ / l, vn = a.vx * ox + a.vz * oz;
+    if (vn < 0) {
+      a.vx -= ox * vn * 1.12; a.vz -= oz * vn * 1.12;
+      a.vf = (a.vx * fx + a.vz * fz) * .992;
+      if (vn < -6 && a.stossBereit <= 0) { S.schuettel = Math.min(1, -vn / 22); a.stossBereit = .35; if (navigator.vibrate && navigator.userActivation?.hasBeenActive) navigator.vibrate(Math.min(55, -vn * 3)); }
+    }
+    a.dreh += Math.max(-.035, Math.min(.035, dreh));
+  }
+  if (a.stossBereit > 0) a.stossBereit -= dt;
+  a.x = nx; a.z = nz;
+  S.ich.x = S.ich.ax = a.x; S.ich.z = S.ich.az = a.z;
+  if (S.camZiehen <= 0) {
+    const schnell = Math.min(1, Math.abs(a.vf) / 14);
+    S.camYaw = naehere(S.camYaw, a.dreh - Math.atan2(vs, Math.max(6, Math.abs(a.vf))) * .55, Math.min(1, (1.3 + 2.6 * schnell) * dt));
+  }
+  if (S.aussteigen && Math.abs(a.vf) < 1.2) aussteigenJetzt();
+}
+function schrittSpiel(dt) {
   eingabeLesen();
   const frei = S.an && !S.dialog && !S.wahl && S.gefangen <= 0;
   if (S.camZiehen > 0) S.camZiehen -= dt;
+  if (S.imAuto) schrittAuto(dt, frei); else schrittFuss(dt, frei);
 
-  if (S.imAuto) {
-    const a = S.auto, gas = frei ? -ein.y : 0, lenk = frei ? ein.x : 0;
-    const max = aufStrasse(a.x, a.z) ? 27 : 14;
-    if (gas > 0) a.v += (a.v < 0 ? 22 : 11) * gas * dt;
-    else if (gas < 0) a.v += (a.v > 0 ? 24 : 9) * gas * dt;
-    else a.v -= Math.sign(a.v) * Math.min(Math.abs(a.v), 4.5 * dt);
-    if (a.v > max) a.v = Math.max(max, a.v - 16 * dt);
-    a.v = Math.max(-9, a.v);
-    a.lenk += (lenk - a.lenk) * Math.min(1, 7 * dt);
-    const griff = Math.min(1, Math.abs(a.v) / 6) * (1.75 - Math.min(.8, Math.abs(a.v) / 34));
-    a.dreh -= a.lenk * griff * Math.sign(a.v || 1) * dt;
-    const p = { x: a.x - Math.sin(a.dreh) * a.v * dt, z: a.z - Math.cos(a.dreh) * a.v * dt };
-    schieben(p, 1.7);
-    if (p.stoss && Math.abs(a.v) > 2) a.v *= -.28;
-    a.x = p.x; a.z = p.z;
-    S.x = a.x; S.z = a.z;
-    if (S.camZiehen <= 0) S.camYaw = naehere(S.camYaw, a.dreh, Math.min(1, 3.2 * dt));
-  } else {
-    const l = frei ? Math.hypot(ein.x, ein.y) : 0;
-    const renn = ein.renn || gedrueckt("ShiftLeft", "ShiftRight");
-    const v = l * (renn ? 6.8 : 3.4);
-    if (l > .05) {
-      const s = Math.sin(S.camYaw), c = Math.cos(S.camYaw);
-      const mx = c * ein.x + s * ein.y, mz = -s * ein.x + c * ein.y;
-      const p = { x: S.x + mx / l * v * dt, z: S.z + mz / l * v * dt };
-      schieben(p, .38);
-      S.x = p.x; S.z = p.z;
-      S.dreh = naehere(S.dreh, Math.atan2(-mx, -mz), Math.min(1, 11 * dt));
-      if (S.camZiehen <= 0 && ein.y < .3) S.camYaw = naehere(S.camYaw, S.dreh, Math.min(1, .9 * dt));
-      S.lauf += v * dt * 1.9;
-    }
-    S.tempo = v;
-    const pa = { x: S.x, z: S.z };
-    const dx = pa.x - S.auto.x, dz = pa.z - S.auto.z, d = Math.hypot(dx, dz);        // das Auto ist auch ein Hindernis
-    if (d < 2.1 && d > 1e-3) { S.x = S.auto.x + dx / d * 2.1; S.z = S.auto.z + dz / d * 2.1; }
-    figurenTakt(anja, anja.koerper, S.lauf, v);
-    anja.gruppe.position.set(S.x, drinnen() ? .05 : 0, S.z); anja.gruppe.rotation.y = S.dreh;
-    anja.schwanz.rotation.x = .2 + Math.sin(S.lauf * 2) * .25 * Math.min(1, v / 3);
-  }
-
-  // Auto zeichnen
-  const a = S.auto;
-  auto.g.position.set(a.x, 0, a.z); auto.g.rotation.y = a.dreh;
-  auto.g.rotation.z = -a.lenk * Math.min(1, Math.abs(a.v) / 20) * .05;
-  auto.raeder.forEach(r => { r.dreher.rotation.x -= a.v * dt / .4; if (r.vorn) r.r.rotation.y = -a.lenk * .45; });
-
-  // Mission
-  const akt = SCHRITTE[S.schritt];
+  const akt = SCHRITTE[S.schritt], i = S.ich;
   if (frei && akt && !S.sterne) {
     if (akt.wenn) { if (akt.wenn()) schrittFertig(); }
-    else if (akt.marker && (!akt.nurZuFuss || !S.imAuto) && Math.hypot(S.x - akt.marker[0], S.z - akt.marker[1]) < akt.r) {
+    else if (akt.marker && (!akt.nurZuFuss || !S.imAuto) && Math.hypot(i.x - akt.marker[0], i.z - akt.marker[1]) < akt.r) {
       if (akt.wahl) wahlOeffnen();
       else zeigeDialog(akt.dialog, schrittFertig);
     }
   }
-  const zielPunkt = S.sterne || !akt ? null : akt.auto && !S.imAuto ? [S.auto.x, S.auto.z] : akt.marker || null;
-  marker.visible = !!zielPunkt && !akt.auto;
-  if (marker.visible) { marker.position.set(zielPunkt[0], .06, zielPunkt[1]); marker.userData.pfeil.position.y = 3.3 + Math.sin(t * 3) * .2; marker.userData.pfeil.rotation.y = t * 1.5; }
 
-  // Aylin
-  const y = S.aylin;
+  const y = S.aylin; y.ax = y.x; y.az = y.z; y.adreh = y.dreh;
   if (S.sterne && frei) {
     S.jagd -= dt;
-    const dx = S.x - y.x, dz = S.z - y.z, d = Math.hypot(dx, dz);
-    const p = { x: y.x + dx / (d || 1) * 6.1 * dt, z: y.z + dz / (d || 1) * 6.1 * dt };
+    const dx = i.x - y.x, dz = i.z - y.z, d = Math.hypot(dx, dz) || 1;
+    const p = { x: y.x + dx / d * 6.1 * dt, z: y.z + dz / d * 6.1 * dt };
     schieben(p, .38); y.x = p.x; y.z = p.z; y.dreh = Math.atan2(-dx, -dz); y.lauf += 6.1 * dt * 1.9;
-    figurenTakt(aylin, aylin.k, y.lauf, 6.1);
-    if (!S.imAuto && d < 1.05) { S.gefangen = 2.6; $("schleier").style.opacity = .92; bannerZeigen("Eingewickelt!", 2.4); }
-    else if (S.jagd <= 0) { jagdEnde(); }
-  } else if (!S.sterne) {
-    const zuAnja = Math.hypot(S.x - y.x, S.z - y.z) < 6;
-    if (zuAnja) y.dreh = naehere(y.dreh, Math.atan2(y.x - S.x, y.z - S.z) + 0, Math.min(1, 4 * dt));
-    figurenTakt(aylin, aylin.k, 0, 0);
+    if (!S.imAuto && d < 1.05) { S.gefangen = 2.6; $("schleier").style.opacity = .92; bannerZeigen("Eingewickelt!", 2.4); eingabeLeeren(); }
+    else if (S.jagd <= 0) jagdEnde();
+  } else if (!S.sterne && Math.hypot(i.x - y.x, i.z - y.z) < 6) {
+    y.dreh = naehere(y.dreh, Math.atan2(y.x - i.x, y.z - i.z), Math.min(1, 4 * dt));
   }
-  aylin.gruppe.position.set(y.x, y.x > BUERO.x0 && y.x < BUERO.x1 && y.z > BUERO.z0 && y.z < BUERO.z1 ? .05 : 0, y.z); aylin.gruppe.rotation.y = y.dreh;
 
   if (S.gefangen > 0) {
     S.gefangen -= dt;
     if (S.gefangen <= 0) {
       jagdEnde();
-      Object.assign(S, { x: START.x, z: START.z, dreh: 0, camYaw: 0, imAuto: false });
-      anja.gruppe.visible = true; $("schleier").style.opacity = 0;
+      Object.assign(i, { x: START.x, z: START.z, ax: START.x, az: START.z, dreh: 0, adreh: 0, vx: 0, vz: 0 });
+      Object.assign(S, { camYaw: 0, imAuto: false, kamSprung: true });
+      anja.gruppe.visible = true; $("schleier").style.opacity = 0; hudAlt = ""; hudUhr = 0;
     }
   }
   if (S.banner > 0) { S.banner -= dt; if (S.banner <= 0) $("banner").hidden = true; }
+}
 
-  // Kamera: ein Strahl von der Figur nach hinten, Wände holen die Kamera heran
-  const innen = drinnen();
-  dachBuero.visible = !innen;
-  const hoehe = S.imAuto ? 3.6 : innen ? 3.2 : 2.7;
-  let weite = S.imAuto ? 8.6 : innen ? 4.8 : 6;
-  const zx = S.x, zz = S.z, zy = S.imAuto ? 1.2 : 1.45;
-  const sx = Math.sin(S.camYaw), sz = Math.cos(S.camYaw);
-  for (let i = 1; i <= 14; i++) {
-    const w = weite * i / 14, px = zx + sx * w, pz = zz + sz * w;
-    if (kasten.some(k => k.h > 2 && !(k === undefined) && px > k.x0 - .25 && px < k.x1 + .25 && pz > k.z0 - .25 && pz < k.z1 + .25)) { weite = Math.max(1.3, w - .5); break; }
+// ---------- Darstellung: zwischen zwei Spielschritten wird weich überblendet ----------
+const mix = (a, b, t) => a + (b - a) * t;
+const figurenTakt = (f, k, lauf, tempo) => {
+  const an = Math.min(1, tempo / 2.8), s = Math.min(1, tempo / 5);
+  f.beine.forEach((b, i) => { const ph = lauf + i * Math.PI; b.oben.rotation.x = Math.sin(ph) * (.42 + .35 * s) * an; b.unten.rotation.x = -Math.max(0, Math.sin(ph + 1.6)) * (.75 + .6 * s) * an; });
+  f.arme.forEach((a, i) => { const ph = lauf + i * Math.PI; a.oben.rotation.x = -Math.sin(ph) * (.35 + .35 * s) * an; a.unten.rotation.x = .15 + .95 * s * an; });
+  k.rotation.x = -.07 * s; k.position.y = Math.abs(Math.sin(lauf)) * .04 * an;
+};
+const kamZiel = new T.Vector3(), kamWunsch = new T.Vector3(), kamBlick = new T.Vector3();
+let fovBasis = 62, fovAktuell = 62;
+function darstellen(dt, alpha, t) {
+  const i = S.ich, a = S.wagen, y = S.aylin;
+  const ax = mix(a.ax, a.x, alpha), az = mix(a.az, a.z, alpha), ad = a.adreh + winkelDiff(a.dreh, a.adreh) * alpha;
+  auto.g.position.set(ax, 0, az); auto.g.rotation.y = ad;
+  const fahrZiel = Math.min(1, Math.abs(a.vf) / 20);
+  auto.g.rotation.z = -a.lenk * fahrZiel * .055;
+  auto.g.rotation.x = 0;
+  auto.raeder.forEach(r => { r.dreher.rotation.x -= a.vf * dt / .4; if (r.vorn) r.r.rotation.y = -a.lenk * .5; });
+
+  const zx = S.imAuto ? ax : mix(i.ax, i.x, alpha), zz = S.imAuto ? az : mix(i.az, i.z, alpha);
+  if (!S.imAuto) {
+    const innen = imBuero(zx, zz);
+    figurenTakt(anja, anja.koerper, S.lauf, S.tempo);
+    anja.gruppe.position.set(zx, innen ? .05 : 0, zz); anja.gruppe.rotation.y = i.adreh + winkelDiff(i.dreh, i.adreh) * alpha;
+    anja.schwanz.rotation.x = .2 + Math.sin(S.lauf * 2) * .25 * Math.min(1, S.tempo / 3);
   }
-  S.camDist += (weite - S.camDist) * Math.min(1, (weite < S.camDist ? 18 : 4) * dt);
-  kamera.position.set(zx + sx * S.camDist, zy + hoehe * (S.camDist / (S.imAuto ? 8.6 : innen ? 4.8 : 6) * .75 + .25), zz + sz * S.camDist);
-  kamera.lookAt(zx, zy + .35, zz);
+  const yx = mix(y.ax, y.x, alpha), yz = mix(y.az, y.z, alpha);
+  figurenTakt(aylin, aylin.k, y.lauf, S.sterne ? 6.1 : 0);
+  aylin.gruppe.position.set(yx, imBuero(yx, yz) ? .05 : 0, yz); aylin.gruppe.rotation.y = y.adreh + winkelDiff(y.dreh, y.adreh) * alpha;
+  for (const [g, f] of flecken) { f.visible = g.visible; f.position.set(g.position.x, g.position.y + .09, g.position.z); f.rotation.y = g.rotation.y; }
+
+  // Die aufwendigen Figuren im Büro werden nur gezeichnet, wenn Anja in der Nähe ist
+  const nahAmBuero = Math.hypot(zx - (BUERO.x0 + BUERO.x1) / 2, zz - (BUERO.z0 + BUERO.z1) / 2) < 27;
+  froebelBuehne.visible = nahAmBuero; aylin.gruppe.visible = nahAmBuero || S.sterne > 0;
+  const akt = SCHRITTE[S.schritt], sichtbar = !!akt && !S.sterne && !!akt.marker;
+  marker.visible = sichtbar;
+  if (sichtbar) { marker.scale.setScalar(akt.nurZuFuss ? .6 : 1); marker.position.set(akt.marker[0], .06, akt.marker[1]); marker.userData.pfeil.position.y = 3.3 + Math.sin(t * 3) * .2; marker.userData.pfeil.rotation.y = t * 1.5; }
+
+  // Kamera: läuft leicht nach und zoomt beim schnellen Fahren etwas heraus
+  const innen = !S.imAuto && imBuero(zx, zz);
+  dachBuero.visible = !innen;
+  const fahr = S.imAuto ? Math.abs(a.vf) : 0;
+  const weiteSoll = S.imAuto ? 7.4 + fahr * .075 : innen ? 4.6 : 5.6, hoeheSoll = S.imAuto ? 2.9 + fahr * .022 : innen ? 2.9 : 2.5;
+  let weite = weiteSoll;
+  const sx = Math.sin(S.camYaw), sz = Math.cos(S.camYaw);
+  for (let n = 2; n <= 9; n++) {
+    const w = weiteSoll * n / 9, px = zx + sx * w, pz = zz + sz * w;
+    if (kasten.some(k => k.h > 2 && px > k.x0 - .25 && px < k.x1 + .25 && pz > k.z0 - .25 && pz < k.z1 + .25)) { weite = Math.max(1.4, w - .7); break; }
+  }
+  S.camDist += (weite - S.camDist) * (1 - Math.exp(-(weite < S.camDist ? 22 : 3.5) * dt));
+  const anteil = S.camDist / weiteSoll, hoch = (S.imAuto ? 1.2 : 1.45) + hoeheSoll * (anteil * .75 + .25);
+  kamWunsch.set(zx + sx * S.camDist, hoch, zz + sz * S.camDist);
+  kamera.position.lerp(kamWunsch, S.kamSprung ? 1 : 1 - Math.exp(-(S.imAuto ? 15 : 18) * dt));
+  S.kamSprung = false;
+  if (S.schuettel > 0) {
+    S.schuettel = Math.max(0, S.schuettel - dt * 2.8);
+    kamera.position.x += Math.sin(t * 61) * S.schuettel * .13; kamera.position.y += Math.sin(t * 47) * S.schuettel * .09;
+  }
+  const vorne = S.imAuto ? 1.2 + a.vf * .09 : 0;
+  kamZiel.set(zx - Math.sin(ad) * vorne * (S.imAuto ? 1 : 0), S.imAuto ? 1.55 : 1.75, zz - Math.cos(ad) * vorne * (S.imAuto ? 1 : 0));
+  kamBlick.lerp(kamZiel, S.imAuto ? 1 - Math.exp(-11 * dt) : 1);
+  kamera.lookAt(kamBlick);
+  const fovSoll = fovBasis + Math.min(10, fahr * .34);
+  if (Math.abs(fovSoll - fovAktuell) > .04) { fovAktuell += (fovSoll - fovAktuell) * (1 - Math.exp(-3.5 * dt)); kamera.fov = fovAktuell; kamera.updateProjectionMatrix(); }
 
   himmel.position.set(zx, 0, zz);
-  sonne.target.position.set(zx, 0, zz); sonne.position.set(zx + 26, 46, zz + 18); sonne.target.updateMatrixWorld();
+  if (!handy) { sonne.target.position.set(zx, 0, zz); sonne.position.set(zx + 26, 46, zz + 18); sonne.target.updateMatrixWorld(); }
   W.animieren(t);
 }
 
-// ---------- Anzeigen ----------
-const kartePinsel = $("karte").getContext("2d");
-const grundkarte = document.createElement("canvas"); grundkarte.width = grundkarte.height = 512;
+// ---------- Anzeigen: Karte und Texte werden seltener neu gezeichnet als das Bild ----------
+const kartenFeld = $("karte");
+if (handy) kartenFeld.width = kartenFeld.height = 176;
+const kartePinsel = kartenFeld.getContext("2d");
+const grundkarte = document.createElement("canvas"); grundkarte.width = grundkarte.height = 384;
 {
-  const g = grundkarte.getContext("2d"), k = 512 / (GRENZE * 2), mx = (v) => (v + GRENZE) * k;
-  g.fillStyle = "#6b9d55"; g.fillRect(0, 0, 512, 512);
+  const g = grundkarte.getContext("2d"), k = 384 / (GRENZE * 2), mx = (v) => (v + GRENZE) * k;
+  g.fillStyle = "#6b9d55"; g.fillRect(0, 0, 384, 384);
   g.fillStyle = "#3c3f47"; STRASSEN.forEach(([a, b, c, d]) => g.fillRect(mx(a), mx(c), (b - a) * k, (d - c) * k));
   g.fillStyle = "#74767c"; FLAECHEN.forEach(([a, b, c, d]) => g.fillRect(mx(a), mx(c), (b - a) * k, (d - c) * k));
   g.fillStyle = "#c9bfa9"; kasten.forEach(b => g.fillRect(mx(b.x0), mx(b.z0), (b.x1 - b.x0) * k, (b.z1 - b.z0) * k));
@@ -508,85 +695,114 @@ const grundkarte = document.createElement("canvas"); grundkarte.width = grundkar
   g.fillStyle = "#d3145a"; g.fillRect(mx(DROGERIE.x0), mx(DROGERIE.z0), (DROGERIE.x1 - DROGERIE.x0) * k, (DROGERIE.z1 - DROGERIE.z0) * k);
 }
 function karteZeichnen(ziel) {
-  const g = kartePinsel, B = 256, r = B / 2, k = 512 / (GRENZE * 2), zoom = 1.25;
-  g.save(); g.clearRect(0, 0, B, B); g.beginPath(); g.arc(r, r, r, 0, Math.PI * 2); g.clip();
-  g.translate(r, r); g.scale(zoom, zoom); g.translate(-(S.x + GRENZE) * k, -(S.z + GRENZE) * k);
+  const g = kartePinsel, B = kartenFeld.width, s = B / 256, r = 128, k = 384 / (GRENZE * 2) * 1.67;
+  g.save(); g.scale(s, s); g.clearRect(0, 0, 256, 256);
+  g.save(); g.beginPath(); g.arc(r, r, r, 0, Math.PI * 2); g.clip();
+  g.translate(r, r); g.scale(1.67, 1.67); g.translate(-(S.ich.x + GRENZE) * 384 / (GRENZE * 2), -(S.ich.z + GRENZE) * 384 / (GRENZE * 2));
   g.drawImage(grundkarte, 0, 0);
   g.restore();
   const punkt = (wx, wz, farbe, gr) => {
-    let px = (wx - S.x) * k * zoom, pz = (wz - S.z) * k * zoom; const l = Math.hypot(px, pz), max = r - 16;
+    let px = (wx - S.ich.x) * k, pz = (wz - S.ich.z) * k; const l = Math.hypot(px, pz), max = r - 16;
     if (l > max) { px *= max / l; pz *= max / l; }
     g.fillStyle = farbe; g.strokeStyle = "#000"; g.lineWidth = 3; g.beginPath(); g.arc(r + px, r + pz, gr, 0, Math.PI * 2); g.fill(); g.stroke();
   };
-  if (!S.imAuto) punkt(S.auto.x, S.auto.z, "#ff4d4d", 9);
+  if (!S.imAuto) punkt(S.wagen.x, S.wagen.z, "#ff4d4d", 9);
   if (S.sterne) punkt(S.aylin.x, S.aylin.z, "#ff2d7a", 11);
   if (ziel) punkt(ziel[0], ziel[1], "#ffc83d", 14);
-  const dreh = S.imAuto ? S.auto.dreh : S.dreh;
-  g.save(); g.translate(r, r); g.rotate(-dreh); g.fillStyle = "#fff"; g.strokeStyle = "#000"; g.lineWidth = 3;
-  g.beginPath(); g.moveTo(0, -17); g.lineTo(11, 12); g.lineTo(0, 6); g.lineTo(-11, 12); g.closePath(); g.fill(); g.stroke(); g.restore();
+  g.translate(r, r); g.rotate(-(S.imAuto ? S.wagen.dreh : S.ich.dreh)); g.fillStyle = "#fff"; g.strokeStyle = "#000"; g.lineWidth = 3;
+  g.beginPath(); g.moveTo(0, -17); g.lineTo(11, 12); g.lineTo(0, 6); g.lineTo(-11, 12); g.closePath(); g.fill(); g.stroke();
+  g.restore();
 }
-let hudAlt = "";
-function hud() {
-  const akt = SCHRITTE[S.schritt];
-  let ziel = akt ? akt.ziel : "Prototyp geschafft. Du kannst noch durchs Viertel fahren.";
+let hudAlt = "", hudUhr = 0, karteUhr = 0;
+function hudSchritt(dt) {
+  hudUhr -= dt; karteUhr -= dt;
+  const i = S.ich, akt = SCHRITTE[S.schritt];
+  const zielPunkt = S.sterne || !akt ? null : akt.auto ? [S.wagen.x, S.wagen.z] : akt.marker;
+  if (karteUhr <= 0) { karteUhr = 1 / 12; karteZeichnen(zielPunkt); }
+  if (hudUhr > 0) return;
+  hudUhr = 1 / 8;
+  let ziel = akt ? akt.ziel : "Geschafft! Du kannst noch durchs Viertel fahren.";
   let unter = "";
   if (S.sterne) { ziel = "Aylin kommt mit der Folie! Lauf oder spring ins Auto."; unter = `Noch ${Math.ceil(Math.max(0, S.jagd))} Sekunden`; }
-  const zielPunkt = S.sterne || !akt ? null : akt.auto ? [S.auto.x, S.auto.z] : akt.marker;
-  if (zielPunkt && !unter) unter = `${Math.round(Math.hypot(S.x - zielPunkt[0], S.z - zielPunkt[1]))} m`;
-  const nahAmAuto = !S.imAuto && Math.hypot(S.x - S.auto.x, S.z - S.auto.z) < 3.6;
-  const knopf = S.imAuto ? (Math.abs(S.auto.v) <= 5 ? "Aus-steigen" : "") : nahAmAuto ? "Ein-steigen" : "";
-  const zeigen = S.an && !S.dialog && !S.wahl && S.gefangen <= 0 ? knopf : "";
-  const stand = [ziel, unter, S.sterne, zeigen, S.imAuto ? Math.round(Math.abs(S.auto.v) * 3.6) : -1].join("|");
-  if (stand !== hudAlt) {
-    hudAlt = stand;
-    $("ziel").innerHTML = `${ziel}${unter ? `<small>${unter}</small>` : ""}`;
-    $("sterne").textContent = S.sterne ? "★".repeat(S.sterne) : "";
-    const a = $("aktion"), h = $("hinweis");
-    if (handy) { a.hidden = !zeigen; a.textContent = zeigen; h.hidden = true; }
-    else { a.hidden = true; h.hidden = !zeigen; h.textContent = zeigen ? `E: ${zeigen.replace("-", "")}` : ""; }
-    $("tempo").hidden = !S.imAuto; if (S.imAuto) $("tempo").textContent = `${Math.round(Math.abs(S.auto.v) * 3.6)} km/h`;
-  }
-  karteZeichnen(zielPunkt);
+  if (zielPunkt && !unter) unter = `${Math.round(Math.hypot(i.x - zielPunkt[0], i.z - zielPunkt[1]))} m`;
+  const spielt = S.an && !S.dialog && !S.wahl && S.gefangen <= 0;
+  const nahAmAuto = !S.imAuto && Math.hypot(i.x - S.wagen.x, i.z - S.wagen.z) < EINSTIEG;
+  const kmh = S.imAuto ? Math.round(Math.abs(S.wagen.vf) * 3.6 / 5) * 5 : -1;
+  const stand = [ziel, unter, S.sterne, spielt, S.imAuto, nahAmAuto, S.aussteigen, kmh].join("|");
+  if (stand === hudAlt) return;
+  hudAlt = stand;
+  $("ziel").innerHTML = `${ziel}${unter ? `<small>${unter}</small>` : ""}`;
+  $("sterne").textContent = S.sterne ? "★".repeat(S.sterne) : "";
+  const k = huelle.classList;
+  k.toggle("touch", handy); k.toggle("im-auto", S.imAuto); k.toggle("spielt", spielt); k.toggle("nah-am-auto", nahAmAuto);
+  $("aussteigen").textContent = S.aussteigen ? "Hält an …" : "Aussteigen";
+  const h = $("hinweis");
+  h.hidden = handy || !spielt || !(S.imAuto || nahAmAuto);
+  h.textContent = S.aussteigen ? "Hält an …" : S.imAuto ? "E: Aussteigen · Leertaste: Handbremse" : "E: Einsteigen";
+  $("tempo").hidden = !S.imAuto; if (S.imAuto) $("tempo").textContent = `${kmh} km/h`;
 }
 
 // ---------- Bildgröße und Leistung ----------
-let qualitaet = 0, messZeit = 0, messBilder = 0;
-function qualitaetSetzen(q) {
-  qualitaet = q;
-  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, q >= 2 ? 1 : handy ? (q ? 1.1 : 1.35) : 2));
-  sonne.castShadow = q < 1;
+// Fällt die Bildrate, sinkt zuerst die Auflösung, danach kommen Wolken und zuletzt die Schatten dran
+const AUFLOESUNG = handy ? [1.3, 1.05, .85, .7] : [2, 1.5, 1.15, 1];
+let stufe = 0, messZeit = 0, messBilder = 0;
+function aufloesungSetzen() {
+  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, AUFLOESUNG[stufe]));
   groesse();
 }
 function groesse() {
   const w = huelle.clientWidth, h = huelle.clientHeight; if (!w || !h) return;
-  renderer.setSize(w, h, false); kamera.aspect = w / h; kamera.fov = w / h < .8 ? 74 : 62; kamera.updateProjectionMatrix();
+  renderer.setSize(w, h, false); kamera.aspect = w / h; fovBasis = w / h < .8 ? 72 : 60;
+  fovAktuell = fovBasis; kamera.fov = fovBasis; kamera.updateProjectionMatrix();
 }
 new ResizeObserver(groesse).observe(huelle);
+function leistung(echt) {
+  messZeit += echt; messBilder++;
+  if (messZeit < 2) return;
+  const fps = messBilder / messZeit; messZeit = 0; messBilder = 0;
+  if (fps < 48 && stufe < AUFLOESUNG.length - 1) {
+    stufe++; aufloesungSetzen();
+    if (stufe >= 1) wolkenGruppe.visible = false;
+    if (stufe >= 3 && !handy) sonne.castShadow = false;
+  }
+  if (statistik) statistik.dataset.fps = Math.round(fps);
+}
+const statistik = /[?&]stats\b/.test(location.search) ? $("statistik") : null;
+if (statistik) statistik.hidden = false;
+function statistikZeigen(echt) {
+  if (statistik.dataset.uhr && performance.now() - statistik.dataset.uhr < 400) return;
+  statistik.dataset.uhr = performance.now();
+  const i = renderer.info.render;
+  statistik.textContent = `${statistik.dataset.fps || "?"} fps · ${Math.round(echt * 1000)} ms · ${i.calls} Aufrufe · ${Math.round(i.triangles / 1000)}k Dreiecke · Stufe ${stufe}`;
+}
 
 // ---------- Schleife ----------
-let zeit = 0, letzt = performance.now();
+let zeit = 0, letzt = performance.now(), speicher = 0;
 function bild() {
-  const jetzt = performance.now(), echt = (jetzt - letzt) / 1000; letzt = jetzt;
-  const dt = Math.min(.05, echt); zeit += dt;
-  schritt(dt, zeit); hud();
+  const jetzt = performance.now(), echt = Math.min(.1, (jetzt - letzt) / 1000); letzt = jetzt;
+  speicher += echt;
+  let n = 0;
+  while (speicher >= SCHRITT_ZEIT && n++ < 6) { schrittSpiel(SCHRITT_ZEIT); speicher -= SCHRITT_ZEIT; }
+  if (n >= 6) speicher = 0;
+  zeit += echt;
+  darstellen(echt, speicher / SCHRITT_ZEIT, zeit);
+  hudSchritt(echt);
   renderer.render(szene, kamera);
-  messZeit += echt; messBilder++;
-  if (messZeit > 3 && S.an) {
-    const fps = messBilder / messZeit; messZeit = 0; messBilder = 0;
-    if (fps < 28 && qualitaet < 2) qualitaetSetzen(qualitaet + 1);
-  }
+  if (S.an) leistung(echt);
+  if (statistik) statistikZeigen(echt);
 }
+
 // ---------- Start ----------
 $("steuerung").innerHTML = handy
-  ? "<li>Links: Joystick zum Laufen und Lenken</li><li>Rechts: Rennen, Einsteigen und Aussteigen</li><li>Wischen über das Bild dreht die Kamera</li><li>Am besten hältst du das Handy quer</li>"
-  : "<li>WASD oder Pfeiltasten: laufen und fahren</li><li>Shift: rennen, E: einsteigen und weiter</li><li>Mit der Maus ziehen: Kamera drehen</li>";
-qualitaetSetzen(0);
-schritt(0, 0); hud(); renderer.render(szene, kamera);
+  ? "<li>Links: Daumen aufsetzen und laufen, ganz ausgelenkt rennst du</li><li>Im Auto: links lenken, rechts Gas und Bremse</li><li>Über das Bild wischen dreht die Kamera</li><li>Am besten hältst du das Handy quer</li>"
+  : "<li>WASD oder Pfeiltasten: laufen und fahren</li><li>Shift: rennen, E: einsteigen und weiter</li><li>Leertaste: Handbremse, mit der Maus ziehen: Kamera drehen</li>";
+huelle.classList.toggle("touch", handy);
+aufloesungSetzen();
+schrittSpiel(SCHRITT_ZEIT); darstellen(0, 1, 0); hudSchritt(1); renderer.render(szene, kamera);
 const los = $("los"); los.disabled = false; los.textContent = "Mission starten";
 los.addEventListener("click", () => {
-  $("start").hidden = true; S.an = true;
-  if (handy) { $("stick").hidden = false; $("rennen").hidden = false; }
+  $("start").hidden = true; S.an = true; hudAlt = ""; hudUhr = 0; hudUhr = 0;
+  if (handy && document.documentElement.requestFullscreen) document.documentElement.requestFullscreen({ navigationUI: "hide" }).catch(() => {});
   messZeit = 0; messBilder = 0; letzt = performance.now();
-  hudAlt = "";
 });
 renderer.setAnimationLoop(bild);
