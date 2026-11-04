@@ -532,7 +532,7 @@ function schrittAuto(dt, frei) {
   // Lenken wie beim Fahrrad: das Tempo bestimmt die Drehung. Bei hohem Tempo schlagen die Räder weniger ein.
   const einschlag = (.66 - .47 * Math.min(1, Math.abs(a.vf) / TEMPO_STRASSE)) * a.lenk;
   const drehrate = a.vf / RADSTAND * Math.tan(einschlag) * (hand ? 1.35 : 1);
-  a.dreh += drehrate * dt;
+  a.dreh -= drehrate * dt;                                       // Drehwinkel wächst nach links, Lenken nach rechts verringert ihn
 
   // Seitlich: Das Auto rutscht kurz in der Kurve, die Reifen fangen es wieder ein
   const fx = -Math.sin(a.dreh), fz = -Math.cos(a.dreh), rx = Math.cos(a.dreh), rz = -Math.sin(a.dreh);
@@ -657,7 +657,7 @@ function darstellen(dt, alpha, t) {
   const sx = Math.sin(S.camYaw), sz = Math.cos(S.camYaw);
   for (let n = 2; n <= 9; n++) {
     const w = weiteSoll * n / 9, px = zx + sx * w, pz = zz + sz * w;
-    if (kasten.some(k => k.h > 2 && px > k.x0 - .25 && px < k.x1 + .25 && pz > k.z0 - .25 && pz < k.z1 + .25)) { weite = Math.max(1.4, w - .7); break; }
+    if (Math.abs(px) > GRENZE - .4 || Math.abs(pz) > GRENZE - .4 || kasten.some(k => k.h > 2 && px > k.x0 - .25 && px < k.x1 + .25 && pz > k.z0 - .25 && pz < k.z1 + .25)) { weite = Math.max(1.4, w - .7); break; }
   }
   S.camDist += (weite - S.camDist) * (1 - Math.exp(-(weite < S.camDist ? 22 : 3.5) * dt));
   const anteil = S.camDist / weiteSoll, hoch = (S.imAuto ? 1.2 : 1.45) + hoeheSoll * (anteil * .75 + .25);
