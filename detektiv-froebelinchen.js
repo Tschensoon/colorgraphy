@@ -1,4 +1,4 @@
-// GrandTheftFröbel (Prototyp): offene Welt mit Laufen, Auto, Marker-Mission und Fahndungssternen.
+// Detektiv Fröbelinchen (Prototyp): offene Welt mit Laufen, Auto, Marker-Mission und Fahndungssternen.
 // Figuren und Oberflächen kommen aus der Welt von „Fröbelinchen rennt“ (lauf-welt.js). Figuren schauen nach -z.
 import * as THREE from "./vendor/three/three.module.min.js";
 import { welt } from "./lauf-welt.js?v=36";
