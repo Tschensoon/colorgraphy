@@ -31,7 +31,7 @@ if (rahmen) {
   function laden() {
     if (!bereit) {
       const text = losKnopf.textContent; losKnopf.disabled = true; losKnopf.textContent = "Lädt die 3D-Welt …";
-      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=39"), import("./lauf-ton.js?v=5"), import("./lauf-flug.js?v=4"), import("./lauf-effekte.js?v=3")])
+      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=41"), import("./lauf-ton.js?v=6"), import("./lauf-flug.js?v=4"), import("./lauf-effekte.js?v=3")])
         .then(([m, w, t, f, e]) => { THREE = m; T = t.ton(); aufbauen(w, f, e); losKnopf.disabled = false; losKnopf.textContent = text; });
     }
     return bereit;
@@ -201,15 +201,16 @@ if (rahmen) {
 
     // Pflasterweg inkl. Eckfeld, Randsteine
     const von = erster ? -6 : H;   // das Eckfeld gehört schon zum vorigen Abschnitt, sonst liegen zwei Böden übereinander und flimmern
-    setze(W.boden(L + H - von, 2 * H), (von + L + H) / 2, 0);
-    for (const seite of [-1, 1]) {       // Randsteine wie die Hecken: an der Abbiege-Seite offen
+    const Z = W.zonen[ab.zone];        // im Dschungel: Feldweg ohne Randsteine, Pflanzenwand statt Hecke
+    setze(W.wegFuer(L + H - von, 2 * H, ab.zone), (von + L + H) / 2, 0);
+    if (Z.weg !== "erde") for (const seite of [-1, 1]) {       // Randsteine wie die Hecken: an der Abbiege-Seite offen
       const bis = seite === ab.dreh ? L - H : L + H, anf = erster ? -6 : H;
       setze(W.kante(bis - anf), (anf + bis) / 2, seite * (H - .09), .05);
     }
     // Hecken links und rechts; auf der Abbiege-Seite endet die Hecke vor der Ecke
     for (const seite of [-1, 1]) {
       const bis = seite === ab.dreh ? L - H : L + H, anf = erster ? -6 : H;
-      setze(W.heckeFuer(bis - anf, ab.zone), (anf + bis) / 2, seite * (H + .55), 0);
+      setze(W.randFuer(bis - anf, ab.zone, undefined, undefined, -seite), (anf + bis) / 2, seite * (H + .55), 0);
       setze(W.blumenFuer(bis - anf - .6, ab.zone), (anf + bis) / 2, seite * (H + .07), 0);
     }
     // Grasbüschel im Wind hinter den Hecken; am See nur ein schmaler Streifen, sonst stünden sie im Wasser
@@ -219,10 +220,10 @@ if (rahmen) {
       if (bis - anf > 2) setze(W.grasBueschel(bis - anf, ab.zone, grasBreite), (anf + bis) / 2, seite * (H + 1.05 + grasBreite / 2), 0);
     }
     // Hecke quer am Ende, davor ein Pfeilschild und leuchtende Pfeile auf dem Weg: hier geht es ab
-    setze(W.heckeFuer(2 * H + 2, ab.zone, 1.5, .9), L + H + .55, 0, 0, Math.PI / 2);   // etwas dicker und höher als die Seitenhecken: keine deckungsgleichen Flächen
+    setze(W.randFuer(2 * H + 2, ab.zone, 1.5, .9), L + H + .55, 0, 0, Math.PI / 2);   // etwas dicker und höher als die Seitenhecken: keine deckungsgleichen Flächen
     setze(W.pfeilSchild(ab.dreh), L + H - .1, 0);
     for (const d of [11, 7.5, 4]) setze(W.bodenPfeil(ab.dreh), L - d, 0);
-    if (erster) setze(W.heckeFuer(2 * H + 2, ab.zone, 1.5, .9), -6.55, 0, 0, Math.PI / 2);
+    if (erster) setze(W.randFuer(2 * H + 2, ab.zone, 1.5, .9), -6.55, 0, 0, Math.PI / 2);
 
     hindernisseVerteilen(ab, setze);
     // Fröbel: in jeder Kurve eine Tafel an der Hecke (dort schaut man ohnehin hin), dazu Tafeln und Schilder am Wegrand
@@ -248,10 +249,10 @@ if (rahmen) {
       }
     }
     // Landschaft neben dem Weg
-    for (let d = 9; d < L - 9; d += zufall(6, 10)) {
+    for (let d = 9; d < L - 9; d += Z.dicht ? zufall(3, 5.5) : zufall(6, 10)) {   // im Dschungel stehen die Pflanzen viel dichter
       for (const seite of [-1, 1]) {
-        if (Math.random() < .35) continue;
-        const obj = W.dekoFuer(ab.zone), abst = Math.max(zufall(4.5, 12), obj.userData.abstand || 0);
+        if (Math.random() < (Z.dicht ? .08 : .35)) continue;
+        const obj = W.dekoFuer(ab.zone), abst = Math.max(Z.dicht ? zufall(2.6, 11) : zufall(4.5, 12), obj.userData.abstand || 0);
         setze(obj, d + zufall(-2, 2), seite * (H + abst), 0, Math.floor(Math.random() * 4) * Math.PI / 2);
       }
     }
@@ -276,9 +277,9 @@ if (rahmen) {
   }
   // Art des Hindernisses: block = ausweichen (sonst Rundenende), niedrig = drüberspringen, hoch = ducken, eis = rutschig
   const ART = { kloetze: "block", heuballen: "block", ball: "niedrig", balken: "niedrig", pfuetze: "niedrig", laub: "niedrig",
-    huhn: "niedrig", enten: "niedrig", schneeball: "niedrig", stange: "hoch", eis: "eis", laternen: "hoch", gans: "niedrig" };
-  const HOEHE = { ball: .75, balken: .45, pfuetze: .15, laub: .5, huhn: .55, enten: .45, schneeball: .8, gans: .75 };
-  const WELT_HINDERNISSE = [[], ["heuballen", "huhn"], ["enten"], ["laub"], ["laternen", "gans"], ["schneeball", "eis"]];   // eigene je Welt
+    huhn: "niedrig", enten: "niedrig", schneeball: "niedrig", stange: "hoch", eis: "eis", laternen: "hoch", gans: "niedrig", liane: "hoch", affe: "niedrig" };
+  const HOEHE = { ball: .75, balken: .45, pfuetze: .15, laub: .5, huhn: .55, enten: .45, schneeball: .8, gans: .75, affe: .35 };
+  const WELT_HINDERNISSE = [[], ["heuballen", "huhn"], ["enten"], ["laub"], ["laternen", "gans"], ["schneeball", "eis"], ["liane", "affe"]];   // eigene je Welt
   function hindernisNeu(ab, s, setze, schwer, vorher) {
     const extra = WELT_HINDERNISSE[ab.zone] || [];
     let typ;
@@ -307,6 +308,8 @@ if (rahmen) {
     } else if (typ === "balken") setze(W.hindernis("balken", 2 * H - .3), s, 0);
     else if (typ === "pfuetze") setze(W.hindernis("pfuetze", 2 * H), s, 0);
     else if (typ === "laternen") setze(W.weltHindernis("laternen", 2 * H - .2), s, 0);   // Laternenkette quer: ducken
+    else if (typ === "liane") setze(W.weltHindernis("liane", 2 * H - .2), s, 0);         // Liane quer: ducken
+    else if (typ === "affe") { spuren = [wahl([-1, 0, 1])]; mesh = setze(W.weltHindernis("affe", 2 * H, spuren[0] * SPUR), s, spuren[0] * SPUR); }   // Banane auf einer Spur
     else setze(W.hindernis("stange", 2 * H - .2), s, 0);   // Turnstange quer: ducken
     const h = { nr: ab.nr, ab, s, typ, art: ART[typ], hoehe: HOEHE[typ] || 0, tiefe: typ === "eis" ? 1.5 : .55, spuren, mesh, bew, getroffen: false };
     hindernisse.push(h);
@@ -427,7 +430,7 @@ if (rahmen) {
   // ---------- Pause und Ton ----------
   function pauseUm() {
     if (zustand === "laeuft") { zustand = "pause"; pauseFeld.hidden = false; T.musikStop(); }
-    else if (zustand === "pause") { zustand = "laeuft"; pauseFeld.hidden = true; uhr.getDelta(); T.musik(FL.an ? flugMusik() : aktZone); }
+    else if (zustand === "pause") { zustand = "laeuft"; pauseFeld.hidden = true; uhr.getDelta(); T.musik(FL.an ? flugMusik() : zoneMusik()); }
   }
   pauseKnopf.addEventListener("click", () => { if (zustand === "laeuft" || zustand === "pause") pauseUm(); });
   $(".lauf-weiter").addEventListener("click", pauseUm);
@@ -460,7 +463,7 @@ if (rahmen) {
     if (zustand === "aus") neu();
     zustand = "laeuft"; window.froebelAktiv = "lauf";
     ueber.hidden = true; ladenZu(); topFeld.hidden = true; eintragForm.hidden = true; uhr.getDelta();
-    T.musik(aktZone);
+    T.musik(zoneMusik());
   });
 
   // Rundenende: zuerst eine kurze Szene (Anja fängt Fröbelinchen bzw. Fröbelinchen prallt ab), dann das Ergebnis
@@ -516,6 +519,7 @@ if (rahmen) {
     { id: "herbst", text: "Lauf bis in den Herbstwald", lohn: 40, ok: () => R.welt >= 3 },
     { id: "laterne", text: "Lauf bis zum Laternenfest", lohn: 50, ok: () => R.welt >= 4 },
     { id: "winter", text: "Lauf bis ins Winterland", lohn: 60, ok: () => R.welt >= 5 },
+    { id: "dschungel", text: "Lauf bis in den Dschungel", lohn: 70, ok: () => R.welt >= 6 },
     { id: "meter2500", text: "Lauf 2500 Meter", lohn: 80, ok: () => strecke >= 2500 },
     { id: "luftwelt", text: "Flieg in die Luftwelt", lohn: 100, ok: () => R.flug >= 1 },
     { id: "ringe10", text: "Flieg durch 10 Ringe in einer Runde", lohn: 60, ok: () => R.ringe >= 10 },
@@ -1197,13 +1201,26 @@ if (rahmen) {
       const hp = h.mesh && h.mesh.userData.huepf; if (!hp) continue;
       (Array.isArray(hp) ? hp : [hp]).forEach((k, i) => { k.position.y = Math.abs(Math.sin(tz * 11 + i)) * .06; k.rotation.z = Math.sin(tz * 11 + i) * .12; });
     }
+    for (const h of hindernisse) {                    // Affen werfen ihre Banane, sobald Fröbelinchen näher kommt
+      if (h.typ !== "affe" || !h.mesh) continue;
+      const u = h.mesh.userData;
+      u.affe.position.y = u.affeY + Math.abs(Math.sin(tz * 6 + h.s)) * .05;
+      if (u.wurf < 0) { if (h.nr === S.idx && h.s - S.s < 20) { u.wurf = 0; T.spur(); } else continue; }
+      if (u.wurf < 1) {
+        u.wurf = Math.min(1, u.wurf + dt / .6); const w = u.wurf;
+        u.banane.visible = true;
+        u.banane.position.set(u.start.x * (1 - w), u.start.y * (1 - w) + Math.sin(w * Math.PI) * 1.4, 0);
+        u.banane.rotation.set(0, 0, w < 1 ? w * 14 : 0);
+        u.arm.rotation.x = -2.6 + Math.min(1, w * 2.5) * 2.4;
+      }
+    }
     for (const bo of booster) { bo.mesh.userData.innen.rotation.y += dt * 3; bo.mesh.position.y = 1.05 + Math.sin(performance.now() / 300 + bo.s) * .1; }
     kamera.fov += (((kamera.aspect < .8 ? 72 : 62) + (B.turbo > 0 ? 8 : 0)) - kamera.fov) * Math.min(1, dt * 3); kamera.updateProjectionMatrix();
     W.bodenFolgen(px, pz);   // Bodenmuster bleibt am Ort, obwohl die Fläche mitwandert
     // neue Welt erreicht: Boden, Farben, Wetter und Musik wechseln, Namen einblenden
     if (ab.zone !== aktZone) {
       aktZone = ab.zone; W.zoneWechsel(aktZone); stimmungSetzen(); R.welt = Math.max(R.welt, Math.floor(S.idx / 3));
-      if (lauft) { T.welt(); T.musik(aktZone); if (!B.schubs) meldung(W.zonen[aktZone].name, W.zonen[aktZone].unter); }
+      if (lauft) { T.welt(); T.musik(zoneMusik()); if (!B.schubs) meldung(W.zonen[aktZone].name, W.zonen[aktZone].unter); }
       if (lauft && aktZone === WINTER()) FL.schlittenBei = punkte + 120;
     }
     const zeit = performance.now() / 1000;
@@ -1255,11 +1272,11 @@ if (rahmen) {
     const g = new THREE.Group(), dazu = (o) => { o.position.set((g.children.length % 8 - 4) * 2, 0, -6 - Math.floor(g.children.length / 8) * 2); g.add(o); };
     W.zonen.forEach((z, i) => {
       z.deko.forEach(f => dazu(f()));
-      dazu(W.heckeFuer(3, i)); dazu(W.blumenFuer(3, i)); dazu(W.grasBueschel(3, i, 2));
+      dazu(W.randFuer(3, i)); dazu(W.wegFuer(3, 2, i)); dazu(W.blumenFuer(3, i)); dazu(W.grasBueschel(3, i, 2));
       renderer.initTexture(z.boden);
     });
     ["kloetze", "ball", "balken", "pfuetze", "stange"].forEach(t => dazu(W.hindernis(t, 4)));
-    ["heuballen", "huhn", "enten", "laub", "schneeball", "eis", "laternen", "gans"].forEach(t => dazu(W.weltHindernis(t, 4)));
+    ["heuballen", "huhn", "enten", "laub", "schneeball", "eis", "laternen", "gans", "liane", "affe"].forEach(t => dazu(W.weltHindernis(t, 4)));
     ["schild", "schubs", "magnet", "doppelt"].forEach(t => dazu(W.booster(t)));
     ["logo", "ohren", "kitas"].forEach(t => { dazu(W.froebelHeckenTafel(t)); dazu(W.froebelTafel(t)); });
     ["ohren", "kitas"].forEach(t => dazu(W.froebelSchild(t)));
@@ -1742,6 +1759,7 @@ if (rahmen) {
   const fahrzeug = () => FL.art === "wasser" ? boot : FL.art === "schlitten" ? schlitten : flieger;
   const anjaFahrzeug = () => FL.art === "wasser" ? anjaBoot : FL.art === "schlitten" ? anjaSchlitten : anjaFlieger;
   const WINTER = () => W.zonen.findIndex(z => z.hecke === "schnee");
+  const zoneMusik = () => W.zonen[aktZone].musik ?? aktZone;
   const flugMusik = () => FL.art === "schlitten" ? 7 : FL.art === "wasser" ? 2 : 6;
   const tempoKmh = () => Math.round(FL.v * 2.6);
   function flugAufbauen(modul) {
@@ -1824,7 +1842,7 @@ if (rahmen) {
     if (!warSki) FL.naechsteArt = FOLGE[(FOLGE.indexOf(FL.art) + 1) % FOLGE.length];
     FL.schlittenBei = 0;
     FL.rueck = .001; blende.style.opacity = 1;
-    T.welt(); T.musik(aktZone);
+    T.welt(); T.musik(zoneMusik());
     meldung(warSki ? "Unten angekommen!" : warDuell ? "Weiter geht's!" : warNass ? "Wieder an Land!" : "Gelandet!",
       `${W.zonen[aktZone].name} · ${{ luft: "nächster Flug", wasser: "Bootsfahrt", duell: "Kissenschlacht", folie: "Einpacken" }[FL.naechsteArt]} in ${bisNaechste.toLocaleString("de-DE")} Punkten`);
   }

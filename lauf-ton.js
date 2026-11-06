@@ -75,6 +75,7 @@ export function ton() {
     { bpm: 96, mel: [74, _, 77, _, 81, _, 79, 77, 76, _, 74, _, 73, _, _, _, 74, _, 77, _, 79, _, 81, _, 82, _, 81, _, 74, _, _, _], bass: [38, 46, 45, 38], klang: "glocke", trommel: false },
     { bpm: 132, mel: [76, _, 79, 81, 83, _, 81, _, 79, _, 76, _, 74, _, 76, _, 78, _, 81, 83, 86, _, 83, _, 81, _, 79, 78, 76, _, _, _], bass: [40, 45, 47, 45], klang: "triangle", trommel: true },   // Luftwelt
     { bpm: 144, mel: [79, _, 76, _, 79, _, 84, _, 83, _, 79, _, 76, _, 74, _, 76, 77, 79, _, 81, _, 79, _, 77, _, 76, _, 74, _, _, _], bass: [48, 43, 45, 43], klang: "glocke", trommel: true },   // Schlittenfahrt
+    { bpm: 116, mel: [69, _, 72, 74, _, 76, _, 74, 72, _, 69, _, 67, _, 69, _, 72, _, 74, 76, _, 79, _, 76, 74, _, 72, _, 69, _, _, _], bass: [45, 43, 41, 43], klang: "triangle", trommel: true },   // Dschungel
   ];
   let stueck = null, schrittNr = 0, naechste = 0, takt = null;
   function planen() {

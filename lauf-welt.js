@@ -1047,7 +1047,7 @@ export function welt(T, handy) {
     laub: ["#d2691e", "#e8a33d", "#b33a1f", "#f2c14e", "#9c4a1a"].map(c => std({ color: c, roughness: .9 })),
     eis: std({ color: "#bfe4ff", roughness: .05, metalness: .3, transparent: true, opacity: .75, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 }),
   };
-  function weltHindernis(typ, breite) {
+  function weltHindernis(typ, breite, extra) {
     const g = new T.Group();
     if (typ === "heuballen" || typ === "schneeball") {     // rollt auf Fröbelinchen zu (Drehung um die Querachse)
       const r = typ === "heuballen" ? .7 : .5;
@@ -1092,6 +1092,20 @@ export function welt(T, handy) {
       const ls = [];
       for (let i = 0; i < 6; i++) ls.push(laterne(g, -breite / 2 + .5 + i * (breite - 1) / 5, 1.6, 0, .9));
       bewege(g, (o, t) => ls.forEach((l, i) => { l.rotation.x = Math.sin(t * 2 + i) * .15; }));
+    } else if (typ === "liane") {                              // Liane quer über den Weg: ducken
+      for (const x of [-breite / 2, breite / 2]) teil(zyl(.22, .3, 2.6, 10), mat.rinde, g, x, 1.3, 0);
+      const kurve = new T.CatmullRomCurve3([[-breite / 2, 2.2], [-breite / 4, 1.56], [0, 1.43], [breite / 4, 1.56], [breite / 2, 2.2]].map(([x, y]) => new T.Vector3(x, y, 0)));
+      teil(new T.TubeGeometry(kurve, 24, .07, 6), J_MAT.liane, g);
+      for (let i = 0; i < 9; i++) {
+        const q = kurve.getPoint(.1 + i * .1), b = teil(kugel, J_MAT.blatt, g, q.x, q.y - .04, zufall(-.08, .08));
+        b.scale.set(.17, .05, .1); b.rotation.set(zufall(-.5, .5), zufall(0, 3), zufall(-.6, .6));
+      }
+      for (const x of [-breite / 2 + .45, breite / 2 - .45]) teil(zyl(.03, .03, 1.1, 5), J_MAT.liane, g, x, 1.65, .1);   // hängende Enden
+    } else if (typ === "affe") {                               // Affe auf der Hecke wirft eine Banane auf den Weg: drüberspringen
+      const spurX = extra || 0, seite = spurX > 0 ? 1 : spurX < 0 ? -1 : wahl([-1, 1]);
+      const a = wurfAffe(); a.gruppe.position.set(seite * (breite / 2 + .55) - spurX, 1.45, 0); a.gruppe.rotation.y = seite * Math.PI / 2; a.gruppe.scale.setScalar(1.6); g.add(a.gruppe);
+      const b = banane(); b.visible = false; g.add(b);
+      Object.assign(g.userData, { affe: a.gruppe, arm: a.arm, affeY: 1.45, banane: b, wurf: -1, start: new T.Vector3(seite * (breite / 2 + .3) - spurX, 2.5, 0) });
     } else if (typ === "eis") {                                // glatte Eisfläche: man lenkt kurz langsamer
       const k = new T.Mesh(new T.PlaneGeometry(breite, 3).rotateX(-Math.PI / 2), H_MAT.eis); k.position.y = .06; k.receiveShadow = true; g.add(k);
     }
@@ -1712,6 +1726,12 @@ export function welt(T, handy) {
     }
   });
   const schnee = bodenTex("#eef3f8", ["#e2eaf2", "#f8fbff", "#d8e2ec", "#ffffff"]);
+  const dschungelBoden = bodenTex("#4c7a30", ["#3f6b28", "#5a8a36", "#6b9a3a", "#36602a", "#7a6a3a"], (g, w, h) => {
+    for (let i = 0; i < 420; i++) {
+      g.fillStyle = wahl(["#2f5a22", "#3d6e2a", "#5e8f34", "#6a5530"]);
+      g.save(); g.translate(Math.random() * w, Math.random() * h); g.rotate(Math.random() * 6); g.beginPath(); g.ellipse(0, 0, zufall(3, 7), zufall(1.2, 2.5), 0, 0, 7); g.fill(); g.restore();
+    }
+  });
   const nachtWiese = bodenTex("#3d6248", ["#355a40", "#46704f", "#4f7a55", "#2f5039"], (g, w, h) => {
     for (let i = 0; i < 260; i++) {
       g.fillStyle = wahl(["#a0522d", "#c8731f", "#7a5a2a"]);
@@ -1776,6 +1796,14 @@ export function welt(T, handy) {
     flamme: std({ color: "#ffd060", emissive: "#ffa020", emissiveIntensity: 2.4, transparent: true, opacity: .85, depthWrite: false }),
     holz: mStd("#4a3020", .95), stein: mStd("#77767c", .9),
     gans: std({ color: "#f7f6f0", roughness: .8, emissive: "#3a3c48", emissiveIntensity: .5 }), gansFluegel: mStd("#e4e2da", .85),
+  };
+
+  const J_MAT = {
+    stamm: mStd("#8a6a44", .9), palmBlatt: mStd("#3f8f3a", .8, { side: T.DoubleSide }), blatt: mStd("#2f7a32", .85, { side: T.DoubleSide }),
+    krone: mStd("#2c6a2c", .95), kokos: mStd("#6a4a2a", .8), liane: mStd("#5a6a2a", .9), farn: mStd("#4a9a3c", .85, { side: T.DoubleSide }),
+    bluete: ["#e5304f", "#ff7aa2", "#ff9a2a", "#c84ad6"].map(c => mStd(c, .6, { side: T.DoubleSide })), mitte: mStd("#ffd23f", .6),
+    fell: mStd("#7a4a26", .85), gesicht: mStd("#e8c39a", .8), auge: mStd("#1d1d1d", .4),
+    banane: std({ color: "#ffd83a", roughness: .55, emissive: "#6a5200", emissiveIntensity: .25 }), spitze: mStd("#4a3420", .8),
   };
 
   // --- bewegte Dinge (Windrad, Boote, Ballons, Kühe) ---
@@ -1941,6 +1969,80 @@ export function welt(T, handy) {
     return g;
   }
 
+  // ---- Dschungel ----
+  function wurfAffe() {
+    const g = new T.Group(), k = gelenk(g, 0, 0, 0);
+    teil(kugel, J_MAT.fell, k, 0, .3, 0).scale.set(.24, .28, .22);                 // Körper
+    teil(kugel, J_MAT.gesicht, k, 0, .28, -.12).scale.set(.15, .18, .12);          // Bauch
+    const kopf = gelenk(k, 0, .66, -.02);
+    teil(kugel, J_MAT.fell, kopf).scale.setScalar(.2);
+    teil(kugel, J_MAT.gesicht, kopf, 0, -.03, -.13).scale.set(.14, .12, .09);
+    for (const sx of [-1, 1]) {
+      teil(kugel, J_MAT.fell, kopf, sx * .2, .02, 0).scale.set(.07, .08, .04);
+      teil(kugel, J_MAT.gesicht, kopf, sx * .21, .02, -.012).scale.set(.04, .05, .02);
+      teil(kugel, J_MAT.auge, kopf, sx * .06, .05, -.185).scale.setScalar(.028);
+      teil(zyl(.05, .05, .36, 6), J_MAT.fell, k, sx * .12, .12, -.2).rotation.x = Math.PI / 2.4;   // Beine baumeln
+    }
+    for (let i = 0; i < 7; i++) teil(kugel, J_MAT.fell, k, 0, .18 - i * .08, .22 + Math.sin(i * .7) * .12).scale.setScalar(.045);   // Ringelschwanz
+    const arm = gelenk(k, .23, .48, 0); teil(zyl(.045, .045, .36, 6), J_MAT.fell, arm, 0, .18, 0); arm.rotation.x = -.6;   // Wurfarm
+    teil(zyl(.045, .045, .34, 6), J_MAT.fell, k, -.24, .34, -.04).rotation.z = -.4;
+    return { gruppe: g, arm, kopf };
+  }
+  function banane() {
+    const g = new T.Group();
+    const b = teil(new T.TorusGeometry(.17, .05, 8, 14, Math.PI * .7), J_MAT.banane, g, 0, .06, 0); b.rotation.x = -Math.PI / 2;
+    teil(kugel, J_MAT.spitze, g, .17, .06, 0).scale.setScalar(.035);
+    g.scale.setScalar(2.6); return g;
+  }
+  function palme() {
+    const g = new T.Group(), n = 7, neig = zufall(-.25, .25);
+    let x = 0, y = 0;
+    for (let i = 0; i < n; i++) {                     // leicht gebogener Stamm aus Ringen
+      const seg = teil(zyl(.16 - i * .01, .2 - i * .01, .62, 8), J_MAT.stamm, g, x, y + .3, 0); seg.rotation.z = -neig * (i + 1) * .3;
+      x += Math.sin(neig * (i + 1) * .3) * .6; y += .58;
+    }
+    for (let i = 0; i < 7; i++) {
+      const a = gelenk(g, x, y + .1, 0); a.rotation.y = i / 7 * Math.PI * 2 + zufall(-.2, .2);
+      const b = gelenk(a, 0, 0, 0); b.rotation.z = -zufall(.25, .55);
+      teil(kugel, J_MAT.palmBlatt, b, 1.1, 0, 0).scale.set(1.2, .04, .26);
+    }
+    for (let i = 0; i < 3; i++) teil(kugel, J_MAT.kokos, g, x + Math.cos(i * 2.1) * .15, y - .05, Math.sin(i * 2.1) * .15).scale.setScalar(.12);
+    return bewege(g, (o, t) => { o.rotation.z = Math.sin(t * .9) * .015; });
+  }
+  function urwaldbaum() {
+    const g = new T.Group(), h = zufall(3.8, 4.8);
+    teil(zyl(.32, .5, h, 10), mat.rinde, g, 0, h / 2, 0);
+    for (let i = 0; i < 5; i++) teil(kugel, J_MAT.krone, g, zufall(-1.3, 1.3), h + zufall(-.1, .8), zufall(-1.3, 1.3)).scale.set(zufall(1.3, 1.9), zufall(.8, 1.1), zufall(1.3, 1.9));
+    for (let i = 0; i < 4; i++) { const l = zufall(1.5, 2.8); teil(zyl(.03, .03, l, 5), J_MAT.liane, g, zufall(-1.4, 1.4), h - l / 2 + .2, zufall(-1.4, 1.4)); }
+    return g;
+  }
+  function farn() {
+    const g = new T.Group();
+    for (let i = 0; i < 9; i++) {
+      const a = gelenk(g, 0, .05, 0); a.rotation.y = i / 9 * Math.PI * 2 + zufall(-.2, .2);
+      const b = gelenk(a, 0, 0, 0); b.rotation.z = zufall(.5, .9);
+      teil(kugel, J_MAT.farn, b, .55, 0, 0).scale.set(.6, .03, .14);
+    }
+    g.scale.setScalar(zufall(.9, 1.5)); return g;
+  }
+  function blueten() {
+    const g = new T.Group();
+    for (let i = 0; i < 3; i++) {
+      const x = zufall(-1, 1), z = zufall(-1, 1), y = zufall(.6, 1.1), m = wahl(J_MAT.bluete);
+      teil(zyl(.025, .03, y, 5), J_MAT.farn, g, x, y / 2, z);
+      for (let k = 0; k < 5; k++) { const w = k / 5 * Math.PI * 2; const b = teil(kugel, m, g, x + Math.cos(w) * .14, y + .02, z + Math.sin(w) * .14); b.scale.set(.13, .03, .07); b.rotation.y = -w; }
+      teil(kugel, J_MAT.mitte, g, x, y + .04, z).scale.setScalar(.05);
+    }
+    teil(kugel, J_MAT.farn, g, 0, .15, 0).scale.set(.7, .25, .7);
+    return g;
+  }
+  function affeImBaum() {                      // Affe sitzt auf einem Baumstumpf und winkt
+    const g = new T.Group();
+    teil(zyl(.4, .5, 1, 10), mat.rinde, g, 0, .5, 0);
+    const a = wurfAffe(); a.gruppe.position.y = 1; g.add(a.gruppe);
+    return bewege(g, (o, t) => { a.arm.rotation.x = -2.6 + Math.sin(t * 5) * .4; a.kopf.rotation.y = Math.sin(t * .8) * .5; });
+  }
+
   // runde Papierlaterne mit Leuchtschein, hängt an einem Gelenk und kann schaukeln
   function laterne(eltern, x, y, z, s = 1) {
     const l = gelenk(eltern, x, y, z), m = wahl(L_MAT.papier);
@@ -1998,6 +2100,8 @@ export function welt(T, handy) {
       deko: [laternenPfahl, laternenPfahl, laternenBeet, nachtHaus, martinsfeuer, baum], wetter: "funken" },
     { name: "Winterland", unter: "Brrr, es schneit!", huegel: "#e6edf3", kronen: "#cfdbe3", boden: schnee, nebel: "#e9eef4", himmel: "#dfe8f2", sonne: "#f2f6ff",
       deko: [tanne, tanne, tanne, schneemann], wetter: "schnee", hecke: "schnee" },
+    { name: "Dschungel", unter: "Affen, Lianen und Bananen", huegel: "#3f7a3a", kronen: "#2e6b2a", boden: dschungelBoden, nebel: "#d4ead0", himmel: "#eef8e8", sonne: "#fff1c2",
+      deko: [palme, palme, urwaldbaum, urwaldbaum, farn, farn, blueten, affeImBaum], wetter: "falter", musik: 8, weg: "erde", rand: "dschungel", dicht: true },
   ];
   const STIMMUNG = [
     { farbe: "#fff2e0", saett: 1.12, kontrast: 1.04, glanz: .55, licht: 2.9, himmel: .85 },   // warmer Morgen
@@ -2006,10 +2110,84 @@ export function welt(T, handy) {
     { farbe: "#ffdcb4", saett: 1.2, kontrast: 1.08, glanz: .6, licht: 2.6, himmel: .75 },     // goldener Abend
     { farbe: "#d2d8ff", saett: 1.05, kontrast: 1.08, glanz: 1.1, licht: 1.15, himmel: .55, laterne: 4.5, scheibe: "#9fb0e0" },   // Laternennacht
     { farbe: "#e4eeff", saett: .9, kontrast: 1.06, glanz: .55, licht: 2.4, himmel: 1.0 },     // kühles Blau
+    { farbe: "#f2ffe6", saett: 1.22, kontrast: 1.06, glanz: .6, licht: 2.7, himmel: .9 },     // feuchtwarmes Grün
   ];
   ZONEN.forEach((z, i) => { z.stimmung = STIMMUNG[i]; });
   const zoneFuer = (nr) => Math.floor(nr / 3) % ZONEN.length;
   const dekoFuer = (z) => wahl(ZONEN[z].deko)();
+
+  // --- Dschungel: Feldweg statt Pflaster und eine dichte Pflanzenwand statt der Hecke ---
+  const feldwegHoehe = document.createElement("canvas"); feldwegHoehe.width = 128; feldwegHoehe.height = 512;
+  const feldweg = leinwand(128, 512, (g, w, h) => {
+    const hg = feldwegHoehe.getContext("2d"); hg.fillStyle = "#808080"; hg.fillRect(0, 0, w, h);
+    g.fillStyle = "#8d6b43"; g.fillRect(0, 0, w, h);
+    rauschen(g, w, h, 6000, ["#7a5a36", "#9a7a50", "#a5845a", "#6e5030", "#836240"], 2);
+    for (const mx of [.27, .73]) {                     // zwei ausgefahrene Spuren
+      const v = g.createLinearGradient((mx - .12) * w, 0, (mx + .12) * w, 0);
+      v.addColorStop(0, "rgba(60,40,20,0)"); v.addColorStop(.5, "rgba(60,40,20,.35)"); v.addColorStop(1, "rgba(60,40,20,0)");
+      g.fillStyle = v; g.fillRect((mx - .12) * w, 0, .24 * w, h);
+      const hv = hg.createLinearGradient((mx - .12) * w, 0, (mx + .12) * w, 0);
+      hv.addColorStop(0, "#808080"); hv.addColorStop(.5, "#5a5a5a"); hv.addColorStop(1, "#808080");
+      hg.fillStyle = hv; hg.fillRect((mx - .12) * w, 0, .24 * w, h);
+    }
+    for (let i = 0; i < 260; i++) {                    // Grasstreifen in der Mitte und an den Rändern
+      const x = wahl([zufall(.42, .58), zufall(0, .08), zufall(.92, 1)]) * w, y = Math.random() * h;
+      g.strokeStyle = wahl(["#5d8a2e", "#6f9a36", "#4a7a28"]); g.lineWidth = 1.5;
+      g.beginPath(); g.moveTo(x, y); g.lineTo(x + zufall(-2, 2), y - zufall(3, 7)); g.stroke();
+    }
+    for (let i = 0; i < 140; i++) {                    // Steinchen
+      const x = Math.random() * w, y = Math.random() * h, r = zufall(1.2, 3);
+      g.fillStyle = wahl(["#b4a48a", "#9a8c76", "#c8baa0"]); g.beginPath(); g.ellipse(x, y, r, r * .7, Math.random() * 3, 0, 7); g.fill();
+      hg.fillStyle = "#b0b0b0"; hg.beginPath(); hg.arc(x, y, r, 0, 7); hg.fill();
+    }
+  });
+  const feldwegMat = std({ map: feldweg, roughness: 1, normalMap: handy ? null : normalAus(feldwegHoehe, 3), normalScale: new T.Vector2(1, 1) });
+  function wegFuer(laenge, breite, z) {
+    if (ZONEN[z].weg !== "erde") return boden(laenge, breite);
+    const k = new T.Mesh(uvSkala(new T.PlaneGeometry(breite + .7, laenge), 1, laenge / 6).rotateX(-Math.PI / 2), feldwegMat);
+    k.receiveShadow = true; return k;
+  }
+  const dschKern = std({ map: hecke, color: "#4f7a40", roughness: 1 });
+  const dschBlattGeo = geteilt(new T.SphereGeometry(1, 10, 6).scale(1, .05, .36).translate(.95, 0, 0));   // Blatt zeigt von seinem Stiel nach +x
+  const bambusGeo = geteilt(new T.CylinderGeometry(.06, .07, 1, 7).translate(0, .5, 0));
+  const dschBlattMat = std({ roughness: .75, side: T.DoubleSide }), bambusMat = std({ color: "#8aa83a", roughness: .6 });
+  const dschFarben = ["#2f7a2e", "#3b8a34", "#4c9a3a", "#25672a", "#5aa83f", "#1f5a26", "#6bb044"].map(c => new T.Color(c));
+  // Pflanzenwand: dunkler Kern, darauf viele große Blätter; zum Weg hin nur kurze Blätter, damit nichts in die Spuren ragt.
+  // innen: Seite des Kerns, die zum Weg zeigt (+1/-1), 0 = Querwand (beide Seiten kurz, Mitte frei für die Tafel)
+  function dschungelWand(laenge, hoehe = 1.45, dicke = .8, innen = 0) {
+    const g = new T.Group(), hh = hoehe + .45;
+    teil(new T.BoxGeometry(dicke * .9, hh, laenge), dschKern, g, 0, hh / 2, 0).castShadow = !handy;
+    const n = Math.round(laenge * (handy ? 14 : 18)), bl = new T.InstancedMesh(dschBlattGeo, dschBlattMat, n);
+    const m = new T.Matrix4(), q = new T.Quaternion(), e = new T.Euler(0, 0, 0, "YZX"), v = new T.Vector3(), sk = new T.Vector3();
+    for (let i = 0; i < n; i++) {
+      const z = zufall(-laenge / 2, laenge / 2), oben = Math.random() < .3;
+      let seite = Math.random() < .5 ? -1 : 1, kurz = innen === 0 || seite === innen;
+      if (!oben && innen === 0 && Math.abs(z) < 1.3) { seite = 0; }
+      let gr, x, y, yaw, kipp;
+      if (oben || seite === 0) { x = zufall(-dicke / 2, dicke / 2); y = hh - zufall(0, .15); yaw = Math.random() * Math.PI * 2; kipp = zufall(-.5, .45); gr = zufall(.45, .95); if (innen && Math.cos(yaw) * innen > .2) gr *= .45; }
+      else {
+        x = seite * dicke * .42; y = zufall(.05, hh);
+        yaw = (seite > 0 ? 0 : Math.PI) + zufall(-.9, .9); kipp = -zufall(.15, .9); gr = kurz ? zufall(.22, .4) : zufall(.5, 1.05);
+      }
+      q.setFromEuler(e.set(zufall(-.6, .6), yaw, kipp));
+      m.compose(v.set(x, y, z), q, sk.set(gr, gr, gr * zufall(.8, 1.3)));
+      bl.setMatrixAt(i, m); bl.setColorAt(i, wahl(dschFarben));
+    }
+    bl.castShadow = !handy; bl.receiveShadow = true; g.add(bl);
+    const nb = Math.max(1, Math.round(laenge / (handy ? 3 : 2))), ba = new T.InstancedMesh(bambusGeo, bambusMat, nb * 3);
+    for (let i = 0; i < nb; i++) {                     // Bambus und hohe Stängel ragen aus der Wand
+      const z = zufall(-laenge / 2, laenge / 2), x = zufall(-dicke * .3, dicke * .3) + (innen ? -innen * .2 : 0);
+      for (let k = 0; k < 3; k++) {
+        q.setFromEuler(e.set(zufall(-.12, .12), 0, zufall(-.12, .12)));
+        m.compose(v.set(x + zufall(-.2, .2), 0, z + zufall(-.25, .25)), q, sk.set(1, zufall(2.6, 4.2), 1)); ba.setMatrixAt(i * 3 + k, m);
+      }
+    }
+    ba.castShadow = !handy; g.add(ba);
+    return g;
+  }
+  function randFuer(laenge, z, hoehe, dicke, innen = 0) {
+    return ZONEN[z].rand === "dschungel" ? dschungelWand(laenge, hoehe, dicke, innen) : heckeFuer(laenge, z, hoehe, dicke);
+  }
 
   // Hecken je Welt: im Herbst bunt, im Winter mit Schnee auf der Krone
   const heckeHerbst = std({ map: hecke, color: "#ffc27a", roughness: 1, normalMap: mat.hecke.normalMap });
@@ -2060,7 +2238,7 @@ export function welt(T, handy) {
     };
     return m;
   };
-  const grasMat = ["#82c24f", "#97c757", "#74b86a", "#c9a24a", "#5f8f5a", "#e3ecf2"].map(c =>
+  const grasMat = ["#82c24f", "#97c757", "#74b86a", "#c9a24a", "#5f8f5a", "#e3ecf2", "#5aa83f"].map(c =>
     windEinbauen(std({ map: grasBild, color: c, alphaTest: .45, roughness: 1 })));
   function grasBueschel(laenge, z, breite) {
     const dichte = (handy ? .45 : 1.5) * (ZONEN[z].hecke === "schnee" ? .35 : 1);
@@ -2176,6 +2354,6 @@ export function welt(T, handy) {
   }
   const luft = new T.Group(); luft.add(wetter, voegel);
 
-  return { tanne, schneemann, stuhl, STUHL_SITZ, folienRolle, folieStoff, folieKante, marlenaBauen, kissen, duellBuehne, wasserNormal: wellen, rekordFahne, figurBauen, FIGUREN, leoBauen, FIGUR_INFO, toertchen, frauBauen, sprechblase, froebelBanner, froebelHeckenTafel, froebelTafel, froebelSchild, kontaktSchatten, grasBueschel, dampf, weltHindernis, entsorgen, pfeilSchild, bodenPfeil, AUSSTATTUNG, ausstattungSetzen, zonen: ZONEN, zoneFuer, dekoFuer, heckeFuer, blumenFuer, bodenFlaeche, bodenFolgen, verbinden, zoneWechsel, zoneSchritt,
+  return { wegFuer, randFuer, tanne, schneemann, stuhl, STUHL_SITZ, folienRolle, folieStoff, folieKante, marlenaBauen, kissen, duellBuehne, wasserNormal: wellen, rekordFahne, figurBauen, FIGUREN, leoBauen, FIGUR_INFO, toertchen, frauBauen, sprechblase, froebelBanner, froebelHeckenTafel, froebelTafel, froebelSchild, kontaktSchatten, grasBueschel, dampf, weltHindernis, entsorgen, pfeilSchild, bodenPfeil, AUSSTATTUNG, ausstattungSetzen, zonen: ZONEN, zoneFuer, dekoFuer, heckeFuer, blumenFuer, bodenFlaeche, bodenFolgen, verbinden, zoneWechsel, zoneSchritt,
     animieren, wetterSchritt, voegelSchritt, luft, mat, geo, giraffeBauen, anjaBauen, boden, heckenStueck, blumen, ferne, sonnenScheibe, funke, staub, kante, dekoNeu, hindernis, stern, panzer, booster, blase, himmel, wolken, gras };
 }
