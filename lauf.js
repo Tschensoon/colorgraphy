@@ -31,7 +31,7 @@ if (rahmen) {
   function laden() {
     if (!bereit) {
       const text = losKnopf.textContent; losKnopf.disabled = true; losKnopf.textContent = "Lädt die 3D-Welt …";
-      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=37"), import("./lauf-ton.js?v=3"), import("./lauf-flug.js?v=3"), import("./lauf-effekte.js?v=3")])
+      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=38"), import("./lauf-ton.js?v=4"), import("./lauf-flug.js?v=3"), import("./lauf-effekte.js?v=3")])
         .then(([m, w, t, f, e]) => { THREE = m; T = t.ton(); aufbauen(w, f, e); losKnopf.disabled = false; losKnopf.textContent = text; });
     }
     return bereit;
@@ -105,7 +105,7 @@ if (rahmen) {
   const wahl = (l) => l[Math.floor(Math.random() * l.length)];
 
   // ---------- Aufbau ----------
-  let W, sonne, himmelKugel, wolkenGruppe, ferneGruppe, sonnenBild, aktZone = 0;
+  let W, sonne, himmelKugel, wolkenGruppe, ferneGruppe, sonnenBild, laterneLicht, aktZone = 0;
   let teilchen = [], staubTakt = 0;               // kleine Partikel (Funken, Staub)
   let NB = null, himmelLicht, schattenF, schattenA, tempoLinien;
   function aufbauen(weltModul, flugModul, fxModul) {
@@ -134,6 +134,8 @@ if (rahmen) {
     Object.assign(sonne.shadow.camera, { left: -22, right: 22, top: 22, bottom: -22, near: 1, far: 70 });
     sonne.shadow.bias = -.0004; sonne.shadow.normalBias = .03;
     szene.add(sonne, sonne.target);
+    // Laternenlicht über Fröbelinchen: bleibt immer in der Szene (sonst müssten alle Materialien neu übersetzt werden), leuchtet nur nachts
+    laterneLicht = new THREE.PointLight("#ffb45e", 0, 13, 1.3); szene.add(laterneLicht);
     uhr = new THREE.Clock();
     boden = W.bodenFlaeche(); szene.add(boden, W.luft);
     W.verbinden({ szene, himmelMat: himmelKugel.material, sonne });
@@ -274,9 +276,9 @@ if (rahmen) {
   }
   // Art des Hindernisses: block = ausweichen (sonst Rundenende), niedrig = drüberspringen, hoch = ducken, eis = rutschig
   const ART = { kloetze: "block", heuballen: "block", ball: "niedrig", balken: "niedrig", pfuetze: "niedrig", laub: "niedrig",
-    huhn: "niedrig", enten: "niedrig", schneeball: "niedrig", stange: "hoch", eis: "eis" };
-  const HOEHE = { ball: .75, balken: .45, pfuetze: .15, laub: .5, huhn: .55, enten: .45, schneeball: .8 };
-  const WELT_HINDERNISSE = [[], ["heuballen", "huhn"], ["enten"], ["laub"], ["schneeball", "eis"]];   // eigene je Welt
+    huhn: "niedrig", enten: "niedrig", schneeball: "niedrig", stange: "hoch", eis: "eis", laternen: "hoch", gans: "niedrig" };
+  const HOEHE = { ball: .75, balken: .45, pfuetze: .15, laub: .5, huhn: .55, enten: .45, schneeball: .8, gans: .75 };
+  const WELT_HINDERNISSE = [[], ["heuballen", "huhn"], ["enten"], ["laub"], ["laternen", "gans"], ["schneeball", "eis"]];   // eigene je Welt
   function hindernisNeu(ab, s, setze, schwer, vorher) {
     const extra = WELT_HINDERNISSE[ab.zone] || [];
     let typ;
@@ -295,15 +297,16 @@ if (rahmen) {
       spuren = [wahl([-1, 0, 1])];
       mesh = setze(typ === "ball" ? W.hindernis("ball") : W.weltHindernis(typ), s, spuren[0] * SPUR);
       if (typ !== "ball") bew = { vs: typ === "heuballen" ? 3 : 4.5, weg: 0, max: 7 };   // rollt auf Fröbelinchen zu
-    } else if (typ === "huhn" || typ === "enten") {
+    } else if (typ === "huhn" || typ === "enten" || typ === "gans") {
       const von = wahl([-1, 1]), x = von * (H - .4);
       mesh = setze(W.weltHindernis(typ), s, x);
-      bew = { vx: -von * (typ === "huhn" ? 1.7 : 1.1), x };                              // läuft quer über den Weg
+      bew = { vx: -von * (typ === "huhn" ? 1.7 : typ === "gans" ? 1.3 : 1.1), x };                              // läuft quer über den Weg
       spuren = [Math.round(x / SPUR)];
     } else if (typ === "laub" || typ === "eis") {
       setze(W.weltHindernis(typ, 2 * H), s, 0);
     } else if (typ === "balken") setze(W.hindernis("balken", 2 * H - .3), s, 0);
     else if (typ === "pfuetze") setze(W.hindernis("pfuetze", 2 * H), s, 0);
+    else if (typ === "laternen") setze(W.weltHindernis("laternen", 2 * H - .2), s, 0);   // Laternenkette quer: ducken
     else setze(W.hindernis("stange", 2 * H - .2), s, 0);   // Turnstange quer: ducken
     const h = { nr: ab.nr, ab, s, typ, art: ART[typ], hoehe: HOEHE[typ] || 0, tiefe: typ === "eis" ? 1.5 : .55, spuren, mesh, bew, getroffen: false };
     hindernisse.push(h);
@@ -424,7 +427,7 @@ if (rahmen) {
   // ---------- Pause und Ton ----------
   function pauseUm() {
     if (zustand === "laeuft") { zustand = "pause"; pauseFeld.hidden = false; T.musikStop(); }
-    else if (zustand === "pause") { zustand = "laeuft"; pauseFeld.hidden = true; uhr.getDelta(); T.musik(FL.an ? 5 : aktZone); }
+    else if (zustand === "pause") { zustand = "laeuft"; pauseFeld.hidden = true; uhr.getDelta(); T.musik(FL.an ? 6 : aktZone); }
   }
   pauseKnopf.addEventListener("click", () => { if (zustand === "laeuft" || zustand === "pause") pauseUm(); });
   $(".lauf-weiter").addEventListener("click", pauseUm);
@@ -511,7 +514,8 @@ if (rahmen) {
     { id: "see", text: "Lauf bis an den See", lohn: 30, ok: () => R.welt >= 2 },
     { id: "sterne60", text: "Sammle 60 Sterne in einer Runde", lohn: 40, ok: () => sternZahl >= 60 },
     { id: "herbst", text: "Lauf bis in den Herbstwald", lohn: 40, ok: () => R.welt >= 3 },
-    { id: "winter", text: "Lauf bis ins Winterland", lohn: 60, ok: () => R.welt >= 4 },
+    { id: "laterne", text: "Lauf bis zum Laternenfest", lohn: 50, ok: () => R.welt >= 4 },
+    { id: "winter", text: "Lauf bis ins Winterland", lohn: 60, ok: () => R.welt >= 5 },
     { id: "meter2500", text: "Lauf 2500 Meter", lohn: 80, ok: () => strecke >= 2500 },
     { id: "luftwelt", text: "Flieg in die Luftwelt", lohn: 100, ok: () => R.flug >= 1 },
     { id: "ringe10", text: "Flieg durch 10 Ringe in einer Runde", lohn: 60, ok: () => R.ringe >= 10 },
@@ -1247,7 +1251,7 @@ if (rahmen) {
       renderer.initTexture(z.boden);
     });
     ["kloetze", "ball", "balken", "pfuetze", "stange"].forEach(t => dazu(W.hindernis(t, 4)));
-    ["heuballen", "huhn", "enten", "laub", "schneeball", "eis"].forEach(t => dazu(W.weltHindernis(t, 4)));
+    ["heuballen", "huhn", "enten", "laub", "schneeball", "eis", "laternen", "gans"].forEach(t => dazu(W.weltHindernis(t, 4)));
     ["schild", "schubs", "magnet", "doppelt"].forEach(t => dazu(W.booster(t)));
     ["logo", "ohren", "kitas"].forEach(t => { dazu(W.froebelHeckenTafel(t)); dazu(W.froebelTafel(t)); });
     ["ohren", "kitas"].forEach(t => dazu(W.froebelSchild(t)));
@@ -1277,16 +1281,18 @@ if (rahmen) {
   }
   // Licht und Bildstimmung der aktuellen Welt (bzw. Sonnenuntergang in der Luftwelt), weich überblendet
   const LUFT_STIMMUNG = { farbe: "#fff1e4", saett: 1.2, kontrast: 1.05, glanz: .8, licht: 2.7, himmel: .9 };
-  const lichtZiel = { sonne: 2.8, himmel: .85 };
+  const lichtZiel = { sonne: 2.8, himmel: .85, laterne: 0, scheibe: null };
   function stimmungSetzen(sofort) {
     const st = FL.an ? (FL.art === "wasser" ? W.zonen[2].stimmung : LUFT_STIMMUNG) : W.zonen[aktZone].stimmung;
-    lichtZiel.sonne = st.licht; lichtZiel.himmel = st.himmel;
+    lichtZiel.sonne = st.licht; lichtZiel.himmel = st.himmel; lichtZiel.laterne = st.laterne || 0; (lichtZiel.scheibe = lichtZiel.scheibe || new THREE.Color()).set(st.scheibe || "#ffffff");
     if (NB) { NB.stimmung(st); if (sofort) NB.schritt(0, true); }
-    if (sofort) { sonne.intensity = st.licht; himmelLicht.intensity = st.himmel; }
+    if (sofort) { sonne.intensity = st.licht; himmelLicht.intensity = st.himmel; laterneLicht.intensity = lichtZiel.laterne; sonnenBild.material.color.copy(lichtZiel.scheibe); }
   }
   function lichtSchritt(dt) {
     const k = Math.min(1, dt * .8);
     sonne.intensity += (lichtZiel.sonne - sonne.intensity) * k; himmelLicht.intensity += (lichtZiel.himmel - himmelLicht.intensity) * k;
+    laterneLicht.intensity += (lichtZiel.laterne - laterneLicht.intensity) * k; if (lichtZiel.scheibe) sonnenBild.material.color.lerp(lichtZiel.scheibe, k);
+    if (spieler) { laterneLicht.position.copy(spieler.gruppe.position); laterneLicht.position.y += 3.4; }
     if (NB) NB.schritt(dt);
     wolkenGruppe.rotation.y += dt * .004;                 // die Wolken ziehen langsam
     const turbo = B.turbo > 0 && zustand === "laeuft";
@@ -1761,7 +1767,7 @@ if (rahmen) {
     stimmungSetzen(); schattenF.visible = schattenA.visible = false; strahlen.visible = !nass;
     while (FL.naechst > -170) reiheNeu();
     kamPos = null; wackeln = 0;
-    T.welt(); T.musik(nass ? 2 : 5);
+    T.welt(); T.musik(nass ? 2 : 6);
     if (nass) meldung("Level 3: Wasserwelt", handy ? "Zieh mit dem Finger nach links und rechts" : "Lenk mit ← und →");
     else meldung("Level 2: Luftwelt", handy ? "Zieh mit dem Finger, um zu fliegen" : "Lenk mit den Pfeiltasten");
   }

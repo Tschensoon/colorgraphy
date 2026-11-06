@@ -1074,6 +1074,24 @@ export function welt(T, handy) {
         const k = teil(kugel, wahl(H_MAT.laub), g, zufall(-breite / 2 + .3, breite / 2 - .3), .1, zufall(-.35, .35));
         k.scale.set(zufall(.35, .6), zufall(.2, .4), zufall(.3, .5));
       }
+    } else if (typ === "gans") {                               // Martinsgans watschelt quer über den Weg
+      const k = gelenk(g, 0, 0, 0); g.userData.huepf = k;
+      teil(kugel, L_MAT.gans, k, 0, .38, .05).scale.set(.26, .24, .38);
+      teil(zyl(.06, .08, .42, 8), L_MAT.gans, k, 0, .66, -.24).rotation.x = -.25;
+      teil(kugel, L_MAT.gans, k, 0, .88, -.3).scale.set(.11, .11, .14);
+      teil(kegel(.05, .14, 8), H_MAT.schnabel, k, 0, .86, -.47).rotation.x = -Math.PI / 2;
+      teil(kegel(.12, .22, 6), L_MAT.gans, k, 0, .5, .45).rotation.x = Math.PI / 2 - .5;
+      for (const sx of [-1, 1]) {
+        teil(zyl(.02, .02, .2, 6), H_MAT.schnabel, k, sx * .09, .1, .05);
+        teil(kugel, H_MAT.schwarz, k, sx * .06, .91, -.38).scale.setScalar(.02);
+        teil(kugel, L_MAT.gansFluegel, k, sx * .2, .42, .1).scale.set(.08, .16, .3);
+      }
+    } else if (typ === "laternen") {                           // Laternenkette quer über den Weg: ducken
+      for (const x of [-breite / 2, breite / 2]) teil(zyl(.07, .09, 1.7, 10), L_MAT.stab, g, x, .85, 0);
+      const seil = teil(zyl(.025, .025, breite, 6), L_MAT.draht, g, 0, 1.62, 0); seil.rotation.z = Math.PI / 2;
+      const ls = [];
+      for (let i = 0; i < 6; i++) ls.push(laterne(g, -breite / 2 + .5 + i * (breite - 1) / 5, 1.6, 0, .9));
+      bewege(g, (o, t) => ls.forEach((l, i) => { l.rotation.x = Math.sin(t * 2 + i) * .15; }));
     } else if (typ === "eis") {                                // glatte Eisfläche: man lenkt kurz langsamer
       const k = new T.Mesh(new T.PlaneGeometry(breite, 3).rotateX(-Math.PI / 2), H_MAT.eis); k.position.y = .06; k.receiveShadow = true; g.add(k);
     }
@@ -1694,6 +1712,12 @@ export function welt(T, handy) {
     }
   });
   const schnee = bodenTex("#eef3f8", ["#e2eaf2", "#f8fbff", "#d8e2ec", "#ffffff"]);
+  const nachtWiese = bodenTex("#3d6248", ["#355a40", "#46704f", "#4f7a55", "#2f5039"], (g, w, h) => {
+    for (let i = 0; i < 260; i++) {
+      g.fillStyle = wahl(["#a0522d", "#c8731f", "#7a5a2a"]);
+      g.save(); g.translate(Math.random() * w, Math.random() * h); g.rotate(Math.random() * 6); g.beginPath(); g.ellipse(0, 0, zufall(2, 4), zufall(1, 2), 0, 0, 7); g.fill(); g.restore();
+    }
+  });
 
   // --- zusätzliche Materialien ---
   const mStd = (farbe, rau = .8, extra = {}) => std({ color: farbe, roughness: rau, ...extra });
@@ -1742,6 +1766,16 @@ export function welt(T, handy) {
     tanne: mStd("#2f6b3a", .9), schneeKappe: mStd("#ffffff", .9), karotte: mStd("#f07b1c", .6), hut: mStd("#222", .5),
     ballon: ["#e53935", "#1e88e5", "#fdd835", "#43a047", "#8e24aa"].map(c => new T.MeshPhysicalMaterial({ color: c, roughness: .25, clearcoat: 1 })),
     faden: new T.LineBasicMaterial({ color: "#666" }), windrad: mStd("#f7f7f7", .5),
+  };
+
+  const L_MAT = {
+    papier: ["#ff8a3d", "#ffd24a", "#ff5a6e", "#7ad0ff", "#9cff7a", "#d58cff"].map(c => std({ color: c, emissive: c, emissiveIntensity: 1.5, roughness: .7 })),
+    stab: mStd("#5a3d24", .9), draht: mStd("#2a2a2a", .5),
+    fenster: std({ color: "#ffcf6e", emissive: "#ffb94a", emissiveIntensity: 1.6 }),
+    glut: std({ color: "#ff7a1a", emissive: "#ff6a10", emissiveIntensity: 2, roughness: 1 }),
+    flamme: std({ color: "#ffd060", emissive: "#ffa020", emissiveIntensity: 2.4, transparent: true, opacity: .85, depthWrite: false }),
+    holz: mStd("#4a3020", .95), stein: mStd("#77767c", .9),
+    gans: std({ color: "#f7f6f0", roughness: .8, emissive: "#3a3c48", emissiveIntensity: .5 }), gansFluegel: mStd("#e4e2da", .85),
   };
 
   // --- bewegte Dinge (Windrad, Boote, Ballons, Kühe) ---
@@ -1907,6 +1941,50 @@ export function welt(T, handy) {
     return g;
   }
 
+  // runde Papierlaterne mit Leuchtschein, hängt an einem Gelenk und kann schaukeln
+  function laterne(eltern, x, y, z, s = 1) {
+    const l = gelenk(eltern, x, y, z), m = wahl(L_MAT.papier);
+    teil(zyl(.012, .012, .2 * s, 4), L_MAT.draht, l, 0, -.1 * s, 0);
+    const k = teil(kugel, m, l, 0, -.22 * s, 0); k.scale.set(.19 * s, .23 * s, .19 * s); k.castShadow = false;
+    teil(zyl(.07 * s, .07 * s, .03, 10), L_MAT.draht, l, 0, -.45 * s, 0);
+    const f = funke(m.color); f.scale.setScalar(1.3 * s); f.position.y = -.22 * s; l.add(f);
+    return l;
+  }
+  function laternenPfahl() {
+    const g = new T.Group(), h = zufall(2.3, 2.8);
+    teil(zyl(.05, .07, h, 8), L_MAT.stab, g, 0, h / 2, 0);
+    teil(zyl(.03, .03, .8, 6), L_MAT.stab, g, .35, h - .05, 0).rotation.z = Math.PI / 2;
+    const l = laterne(g, .72, h - .05, 0, 1.3);
+    return bewege(g, (o, t) => { l.rotation.z = Math.sin(t * 1.6) * .12; l.rotation.x = Math.sin(t * 1.1) * .08; });
+  }
+  function laternenBeet() {                    // Laternen an Stöcken, in die Wiese gesteckt
+    const g = new T.Group(), ls = [];
+    for (let i = 0; i < 4; i++) {
+      const st = gelenk(g, zufall(-1, 1), 0, (i - 1.5) * .8); st.rotation.y = zufall(-.6, .6);
+      teil(zyl(.015, .02, 1.5, 5), L_MAT.stab, st, 0, .7, .13).rotation.x = .35;
+      ls.push(laterne(st, 0, 1.4, .26, .85));
+    }
+    return bewege(g, (o, t) => ls.forEach((l, i) => { l.rotation.x = Math.sin(t * 1.8 + i) * .14; }));
+  }
+  function martinsfeuer() {
+    const g = new T.Group(), fl = [];
+    for (let i = 0; i < 10; i++) { const w = i / 10 * Math.PI * 2; teil(kugel, L_MAT.stein, g, Math.cos(w) * 1.1, .1, Math.sin(w) * 1.1).scale.set(.22, .16, .2); }
+    for (let i = 0; i < 6; i++) { const w = i / 6 * Math.PI * 2; teil(zyl(.08, .1, 1.6, 6), L_MAT.holz, g, Math.cos(w) * .35, .6, Math.sin(w) * .35).rotation.set(-Math.sin(w) * .45, 0, Math.cos(w) * .45); }
+    teil(kugel, L_MAT.glut, g, 0, .12, 0).scale.set(.55, .15, .55);
+    for (let i = 0; i < 3; i++) { const f = teil(kegel(.38 - i * .09, 1.3 - i * .25, 8), L_MAT.flamme, g, zufall(-.12, .12), .75 + i * .1, zufall(-.12, .12)); f.castShadow = false; fl.push(f); }
+    const schein = funke("#ff9a3a"); schein.scale.setScalar(4.5); schein.position.y = 1; g.add(schein);
+    return bewege(g, (o, t) => {
+      fl.forEach((f, i) => f.scale.set(1 + Math.sin(t * 9 + i) * .1, 1 + Math.sin(t * 13 + i * 2) * .18, 1 + Math.cos(t * 8 + i) * .1));
+      schein.material.opacity = .75 + Math.sin(t * 11) * .15;
+    });
+  }
+  function nachtHaus() {                       // Haus mit hell erleuchteten Fenstern
+    const g = haus(), bb = new T.Box3().setFromObject(g.children[0]), b = bb.max.x, t = bb.max.z;
+    for (const sz of [-1, 1]) for (const fx of [-.55, .55]) teil(kiste(.7, .8, .05), L_MAT.fenster, g, fx * b, 1.5, sz * (t + .02)).castShadow = false;
+    for (const sx of [-1, 1]) teil(kiste(.05, .8, .7), L_MAT.fenster, g, sx * (b + .02), 1.5, 0).castShadow = false;
+    return g;
+  }
+
   const ZONEN = [
     { name: "Kita-Garten", unter: "Hier wird gespielt!", huegel: "#7fae7a", kronen: "#5d8f55", boden: gras, nebel: "#dcedf6", himmel: "#ffffff", sonne: "#ffe7c4",
       deko: [baum, baum, haus, rutsche, sandkasten, ballons], wetter: "falter" },
@@ -1916,6 +1994,8 @@ export function welt(T, handy) {
       deko: [see, see, steg, baum, ballons], wetter: "voegel" },
     { name: "Herbstwald", unter: "Die Blätter fallen", huegel: "#b8945a", kronen: "#c86a28", boden: laubBoden, nebel: "#f1e3cf", himmel: "#ffe9cf", sonne: "#ffc98a",
       deko: [herbstbaum, herbstbaum, herbstbaum, pilze, kuerbisse], wetter: "blaetter", hecke: "herbst" },
+    { name: "Laternenfest", unter: "Sankt Martin: Die Laternen leuchten", huegel: "#2c3b52", kronen: "#22323c", boden: nachtWiese, nebel: "#2e3a62", himmel: "#33467a", sonne: "#a9bcff",
+      deko: [laternenPfahl, laternenPfahl, laternenBeet, nachtHaus, martinsfeuer, baum], wetter: "funken" },
     { name: "Winterland", unter: "Brrr, es schneit!", huegel: "#e6edf3", kronen: "#cfdbe3", boden: schnee, nebel: "#e9eef4", himmel: "#dfe8f2", sonne: "#f2f6ff",
       deko: [tanne, tanne, tanne, schneemann], wetter: "schnee", hecke: "schnee" },
   ];
@@ -1924,6 +2004,7 @@ export function welt(T, handy) {
     { farbe: "#fffaf0", saett: 1.16, kontrast: 1.06, glanz: .5, licht: 3.2, himmel: .9 },     // Mittagssonne
     { farbe: "#eef6ff", saett: 1.1, kontrast: 1.04, glanz: .7, licht: 3.0, himmel: .9 },      // glitzernder See
     { farbe: "#ffdcb4", saett: 1.2, kontrast: 1.08, glanz: .6, licht: 2.6, himmel: .75 },     // goldener Abend
+    { farbe: "#d2d8ff", saett: 1.05, kontrast: 1.08, glanz: 1.1, licht: 1.15, himmel: .55, laterne: 4.5, scheibe: "#9fb0e0" },   // Laternennacht
     { farbe: "#e4eeff", saett: .9, kontrast: 1.06, glanz: .55, licht: 2.4, himmel: 1.0 },     // kühles Blau
   ];
   ZONEN.forEach((z, i) => { z.stimmung = STIMMUNG[i]; });
@@ -1979,10 +2060,10 @@ export function welt(T, handy) {
     };
     return m;
   };
-  const grasMat = ["#82c24f", "#97c757", "#74b86a", "#c9a24a", "#e3ecf2"].map(c =>
+  const grasMat = ["#82c24f", "#97c757", "#74b86a", "#c9a24a", "#5f8f5a", "#e3ecf2"].map(c =>
     windEinbauen(std({ map: grasBild, color: c, alphaTest: .45, roughness: 1 })));
   function grasBueschel(laenge, z, breite) {
-    const dichte = (handy ? .45 : 1.5) * (z === 4 ? .35 : 1);
+    const dichte = (handy ? .45 : 1.5) * (ZONEN[z].hecke === "schnee" ? .35 : 1);
     const n = Math.max(1, Math.round(laenge * breite * dichte)), k = new T.InstancedMesh(grasGeo, grasMat[z], n);
     const m = new T.Matrix4(), q = new T.Quaternion(), e = new T.Euler();
     for (let i = 0; i < n; i++) {
@@ -2042,18 +2123,20 @@ export function welt(T, handy) {
   wetterGeo.setAttribute("position", new T.BufferAttribute(wetterPos, 3)); wetterGeo.setAttribute("color", new T.BufferAttribute(wetterFarbe, 3));
   const wetterMat = { schnee: new T.PointsMaterial({ map: punktBild("rgba(255,255,255,1)"), size: .22, transparent: true, depthWrite: false, vertexColors: true }),
     blaetter: new T.PointsMaterial({ map: punktBild(0, "blatt"), size: .32, transparent: true, depthWrite: false, vertexColors: true, alphaTest: .3 }),
-    falter: new T.PointsMaterial({ map: punktBild(0, "blatt"), size: .28, transparent: true, depthWrite: false, vertexColors: true, alphaTest: .3 }) };
+    falter: new T.PointsMaterial({ map: punktBild(0, "blatt"), size: .28, transparent: true, depthWrite: false, vertexColors: true, alphaTest: .3 }),
+    funken: new T.PointsMaterial({ map: punktBild("rgba(255,255,255,1)"), size: .18, transparent: true, depthWrite: false, vertexColors: true, blending: T.AdditiveBlending }) };
   const wetter = new T.Points(wetterGeo, wetterMat.schnee); wetter.frustumCulled = false; wetter.visible = false;
   let wetterTyp = null;
   function wetterArt(typ) {
     wetterTyp = typ === "voegel" ? null : typ; wetter.visible = !!wetterTyp; voegelAn = typ === "voegel" || typ === "falter";
     if (!wetterTyp) return;
     wetter.material = wetterMat[wetterTyp];
-    const farben = { schnee: ["#ffffff"], blaetter: ["#e07b1f", "#f2a531", "#b8401b", "#d9531e", "#f6c24a"], falter: ["#ffd23f", "#ff7aa2", "#6ec6ff", "#ffffff", "#c8a2ff"] }[wetterTyp];
-    const n = wetterTyp === "falter" ? 40 : ANZ;
+    const farben = { schnee: ["#ffffff"], blaetter: ["#e07b1f", "#f2a531", "#b8401b", "#d9531e", "#f6c24a"], falter: ["#ffd23f", "#ff7aa2", "#6ec6ff", "#ffffff", "#c8a2ff"],
+      funken: ["#ffd27a", "#ffb347", "#fff0b0", "#ff9a5a"] }[wetterTyp];
+    const n = wetterTyp === "falter" ? 40 : wetterTyp === "funken" ? 160 : ANZ;
     for (let i = 0; i < ANZ; i++) {
       const c = new T.Color(wahl(farben));
-      wetterPos[i * 3] = zufall(-25, 25); wetterPos[i * 3 + 1] = i < n ? (wetterTyp === "falter" ? zufall(.4, 2.5) : zufall(0, 18)) : -100; wetterPos[i * 3 + 2] = zufall(-30, 15);
+      wetterPos[i * 3] = zufall(-25, 25); wetterPos[i * 3 + 1] = i < n ? (wetterTyp === "falter" ? zufall(.4, 2.5) : wetterTyp === "funken" ? zufall(.2, 7) : zufall(0, 18)) : -100; wetterPos[i * 3 + 2] = zufall(-30, 15);
       wetterFarbe.set([c.r, c.g, c.b], i * 3); tempo[i] = zufall(.6, 1.4);
     }
     wetterGeo.attributes.color.needsUpdate = true;
@@ -2065,6 +2148,10 @@ export function welt(T, handy) {
       const k = i * 3; if (wetterPos[k + 1] < -50) continue;
       if (wetterTyp === "schnee") { wetterPos[k + 1] -= dt * 1.6 * tempo[i]; wetterPos[k] += Math.sin(t + i) * dt * .4; }
       else if (wetterTyp === "blaetter") { wetterPos[k + 1] -= dt * 1.1 * tempo[i]; wetterPos[k] += Math.sin(t * 1.5 + i) * dt * 1.2; }
+      else if (wetterTyp === "funken") {
+        wetterPos[k + 1] += dt * .5 * tempo[i]; wetterPos[k] += Math.sin(t * 1.3 + i) * dt * .5;
+        if (wetterPos[k + 1] > 7) { wetterPos[k + 1] = .2; wetterPos[k] = zufall(-25, 25); wetterPos[k + 2] = zufall(-30, 15); }
+      }
       else { wetterPos[k] += Math.sin(t * 2 + i) * dt * 1.5; wetterPos[k + 1] = 1.2 + Math.sin(t * 3 * tempo[i] + i) * .7; wetterPos[k + 2] += Math.cos(t * 1.3 + i) * dt; }
       if (wetterPos[k + 1] < 0) { wetterPos[k + 1] = 18; wetterPos[k] = zufall(-25, 25); wetterPos[k + 2] = zufall(-30, 15); }
     }
