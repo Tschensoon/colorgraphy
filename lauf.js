@@ -31,7 +31,7 @@ if (rahmen) {
   function laden() {
     if (!bereit) {
       const text = losKnopf.textContent; losKnopf.disabled = true; losKnopf.textContent = "Lädt die 3D-Welt …";
-      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=38"), import("./lauf-ton.js?v=4"), import("./lauf-flug.js?v=3"), import("./lauf-effekte.js?v=3")])
+      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=39"), import("./lauf-ton.js?v=5"), import("./lauf-flug.js?v=4"), import("./lauf-effekte.js?v=3")])
         .then(([m, w, t, f, e]) => { THREE = m; T = t.ton(); aufbauen(w, f, e); losKnopf.disabled = false; losKnopf.textContent = text; });
     }
     return bereit;
@@ -92,7 +92,7 @@ if (rahmen) {
   let zustand = "start", tempo, punkte, sternZahl, strecke, wackeln = 0, schlussSzene = null;
   const S = { idx: 0, s: 0, spur: 0, x: 0, y: 0, vy: 0, duck: 0, abbiegen: 0, stolper: 0, lauf: 0, sprungPuffer: 0, eis: 0, lande: 0 };
   const A = { nah: false, zeit: 0, abstand: 16, bis: 5, lauf: 0, schritt: 0 };
-  const R = { boote: 0, fluege: 0, anjaPhase: false, tempoF: 1, booster: 0, schubs: 0, welt: 0, zeit: 0, laufZeit: 0, flug: 0, ringe: 0, frauBei: 20, kombo: 0, fahne: false, jubel: false };    // Werte dieser Runde für Aufgaben, Ergebnis und Bestenliste
+  const R = { boote: 0, fluege: 0, anjaPhase: false, tempoF: 1, booster: 0, schubs: 0, welt: 0, zeit: 0, laufZeit: 0, flug: 0, ringe: 0, tore: 0, schlitten: 0, frauBei: 20, kombo: 0, fahne: false, jubel: false };    // Werte dieser Runde für Aufgaben, Ergebnis und Bestenliste
   const tipps = new Set();
 
   const richtung = (h) => h === 0 ? [0, -1] : [h, 0];           // Norden = -z, Osten = +x, Westen = -x
@@ -349,8 +349,8 @@ if (rahmen) {
     FL.ab = PHASEN_ABSTAND[0]; FL.rueck = 0; FL.phaseNr = 0;
     aktZone = 0; W.zoneWechsel(0, true); stimmungSetzen(true);
     Object.assign(B, { turbo: 0, schild: 0, ruhe: 0, magnet: 0, doppelt: 0, schubs: null });
-    FL.naechsteArt = "folie";
-    Object.assign(R, { boote: 0, fluege: 0, anjaPhase: false, tempoF: 1, booster: 0, schubs: 0, welt: 0, zeit: 0, laufZeit: 0, flug: 0, ringe: 0, frauBei: 20, kombo: 0, fahne: false, jubel: false });
+    FL.naechsteArt = "folie"; FL.schlittenBei = 0; FL.sonder = null;
+    Object.assign(R, { boote: 0, fluege: 0, anjaPhase: false, tempoF: 1, booster: 0, schubs: 0, welt: 0, zeit: 0, laufZeit: 0, flug: 0, ringe: 0, tore: 0, schlitten: 0, frauBei: 20, kombo: 0, fahne: false, jubel: false });
     tempo = START_TEMPO; punkte = 0; sternZahl = 0; strecke = 0; wackeln = 0; schlussSzene = null;
     Object.assign(S, { idx: 0, s: 0, spur: 0, x: 0, y: 0, vy: 0, duck: 0, abbiegen: 0, stolper: 0, sprungPuffer: 0, eis: 0, lande: 0 });
     Object.assign(A, { nah: false, zeit: 0, abstand: 16, bis: 5 });
@@ -408,7 +408,7 @@ if (rahmen) {
     if (FL.an) {                      // im Flug folgt das Flugzeug dem Finger (relativ, egal wo man hinfasst)
       const t = e.touches[0], k = 18 / Math.max(300, huelle.clientWidth);
       FL.zx = Math.max(-FX, Math.min(FX, FL.zx + (t.clientX - wisch.lx) * k));
-      if (FL.art !== "wasser") FL.zy = Math.max(FY0, Math.min(FY1, FL.zy - (t.clientY - wisch.ly) * k));
+      if (FL.art !== "wasser" && FL.art !== "schlitten") FL.zy = Math.max(FY0, Math.min(FY1, FL.zy - (t.clientY - wisch.ly) * k));
       wisch.lx = t.clientX; wisch.ly = t.clientY; return;
     }
     if (wisch.fertig) return;
@@ -427,7 +427,7 @@ if (rahmen) {
   // ---------- Pause und Ton ----------
   function pauseUm() {
     if (zustand === "laeuft") { zustand = "pause"; pauseFeld.hidden = false; T.musikStop(); }
-    else if (zustand === "pause") { zustand = "laeuft"; pauseFeld.hidden = true; uhr.getDelta(); T.musik(FL.an ? 6 : aktZone); }
+    else if (zustand === "pause") { zustand = "laeuft"; pauseFeld.hidden = true; uhr.getDelta(); T.musik(FL.an ? flugMusik() : aktZone); }
   }
   pauseKnopf.addEventListener("click", () => { if (zustand === "laeuft" || zustand === "pause") pauseUm(); });
   $(".lauf-weiter").addEventListener("click", pauseUm);
@@ -487,7 +487,7 @@ if (rahmen) {
     ergebnis.querySelector(".le-punkte b").textContent = p;
     ergebnis.querySelector(".le-sterne").textContent = sternZahl;
     ergebnis.querySelector(".le-meter").textContent = Math.round(strecke);
-    ergebnis.querySelector(".le-welt").textContent = FO.an ? "Einpacken" : DU.an ? "Kissenschlacht" : FL.an ? (FL.art === "wasser" ? "Wasserwelt" : "Luftwelt") : W.zonen[Math.min(R.welt, W.zonen.length - 1)].name;
+    ergebnis.querySelector(".le-welt").textContent = FO.an ? "Einpacken" : DU.an ? "Kissenschlacht" : FL.an ? ({ wasser: "Wasserwelt", schlitten: "Schlittenfahrt" }[FL.art] || "Luftwelt") : W.zonen[Math.min(R.welt, W.zonen.length - 1)].name;
     ergebnis.querySelector(".le-rekord").hidden = !neuerRekord;
     if (neuerRekord) T.rekord(); else T.ende();
     if (!tutorialFertig) { tutorialFertig = true; schreib("froebelinchen-rennt-tutorial", true); }
@@ -519,6 +519,7 @@ if (rahmen) {
     { id: "meter2500", text: "Lauf 2500 Meter", lohn: 80, ok: () => strecke >= 2500 },
     { id: "luftwelt", text: "Flieg in die Luftwelt", lohn: 100, ok: () => R.flug >= 1 },
     { id: "ringe10", text: "Flieg durch 10 Ringe in einer Runde", lohn: 60, ok: () => R.ringe >= 10 },
+    { id: "tore15", text: "Fahr mit dem Schlitten durch 15 Tore", lohn: 60, ok: () => R.tore >= 15 },
   ];
   const aktiveAufgaben = () => {
     if (AUFGABEN.every(a => erledigt.includes(a.id))) { erledigt = []; schreib("froebelinchen-rennt-aufgaben", erledigt); }   // alle geschafft: von vorn
@@ -876,7 +877,7 @@ if (rahmen) {
   function hudZeigen() {
     let t = `${Math.floor(punkte)} Punkte · ★ ${sternZahl}`;
     if (komboFaktor() > 1) t += ` · 🔥×${komboFaktor()}`;
-    if (FL.an) t += ` · ✈ ${Math.max(0, Math.ceil(FL.dauer - FL.zeit))} s`;
+    if (FL.an) t += FL.art === "schlitten" ? ` · 🛷 ${tempoKmh()} km/h` + (handy ? "" : ` · ${Math.max(0, Math.ceil(FL.dauer - FL.zeit))} s`) : ` · ✈ ${Math.max(0, Math.ceil(FL.dauer - FL.zeit))} s`;
     if (B.turbo > 0) t += ` · ⚡ ${Math.ceil(B.turbo)}`;
     if (B.magnet > 0) t += ` · 🧲 ${Math.ceil(B.magnet)}`;
     if (B.doppelt > 0) t += ` · ×2 ${Math.ceil(B.doppelt)}`;
@@ -929,14 +930,20 @@ if (rahmen) {
     const unverwundbar = B.schild > 0 || !!B.schubs || FL.abflug > 0 || FL.rueck > 0;
     S.s += v * dt; strecke += v * dt; punkte += v * dt * faktor;
     S.stolper = Math.max(0, S.stolper - dt);
+    // im Winterland geht es nach ein paar Sekunden auf den Schlitten (einmal pro Besuch, nicht kurz vor einer anderen Sonderphase)
+    if (!FL.abflug && FL.schlittenBei && punkte >= FL.schlittenBei) {
+      FL.schlittenBei = 0;
+      if (FL.ab - punkte > 500) { FL.abflug = .001; FL.sonder = "schlitten"; T.abflug(); meldung("Schlittenfahrt!", `${NAME()} springt auf den Schlitten …`); }
+    }
     // 3000 Punkte: weiß überblenden, dann geht es im Flugzeug weiter (Level 2)
     if (!FL.abflug && punkte >= FL.ab) { FL.abflug = .001; T.abflug(); meldung(`${FL.ab} Punkte!`, FL.naechsteArt === "folie" ? "Rolle bereit: Fröbelinchen wird eingepackt!" : FL.naechsteArt === "duell" ? `${JAGD()} fordert ${NAME()} zur Kissenschlacht heraus!` : FL.naechsteArt === "wasser" ? `${NAME()} springt ins Boot …` : `${NAME()} steigt ins Flugzeug …`); }
     if (FL.abflug) {
       FL.abflug += dt; blende.style.opacity = Math.min(1, FL.abflug / .9);
-      if (FL.abflug >= .9) { if (FL.naechsteArt === "folie") folieStart(); else if (FL.naechsteArt === "duell") duellStart(); else flugStart(); return; }
+      if (FL.abflug >= .9) { if (FL.sonder) { FL.sonder = null; flugStart("schlitten"); } else if (FL.naechsteArt === "folie") folieStart(); else if (FL.naechsteArt === "duell") duellStart(); else flugStart(); return; }
     }
     if (FL.rueck) { FL.rueck += dt; blende.style.opacity = Math.max(0, 1 - FL.rueck / .8); if (FL.rueck > .8) FL.rueck = 0; }
 
+   
     let ab = abschnitte.find(a => a.nr === S.idx);
     if (FL.abflug && !S.abbiegen && ab.L - S.s < ECKE) S.abbiegen = ab.dreh;   // während der Blende biegt sie von selbst ab
     if (S.abbiegen && S.s >= ab.L - .2) {             // an der Ecke: in den nächsten Abschnitt wechseln
@@ -1197,6 +1204,7 @@ if (rahmen) {
     if (ab.zone !== aktZone) {
       aktZone = ab.zone; W.zoneWechsel(aktZone); stimmungSetzen(); R.welt = Math.max(R.welt, Math.floor(S.idx / 3));
       if (lauft) { T.welt(); T.musik(aktZone); if (!B.schubs) meldung(W.zonen[aktZone].name, W.zonen[aktZone].unter); }
+      if (lauft && aktZone === WINTER()) FL.schlittenBei = punkte + 120;
     }
     const zeit = performance.now() / 1000;
     W.zoneSchritt(dt); W.animieren(zeit); lichtSchritt(dt);
@@ -1260,7 +1268,8 @@ if (rahmen) {
     { const f = W.frauBauen(); f.gruppe.add(W.sprechblase(["Ich suche meine", "Autoschlüssel!"])); dazu(f.gruppe); }
     [FW.ring(), FW.heissluftballon(), FW.gewitter(), FW.voegel(), FW.insel(), FW.regenbogen(), FW.wolkenBallen(), W.froebelBanner(2, .5)].forEach(dazu);
     for (const art of ["staub", "funke", "dampf"]) { const k = teilchenHolen(art); dazu(k); }
-    const versteckt = [buehne, meer, flieger.gruppe, anjaFlieger.gruppe, strahlen, boot.gruppe, anjaBoot.gruppe, wasser, anja.gruppe, blase, schattenA, ...sternchen];   // auch was gerade unsichtbar ist
+    [FW.tor(true, 4), FW.tor(false, 4), W.tanne(), W.schneemann()].forEach(dazu);
+    const versteckt = [buehne, meer, flieger.gruppe, anjaFlieger.gruppe, strahlen, boot.gruppe, anjaBoot.gruppe, wasser, schlitten.gruppe, anjaSchlitten.gruppe, anja.gruppe, blase, schattenA, ...sternchen];   // auch was gerade unsichtbar ist
     const sichtbar = versteckt.map(o => o.visible);
     for (const o of versteckt) o.visible = true;
     szene.add(g);
@@ -1283,7 +1292,7 @@ if (rahmen) {
   const LUFT_STIMMUNG = { farbe: "#fff1e4", saett: 1.2, kontrast: 1.05, glanz: .8, licht: 2.7, himmel: .9 };
   const lichtZiel = { sonne: 2.8, himmel: .85, laterne: 0, scheibe: null };
   function stimmungSetzen(sofort) {
-    const st = FL.an ? (FL.art === "wasser" ? W.zonen[2].stimmung : LUFT_STIMMUNG) : W.zonen[aktZone].stimmung;
+    const st = FL.an ? (FL.art === "wasser" ? W.zonen[2].stimmung : FL.art === "schlitten" ? W.zonen[WINTER()].stimmung : LUFT_STIMMUNG) : W.zonen[aktZone].stimmung;
     lichtZiel.sonne = st.licht; lichtZiel.himmel = st.himmel; lichtZiel.laterne = st.laterne || 0; (lichtZiel.scheibe = lichtZiel.scheibe || new THREE.Color()).set(st.scheibe || "#ffffff");
     if (NB) { NB.stimmung(st); if (sofort) NB.schritt(0, true); }
     if (sofort) { sonne.intensity = st.licht; himmelLicht.intensity = st.himmel; laterneLicht.intensity = lichtZiel.laterne; sonnenBild.material.color.copy(lichtZiel.scheibe); }
@@ -1725,11 +1734,16 @@ if (rahmen) {
   // Abstand bis zur nächsten Sonderphase: die erste kommt schon nach gut einer Minute, damit jede Runde etwas erlebt. Danach alle 3000 Punkte.
   const PHASEN_ABSTAND = [1000, 1200, 2500, 2500];
   const FLUG_AB = 3000, FLUG_ERSTER = 60, FLUG_WEITERE = 30, FX = 7, FY0 = 3, FY1 = 13;   // erster Flug eine Minute, jeder weitere 30 Sekunden
-  const WASSER_Y = .2;                              // Höhe des Boots über dem Wasser (Wasser bei y = 0)
+  const WASSER_Y = .2;
+  const SCHLITTEN_Y = 0, SCHLITTEN_ERSTE = 40, SCHLITTEN_WEITERE = 30, SCHLITTEN_GRUND = 19, SCHLITTEN_MIN = 14, SCHLITTEN_MAX = 32;   // Tempo in m/s                              // Höhe des Boots über dem Wasser (Wasser bei y = 0)
   const FL = { art: "folie", naechsteArt: "folie", phaseNr: 0, an: false, abflug: 0, x: 0, y: 7, z: 0, zx: 0, zy: 7, v: 18, neig: 0, nick: 0, naechst: 0, strecke: 0, trudeln: 0,
     regenbogen: 0, objekte: [], tasten: { x: 0, y: 0 }, ax: 0, ay: 7, ab: 3000, zeit: 0, landung: 0, rueck: 0, gewarnt: false };
-  let FW, flieger, anjaFlieger, meer, flugGruppe, blende, strahlen, boot, anjaBoot, wasser;
-  const fahrzeug = () => FL.art === "wasser" ? boot : flieger, anjaFahrzeug = () => FL.art === "wasser" ? anjaBoot : anjaFlieger;
+  let FW, flieger, anjaFlieger, meer, flugGruppe, blende, strahlen, boot, anjaBoot, wasser, schlitten, anjaSchlitten, berge;
+  const fahrzeug = () => FL.art === "wasser" ? boot : FL.art === "schlitten" ? schlitten : flieger;
+  const anjaFahrzeug = () => FL.art === "wasser" ? anjaBoot : FL.art === "schlitten" ? anjaSchlitten : anjaFlieger;
+  const WINTER = () => W.zonen.findIndex(z => z.hecke === "schnee");
+  const flugMusik = () => FL.art === "schlitten" ? 7 : FL.art === "wasser" ? 2 : 6;
+  const tempoKmh = () => Math.round(FL.v * 2.6);
   function flugAufbauen(modul) {
     FW = modul.flugWelt(THREE, W);
     flieger = FW.flieger(false); anjaFlieger = FW.flieger(true); meer = FW.wolkenMeer(); flugGruppe = new THREE.Group();
@@ -1737,21 +1751,24 @@ if (rahmen) {
     meer.position.y = -1.5;
     strahlen = FW.strahlen(); strahlen.visible = false; szene.add(strahlen);
     boot = FW.boot(false); anjaBoot = FW.boot(true); anjaBoot.gruppe.scale.setScalar(.85); wasser = FW.wasserFlaeche(W.wasserNormal);
-    for (const o of [flieger.gruppe, anjaFlieger.gruppe, meer, flugGruppe, boot.gruppe, anjaBoot.gruppe, wasser]) { o.visible = false; szene.add(o); }
+    schlitten = FW.schlitten(false); anjaSchlitten = FW.schlitten(true); anjaSchlitten.gruppe.scale.setScalar(.9); berge = FW.bergkette();
+    for (const o of [flieger.gruppe, anjaFlieger.gruppe, meer, flugGruppe, boot.gruppe, anjaBoot.gruppe, wasser, schlitten.gruppe, anjaSchlitten.gruppe, berge]) { o.visible = false; szene.add(o); }
     blende = document.createElement("div");
     blende.style.cssText = "position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none";
     renderer.domElement.after(blende);                  // direkt über dem Bild, Anzeigen und Meldungen bleiben darüber sichtbar
   }
-  function flugStart() {
-    FL.art = FL.naechsteArt; FL.an = true; R.flug = 1;
-    const nass = FL.art === "wasser";
-    if (nass) R.boote++; else R.fluege++;
-    FL.dauer = (nass ? R.boote : R.fluege) === 1 ? FLUG_ERSTER : FLUG_WEITERE;   // die erste Phase jeder Art eine Minute, danach 30 s
+  function flugStart(art) {
+    FL.art = art || FL.naechsteArt; FL.an = true; R.flug = 1;
+    const ski = FL.art === "schlitten", nass = FL.art === "wasser", unten = nass || ski;
+    if (ski) { R.schlitten++; FL.rest = FL.ab - punkte; } else if (nass) R.boote++; else R.fluege++;
+    FL.dauer = ski ? (R.schlitten === 1 ? SCHLITTEN_ERSTE : SCHLITTEN_WEITERE)
+      : (nass ? R.boote : R.fluege) === 1 ? FLUG_ERSTER : FLUG_WEITERE;   // die erste Phase jeder Art eine Minute, danach 30 s
     for (const ab of abschnitte) ab.gruppe.visible = false;
-    for (const o of [boden, ferneGruppe, W.luft]) o.visible = false;
-    for (const o of [fahrzeug().gruppe, anjaFahrzeug().gruppe, nass ? wasser : meer, flugGruppe]) o.visible = true;
-    const y0 = nass ? WASSER_Y : 7;
-    Object.assign(FL, { x: 0, y: y0, z: 0, zx: 0, zy: y0, v: nass ? Math.max(16, tempo) : Math.max(18, tempo), neig: 0, nick: 0, naechst: -45, strecke: 0, trudeln: 0, regenbogen: 250, ax: 0, ay: y0, zeit: 0, landung: 0, gewarnt: false });
+    for (const o of ski ? [ferneGruppe] : [boden, ferneGruppe, W.luft]) o.visible = false;   // auf dem Schlitten bleiben Schneeboden und Schneefall
+    for (const o of [fahrzeug().gruppe, anjaFahrzeug().gruppe, flugGruppe, ...(ski ? [berge] : [nass ? wasser : meer])]) o.visible = true;
+    const y0 = ski ? SCHLITTEN_Y : nass ? WASSER_Y : 7;
+    Object.assign(FL, { torX: 0, torZ: null, torSeite: 1, torNr: 0, serie: 0 });
+    Object.assign(FL, { x: 0, y: y0, z: 0, zx: 0, zy: y0, v: ski ? Math.max(SCHLITTEN_GRUND, tempo) : nass ? Math.max(16, tempo) : Math.max(18, tempo), neig: 0, nick: 0, naechst: -45, strecke: 0, trudeln: 0, regenbogen: 250, ax: 0, ay: y0, zeit: 0, landung: 0, gewarnt: false });
     // Fröbelinchen sitzt im Cockpit (Beine im Rumpf versteckt), Anja genauso in ihrem rosa Flieger
     const [cy, cz, cs] = spieler.cockpit;
     fahrzeug().sitz.add(spieler.gruppe); spieler.gruppe.position.set(0, cy, cz); spieler.gruppe.rotation.set(0, 0, 0); spieler.gruppe.scale.setScalar(cs);
@@ -1761,14 +1778,16 @@ if (rahmen) {
     anja.k.rotation.x = 0; anja.k.position.y = 0; anja.beine.forEach(b => { b.oben.visible = false; });
     sternchen.forEach(st => { st.visible = false; });
     B.schubs = null; Object.assign(A, { nah: false, zeit: 0, abstand: 18, bis: 8 });
-    if (nass) { szene.fog.color.set("#d8ecf6"); himmelKugel.material.color.set("#ffffff"); sonne.color.set("#fff4dc"); }
+    if (ski) { const Z = W.zonen[WINTER()]; szene.fog.color.set(Z.nebel); himmelKugel.material.color.set(Z.himmel); sonne.color.set(Z.sonne); }
+    else if (nass) { szene.fog.color.set("#d8ecf6"); himmelKugel.material.color.set("#ffffff"); sonne.color.set("#fff4dc"); }
     else { szene.fog.color.set("#fbe6d6"); himmelKugel.material.color.set("#fff0e4"); sonne.color.set("#ffc79a"); meer.material.color.set("#fff6ee"); }
     szene.fog.near = 55; szene.fog.far = 165;
-    stimmungSetzen(); schattenF.visible = schattenA.visible = false; strahlen.visible = !nass;
+    stimmungSetzen(); schattenF.visible = schattenA.visible = false; strahlen.visible = !unten;
     while (FL.naechst > -170) reiheNeu();
     kamPos = null; wackeln = 0;
-    T.welt(); T.musik(nass ? 2 : 6);
-    if (nass) meldung("Level 3: Wasserwelt", handy ? "Zieh mit dem Finger nach links und rechts" : "Lenk mit ← und →");
+    T.welt(); T.musik(flugMusik());
+    if (ski) meldung("Schlittenfahrt!", handy ? "Zieh nach links und rechts und fahr durch die Tore" : "Lenk mit ← und → und fahr durch die Tore");
+    else if (nass) meldung("Level 3: Wasserwelt", handy ? "Zieh mit dem Finger nach links und rechts" : "Lenk mit ← und →");
     else meldung("Level 2: Luftwelt", handy ? "Zieh mit dem Finger, um zu fliegen" : "Lenk mit den Pfeiltasten");
   }
   function flugAus() {
@@ -1783,7 +1802,7 @@ if (rahmen) {
       szene.fog.near = 45; szene.fog.far = 120;
     }
     for (const o of FL.objekte) { flugGruppe.remove(o.mesh); W.entsorgen(o.mesh); }
-    for (const o of [flieger.gruppe, anjaFlieger.gruppe, meer, flugGruppe, strahlen, boot.gruppe, anjaBoot.gruppe, wasser]) o.visible = false;
+    for (const o of [flieger.gruppe, anjaFlieger.gruppe, meer, flugGruppe, strahlen, boot.gruppe, anjaBoot.gruppe, wasser, schlitten.gruppe, anjaSchlitten.gruppe, berge]) o.visible = false;
     FL.objekte = []; FL.an = false; FL.abflug = 0; FL.landung = 0; blende.style.opacity = 0;
   }
   // Nach einer Minute: weiß überblenden und in der Laufwelt auf einem neuen Wegstück weiterrennen
@@ -1797,14 +1816,16 @@ if (rahmen) {
     aktZone = abschnitte[0].zone; W.zoneWechsel(aktZone, true); stimmungSetzen();
     Object.assign(A, { nah: false, zeit: 0, abstand: 18, bis: 8 });
     kamYaw = 0; kamPos = null;
-    FL.phaseNr++;
-    const bisNaechste = PHASEN_ABSTAND[FL.phaseNr] ?? FLUG_AB;
+    const warSki = FL.art === "schlitten";
+    if (!warSki) FL.phaseNr++;
+    const bisNaechste = warSki ? Math.max(500, Math.round(FL.rest)) : PHASEN_ABSTAND[FL.phaseNr] ?? FLUG_AB;
     FL.ab = Math.floor(punkte) + bisNaechste;      // gezählt werden die zu Fuß gesammelten Punkte
     const FOLGE = ["folie", "luft", "wasser", "duell"], warNass = FL.art === "wasser", warDuell = FL.art === "duell" || FL.art === "folie";
-    FL.naechsteArt = FOLGE[(FOLGE.indexOf(FL.art) + 1) % FOLGE.length];
+    if (!warSki) FL.naechsteArt = FOLGE[(FOLGE.indexOf(FL.art) + 1) % FOLGE.length];
+    FL.schlittenBei = 0;
     FL.rueck = .001; blende.style.opacity = 1;
     T.welt(); T.musik(aktZone);
-    meldung(warDuell ? "Weiter geht's!" : warNass ? "Wieder an Land!" : "Gelandet!",
+    meldung(warSki ? "Unten angekommen!" : warDuell ? "Weiter geht's!" : warNass ? "Wieder an Land!" : "Gelandet!",
       `${W.zonen[aktZone].name} · ${{ luft: "nächster Flug", wasser: "Bootsfahrt", duell: "Kissenschlacht", folie: "Einpacken" }[FL.naechsteArt]} in ${bisNaechste.toLocaleString("de-DE")} Punkten`);
   }
 
@@ -1849,7 +1870,49 @@ if (rahmen) {
     if (-z > FL.regenbogen) { FL.regenbogen += 1600; flugObjekt("deko", FW.regenbogen(), 0, -2, z - 60); }
     FL.naechst -= Math.max(14, FL.v) + zufall(2, 8) * (1.2 - schwer);
   }
+  // Eine Reihe am Hang: Slalomtor abwechselnd links und rechts, Sterne auf der Linie dorthin, Schneemänner neben der Linie
+  function reiheSchlitten() {
+    const z = FL.naechst, schwer = Math.min(1, FL.strecke / 2500 + schwerStufe() * .1), Y = .9;
+    const b = 4.2 - schwer, grenze = FX - b / 2 - .3;
+    FL.torSeite = -FL.torSeite; FL.torNr++;
+    const x = FL.torSeite * zufall(1.2, grenze), blau = FL.torNr % 2 === 0;
+    const vorX = FL.torX, vorZ = FL.torZ ?? z + 20;
+    flugObjekt("tor", FW.tor(blau, b), x, 0, z, { b, blau });
+    if (Math.random() < .65) for (let i = 1; i <= 3; i++) { const f = i / 4; flugStern(vorX + (x - vorX) * f, Y, vorZ + (z - vorZ) * f); }
+    if (Math.random() < .2 + schwer * .35) {           // wer zu weit ausholt, fährt in den Schneemann
+      const mx = (vorX + x) / 2 + wahl([-1, 1]) * zufall(2.6, 3.6);
+      if (Math.abs(mx) < FX - .5) flugObjekt("schneemann", W.schneemann(), mx, 0, (vorZ + z) / 2, { r: 1, tiefe: .8 });
+    }
+    if (Math.random() < .1) {
+      const typ = flugBooster(), m = W.booster(typ); m.scale.setScalar(1.5);
+      flugObjekt("booster", m, (vorX + x) / 2, Y + .2, (vorZ + z) / 2 - 3, { art: typ });
+    }
+    for (const seite of [-1, 1]) {                     // Tannenwald am Pistenrand
+      for (let i = 0; i < 2; i++) if (Math.random() < .75) flugObjekt("deko", W.tanne(), seite * zufall(FX + 2.5, FX + 18), 0, z + zufall(-10, 10));
+      if (Math.random() < .08) flugObjekt("deko", W.schneemann(), seite * zufall(FX + 2, FX + 6), 0, z + zufall(-8, 8));
+    }
+    for (let i = 0; i < 4; i++) {
+      const bx = zufall(-FX - 12, FX + 12);
+      if (Math.abs(bx) > 2.5 || Math.random() < .3) flugObjekt("deko", FW.buckel(), bx, -.1, z + zufall(-10, 10));
+    }
+    FL.torX = x; FL.torZ = z;
+    FL.naechst -= Math.max(18, FL.v * 1.2) + zufall(0, 4) * (1.2 - schwer);
+  }
+  function torPruefen(o, faktor, unverwundbar) {
+    const dx = Math.abs(FL.x - o.x);
+    if (dx < o.b / 2 - .3) {                            // sauber durchs Tor: Punkte und mehr Tempo
+      R.tore++; FL.serie++; FL.v = Math.min(SCHLITTEN_MAX, FL.v + 1.6);
+      const p = (15 + 5 * Math.min(FL.serie, 5)) * faktor; punkte += p;
+      T.ring(); funkeln(new THREE.Vector3(o.x, 1.2, o.z), o.blau ? "#7ab8ff" : "#ff8a80", 12); o.puls = .4;
+      if (FL.serie % 5 === 0) meldung(`${FL.serie} Tore am Stück!`, `+${p} Punkte · Tempo ${tempoKmh()} km/h`);
+    } else if (dx < o.b / 2 + .45 && !unverwundbar) {   // Fahne gestreift
+      FL.serie = 0; FL.v = Math.max(SCHLITTEN_MIN, FL.v - 3); flugTreffer({ typ: "fahne" });
+    } else {                                            // am Tor vorbei: kostet Tempo
+      FL.serie = 0; FL.v = Math.max(SCHLITTEN_MIN, FL.v - 3.5); meldung("Tor verpasst!", "Das kostet Tempo");
+    }
+  }
   function reiheNeu() {
+    if (FL.art === "schlitten") { reiheSchlitten(); return; }
     if (FL.art === "wasser") { reiheWasser(); return; }
     const z = FL.naechst, schwer = Math.min(1, FL.strecke / 3000 + (FL.naechst < -1500 ? .2 : 0));
     const rx = () => zufall(-FX + 1, FX - 1), ry = () => zufall(FY0 + .8, FY1 - .8);
@@ -1905,18 +1968,19 @@ if (rahmen) {
     if (R.anjaPhase || (A.nah && A.abstand < 7)) { verlieren(o.typ === "gewitter" ? `Blitz und Donner, ${JAGD()} hat dich!` : `${JAGD()} hat dich eingeholt!`, "anja"); return; }
     FL.trudeln = .8; FL.v = Math.max(16, FL.v * .85);
     wackeln = .35; T.stolpern(); if (navigator.vibrate) navigator.vibrate(40);
-    if (A.nah) meldung({ ballon: "Bumm, ein Ballon!", gewitter: "Blitz und Donner!", voegel: "Huch, Vögel!", pylon: "Bumm, eine Pylone!" }[o.typ], `Pass auf, ${JAGD()} ist ganz nah!`);
+    if (A.nah) meldung({ ballon: "Bumm, ein Ballon!", gewitter: "Blitz und Donner!", voegel: "Huch, Vögel!", pylon: "Bumm, eine Pylone!", fahne: "Autsch, die Fahne!", schneemann: "Bumm, ein Schneemann!" }[o.typ], `Pass auf, ${JAGD()} ist ganz nah!`);
     anjaKommt(6);
   }
   function flugSchritt(dt) {
     R.zeit += dt; FL.zeit += dt; rekordPruefen(); anjaPhasePruefen();
-    if (!FL.gewarnt && FL.zeit >= FL.dauer - 4) { FL.gewarnt = true; FL.art === "wasser" ? meldung("Gleich geht's an Land!", "Noch ein paar Sterne mitnehmen") : meldung("Gleich wird gelandet!", "Noch ein paar Ringe mitnehmen"); }
+    if (!FL.gewarnt && FL.zeit >= FL.dauer - 4) { FL.gewarnt = true; FL.art === "wasser" ? meldung("Gleich geht's an Land!", "Noch ein paar Sterne mitnehmen") : FL.art === "schlitten" ? meldung("Gleich ist der Hang zu Ende!", "Noch ein paar Tore mitnehmen") : meldung("Gleich wird gelandet!", "Noch ein paar Ringe mitnehmen"); }
     if (FL.zeit >= FL.dauer && !FL.landung) { FL.landung = .001; T.abflug(); }
     if (FL.landung) {
       FL.landung += dt; blende.style.opacity = Math.min(1, FL.landung / .9);
       if (FL.landung >= .9) { flugLanden(); return; }
     }
-    FL.v = Math.min(FL.art === "wasser" ? 25 : 30, FL.v + .15 * dt);
+    if (FL.art === "schlitten") FL.v += (SCHLITTEN_GRUND - FL.v) * .05 * dt;   // ohne Tore wird der Schlitten langsam wieder gemütlicher
+    else FL.v = Math.min(FL.art === "wasser" ? 25 : 30, FL.v + .15 * dt);
     for (const k of ["turbo", "schild", "ruhe", "magnet", "doppelt"]) B[k] = Math.max(0, B[k] - dt);
     const faktor = B.doppelt > 0 ? 2 : 1, unverwundbar = B.schild > 0 || FL.abflug > 0 || FL.landung > 0;
     tempoPruefen();
@@ -1930,6 +1994,7 @@ if (rahmen) {
     // Lenken: das Ziel wandert mit den Tasten (der Finger setzt es direkt), das Flugzeug gleitet hinterher und legt sich in die Kurve
     FL.zx = Math.max(-FX, Math.min(FX, FL.zx + FL.tasten.x * 10 * dt));
     if (FL.art === "wasser") FL.zy = WASSER_Y;           // auf dem Wasser nur links und rechts
+    else if (FL.art === "schlitten") FL.zy = SCHLITTEN_Y;
     else FL.zy = Math.max(FY0, Math.min(FY1, FL.zy + FL.tasten.y * 8 * dt));
     const ax = FL.x, ay = FL.y, k = Math.min(1, dt * (FL.trudeln > 0 ? 2.5 : 5));
     FL.x += (FL.zx - FL.x) * k; FL.y += (FL.zy - FL.y) * k;
@@ -1960,6 +2025,8 @@ if (rahmen) {
           o.weg = true;
           if (abst < 1.55) { R.ringe++; punkte += 25 * faktor; T.ring(); funkeln(o.mesh.position, "#ffcc33", 16); o.puls = .4; meldung("Durch den Ring!", `+${25 * faktor} Punkte`); }
         }
+      } else if (o.typ === "tor") {
+        if (o.z <= zAlt && o.z > FL.z) { o.weg = true; torPruefen(o, faktor, unverwundbar); if (zustand !== "laeuft") return; }
       } else if (o.typ === "booster") {
         if (Math.abs(dz) < 1.3 && abst < 1.7) {
           o.weg = true; o.mesh.visible = false; boosterNehmen(o.art);
@@ -1985,9 +2052,12 @@ if (rahmen) {
 
   function flugBild(dt) {
     const fang = zustand === "fang" && schlussSzene && schlussSzene.art === "anja", t = performance.now() / 1000;
-    const nass = FL.art === "wasser", fzg = fahrzeug(), afz = anjaFahrzeug(), fg = fzg.gruppe;
+    const ski = FL.art === "schlitten", nass = FL.art === "wasser" || ski, fzg = fahrzeug(), afz = anjaFahrzeug(), fg = fzg.gruppe;
     const wackel = FL.trudeln > 0 ? Math.sin(FL.trudeln * 22) * (nass ? .25 : .45) : 0;
-    if (nass) {                                         // Boot: schaukelt auf den Wellen und legt sich leicht in die Kurve
+    if (ski) {                                          // Schlitten: rumpelt leicht über den Schnee und legt sich in die Kurve
+      fg.position.set(FL.x, FL.y + Math.abs(Math.sin(t * 9)) * .025, FL.z);
+      fg.rotation.set(-.04, FL.neig * .5, FL.neig * .35 + wackel);
+    } else if (nass) {                                  // Boot: schaukelt auf den Wellen und legt sich leicht in die Kurve
       fg.position.set(FL.x, FL.y + Math.sin(t * 3) * .05, FL.z);
       fg.rotation.set(Math.sin(t * 2.1) * .04 - (B.turbo > 0 ? .08 : .03), 0, FL.neig * .45 + Math.sin(t * 1.7) * .03 + wackel);
     } else {
@@ -2021,9 +2091,14 @@ if (rahmen) {
         if (o.puls) { o.puls = Math.max(0, o.puls - dt); o.mesh.scale.setScalar(1 + Math.sin(o.puls / .4 * Math.PI) * .35); }
       } else if (o.typ === "voegel") o.mesh.userData.flattern.forEach(([l, r], i) => { const f = Math.sin(t * 10 + i) * .7; l.rotation.z = f; r.rotation.z = -f; });
       else if (o.typ === "gewitter") o.mesh.userData.blitz.visible = Math.sin(t * 7 + o.ph * 3) > .93;
+      else if (o.typ === "tor") {
+        o.mesh.userData.fahnen.forEach((f, i) => { f.rotation.x = Math.sin(t * 6 + o.ph + i) * .12; });
+        if (o.puls) { o.puls = Math.max(0, o.puls - dt); o.mesh.scale.setScalar(1 + Math.sin(o.puls / .4 * Math.PI) * .15); }
+      }
     }
     // Wolkenmeer bzw. Wasser und Himmel wandern mit, das Muster bleibt am Ort
-    if (nass) { wasser.position.set(FL.x, 0, FL.z); wasser.userData.wellen.offset.set(FL.x * 80 / 600 + t * .02, -FL.z * 80 / 600 + t * .013); }
+    if (ski) { W.bodenFolgen(FL.x, FL.z); berge.position.set(FL.x * .6, -34, FL.z - 215); }
+    else if (FL.art === "wasser") { wasser.position.set(FL.x, 0, FL.z); wasser.userData.wellen.offset.set(FL.x * 80 / 600 + t * .02, -FL.z * 80 / 600 + t * .013); }
     else { meer.position.set(FL.x, -1.5, FL.z); FW.wolkenBild.offset.set(FL.x * 12 / 500, -FL.z * 12 / 500); }
     schattenNachfuehren(FL.x, FL.z);
 
@@ -2031,11 +2106,11 @@ if (rahmen) {
     if (fang) kamYaw += dt * .9; else kamYaw = 0;
     const sin = Math.sin(kamYaw), cos = Math.cos(kamYaw), hoch = kamera.aspect < .8;
     const rad = fang ? 13 : 10;
-    const ziel = new THREE.Vector3(FL.x * .75 + sin * rad, FL.y + (hoch ? 3.8 : 2.9) + (nass ? .6 : 0), FL.z + cos * (hoch ? rad + 2 : rad + .5));
+    const ziel = new THREE.Vector3(FL.x * .75 + sin * rad, FL.y + (hoch ? 3.8 : 2.9) + (ski ? 1.1 : nass ? .6 : 0), FL.z + cos * (hoch ? rad + 2 : rad + .5));
     if (!kamPos) kamPos = ziel.clone(); else kamPos.lerp(ziel, Math.min(1, dt * 6));
     kamera.position.copy(kamPos);
     if (wackeln > 0) { wackeln = Math.max(0, wackeln - dt); kamera.position.x += (Math.random() - .5) * wackeln * .6; kamera.position.y += (Math.random() - .5) * wackeln * .4; }
-    kamera.lookAt(FL.x * .85 - sin * 10, FL.y + (nass ? .9 : .4), FL.z - cos * 10);
+    kamera.lookAt(FL.x * .85 - sin * 10, FL.y + (ski ? -.6 : nass ? .9 : .4), FL.z - cos * 10);   // am Hang geht der Blick bergab
     kamera.fov += (((hoch ? 72 : 62) + (B.turbo > 0 ? 10 : 0)) - kamera.fov) * Math.min(1, dt * 3); kamera.updateProjectionMatrix();
     himmelKugel.position.copy(kamera.position); wolkenGruppe.position.set(kamera.position.x, 0, kamera.position.z);
     if (nass) sonnenBild.position.set(kamera.position.x - 85, 95, kamera.position.z + 50);   // Mittagssonne wie in der Laufwelt
@@ -2050,6 +2125,7 @@ if (rahmen) {
         teilchen.push({ k: d, v: new THREE.Vector3(nass ? sx * 1.2 : 0, 0, 0), t: 0, dauer: nass ? .9 : .7, wachsen: nass ? 1.1 : .9, alpha: nass ? .45 : .55 });
       }
     }
+    if (ski) W.wetterSchritt(dt, kamera.position, t);
     gesicht(dt, .4);
     W.animieren(t); lichtSchritt(dt);
     teilchenSchritt(dt);

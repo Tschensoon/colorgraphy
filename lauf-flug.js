@@ -170,5 +170,52 @@ export function flugWelt(T, W) {
     k.receiveShadow = true; k.userData.wellen = t;
     return k;
   }
-  return { boot, pylone, boje, wasserFlaeche, flieger, ring, heissluftballon, gewitter, voegel, insel, regenbogen, wolkenMeer, wolkenBild, wolkenBallen, strahlen };
+  // Schlittenfahrt im Winterland: Holzschlitten mit Metallkufen und Slalomtore mit Fahnen
+  const SM = {
+    holz: std({ color: "#b5733a", roughness: .7 }), holzAnja: std({ color: "#f48fb1", roughness: .6 }),
+    kufe: std({ color: "#9aa0a8", roughness: .3, metalness: .7 }),
+    rot: std({ color: "#e53935", roughness: .6, side: T.DoubleSide }), blau: std({ color: "#1e63d6", roughness: .6, side: T.DoubleSide }),
+    schnee: std({ color: "#ffffff", roughness: .9 }), buckel: std({ color: "#eef3fa", roughness: 1 }),
+  };
+  const torGeo = { stange: new T.CylinderGeometry(.045, .045, 1.8, 8), fahne: new T.PlaneGeometry(.75, .55).translate(.375, 0, 0), huegel: new T.SphereGeometry(.3, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2) };
+  for (const k of Object.values(torGeo)) k.userData.geteilt = true;
+  function schlitten(anja) {
+    const g = new T.Group(), h = anja ? SM.holzAnja : SM.holz;
+    for (const sx of [-.42, .42]) {
+      teil(new T.BoxGeometry(.07, .07, 2), SM.kufe, g, sx, .04, .1);
+      teil(new T.BoxGeometry(.07, .07, .5), SM.kufe, g, sx, .23, -1.05).rotation.x = .9;   // vorn hochgebogen
+      for (const sz of [-.6, .6]) teil(new T.BoxGeometry(.06, .26, .06), h, g, sx, .19, sz);
+    }
+    for (let i = 0; i < 5; i++) teil(new T.BoxGeometry(1, .05, .22), h, g, 0, .33, -.6 + i * .3);   // Sitzlatten
+    teil(new T.BoxGeometry(.95, .05, .06), h, g, 0, .4, -1.2);
+    const propeller = gelenk(g, 0, 0, 0), sitz = gelenk(g, 0, .2, .15);
+    return { gruppe: g, propeller, sitz };
+  }
+  function tor(blau, breite) {
+    const g = new T.Group(), m = blau ? SM.blau : SM.rot, fahnen = [];
+    for (const sx of [-1, 1]) {
+      const x = sx * breite / 2;
+      teil(torGeo.stange, m, g, x, .9, 0);
+      teil(torGeo.huegel, SM.schnee, g, x, -.08, 0).castShadow = false;
+      const f = gelenk(g, x, 1.45, 0); f.rotation.y = sx > 0 ? Math.PI : 0;   // Fahne zeigt ins Tor hinein
+      teil(torGeo.fahne, m, f); fahnen.push(f);
+    }
+    g.userData.fahnen = fahnen;
+    return g;
+  }
+  // Bergkette im Tal vor dem Hang: liegt tiefer als die Piste, so sieht man, dass es bergab geht
+  function buckel() {                         // kleine Schneehügel: ziehen vorbei und zeigen, wie schnell es geht
+    const k = new T.Mesh(torGeo.huegel, SM.buckel); k.scale.set(zufall(2, 4.5), zufall(.6, 1.1), zufall(2, 4)); k.receiveShadow = true; return k;
+  }
+  function bergkette() {
+    const g = new T.Group(), fels = new T.MeshBasicMaterial({ color: "#a9bccf", fog: false }), fern = new T.MeshBasicMaterial({ color: "#c7d5e3", fog: false }),
+      kappe = new T.MeshBasicMaterial({ color: "#f7fafd", fog: false });
+    for (let i = 0; i < 14; i++) {
+      const hinten = i % 2 === 1, r = zufall(28, 55) * (hinten ? 1.3 : 1), h = zufall(45, 85) * (hinten ? 1.25 : 1), x = -260 + i * 40 + zufall(-12, 12), z = hinten ? -25 : 0;
+      teil(new T.ConeGeometry(r, h, 7), hinten ? fern : fels, g, x, h / 2, z).castShadow = false;
+      teil(new T.ConeGeometry(r * .36, h * .36, 7), kappe, g, x, h * .82 + .5, z).castShadow = false;
+    }
+    return g;
+  }
+  return { buckel, bergkette, schlitten, tor, boot, pylone, boje, wasserFlaeche, flieger, ring, heissluftballon, gewitter, voegel, insel, regenbogen, wolkenMeer, wolkenBild, wolkenBallen, strahlen };
 }
