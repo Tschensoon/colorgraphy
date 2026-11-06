@@ -447,6 +447,12 @@ export function welt(T, handy) {
       fotoGanz: [[0, 1.0, 0], [2.4, 1.7, -3.6]], fotoRuecken: [[0, 1.35, .1], [1.5, 2.1, 1.9]] },
     katze: { name: "Mimi", blick: .85, rueckenY: -.67, blaseY: .7, blaseS: .95, cockpit: [.1, .4, .62], kopfSkala: 1.1, halsSkala: .85,
       fotoGanz: [[0, .75, -.1], [2.2, 1.5, -3.1]], fotoRuecken: [[0, .95, .1], [1.5, 2, 1.9]] },
+    fuchs: { name: "Ferdi", blick: .85, rueckenY: -.67, blaseY: .7, blaseS: .95, cockpit: [.1, .4, .62], kopfSkala: 1.05, halsSkala: .85,
+      fotoGanz: [[0, .75, -.1], [2.2, 1.5, -3.1]], fotoRuecken: [[0, .95, .1], [1.5, 2, 1.9]] },
+    panda: { name: "Paula", blick: .95, rueckenY: -.52, blaseY: .72, blaseS: 1.05, cockpit: [.05, .4, .58], kopfSkala: 1.5, halsSkala: 1.15,
+      fotoGanz: [[0, .82, -.1], [2.4, 1.6, -3.3]], fotoRuecken: [[0, 1.08, .1], [1.7, 2.2, 2.1]] },
+    mops: { name: "Fips", blick: .9, rueckenY: -.6, blaseY: .7, blaseS: 1, cockpit: [.05, .4, .6], kopfSkala: 1.35, halsSkala: 1.05,
+      fotoGanz: [[0, .8, -.1], [2.3, 1.55, -3.2]], fotoRuecken: [[0, 1.02, .1], [1.6, 2.1, 2.0]] },
   };
   let leoFormen = null;
   function leoFormenBauen() {
@@ -773,11 +779,81 @@ export function welt(T, handy) {
       teil(rohr([[0, 0, 0], [0, .1, .2], [0, .35, .35], [0, .6, .38], [0, .75, .3]], .05, .035), katzeBein, schwanz);
     },
   });
+  // --- Ferdi, der Fuchs (spitze Schnauze, große Ohren, buschiger Schwanz mit weißer Spitze) ---
+  const fuchsFell = zweiFarbenMat("fuchs", "#e2702a", "#fbf3e8", "#ffd0a0"), fuchsBein = pluesch("#3a2a22", "#7a5a4a"), fuchsOrange = pluesch("#e2702a", "#ffd0a0"), fuchsWeiss = pluesch("#fbf3e8", "#ffffff");
+  const fuchsK = [0, .25, -.12];
+  const fuchs = () => tierBauen({
+    id: "fuchs", fell: fuchsFell, skala: 1.15, hals: [0, .8, -.38], K: fuchsK, augen: [.08, .05, -.15, .03], schwanz: [0, .64, .5],
+    rumpf: (x, y, z) => F.weich(F.ei(x, y, z, 0, .6, .08, .27, .26, .46), F.ei(x, y, z, 0, .64, -.22, .24, .26, .22), .1),
+    rumpfHell: (x, y, z) => [klemme((.52 - y) / .08) * klemme((-.05 - z) / .12)], rumpfBox: [[-.38, .25, -.62], [.38, .95, .64]],
+    kopf: (x, y, z) => F.weich(F.weich(F.stab(x, y, z, [0, -.08, .06], [0, .14, -.06], .12, .11), F.ei(x, y, z, ...fuchsK, .18, .16, .17), .05),
+      F.ei(x, y, z, 0, fuchsK[1] - .06, fuchsK[2] - .17, .08, .065, .13), .04),
+    kopfHell: (x, y, z) => [klemme(((fuchsK[2] - .06) - z) / .05) * (y < fuchsK[1] - .03 ? 1 : 0)], kopfBox: [[-.3, -.24, -.45], [.3, .5, .3]],
+    ansaetze: [[-.14, .48, -.26], [.14, .48, -.26], [-.15, .48, .32], [.15, .48, .32]], oben: [[.065, .055, .24]], unten: [[.055, .05, .22]], pfote: [[.06, .035, .09]],
+    bein: fuchsBein, pfoteMat: fuchsBein,
+    extra: ({ kopf, schwanz, ohren }) => {
+      teil(kugel, nasenMat, kopf, 0, -.045, -.31).scale.set(.026, .02, .018);
+      for (const s of [-1, 1]) {
+        const ohr = gelenk(kopf, s * .1, .13, 0); ohr.userData.s = s; ohr.userData.basis = -s * .2; ohren.push(ohr);
+        teil(new T.ConeGeometry(.085, .21, 14), fuchsOrange, ohr, 0, .09, 0).scale.z = .5;
+        teil(new T.ConeGeometry(.05, .13, 12), fuchsBein, ohr, 0, .16, -.005).scale.z = .45;
+      }
+      teil(rohr([[0, 0, 0], [0, .05, .2], [0, .12, .42], [0, .2, .6]], .07, .1, 16), fuchsOrange, schwanz);
+      teil(kugel, fuchsWeiss, schwanz, 0, .23, .68).scale.set(.095, .1, .12);
+    },
+  });
+  // --- Paula, der Panda (weiß mit schwarzen Beinen, Ohren und Augenflecken) ---
+  const pandaFell = zweiFarbenMat("panda", "#f6f6f2", "#1d1d22", "#ffffff"), pandaSchwarz = pluesch("#1d1d22", "#55555f");
+  const pandaK = [0, .3, -.12];
+  const panda = () => tierBauen({
+    id: "panda", fell: pandaFell, skala: 1.12, hals: [0, .9, -.36], K: pandaK, augen: [.09, .055, -.2, .025], schwanz: [0, .66, .45],
+    rumpf: (x, y, z) => F.weich(F.ei(x, y, z, 0, .62, .05, .37, .37, .43), F.ei(x, y, z, 0, .68, -.22, .32, .33, .27), .1),
+    rumpfHell: (x, y, z) => [klemme((1 - Math.abs(z + .16) / .2) * 2.5) * klemme((y - .45) / .1)], rumpfBox: [[-.46, .2, -.56], [.46, 1.08, .56]],
+    kopf: (x, y, z) => F.weich(F.stab(x, y, z, [0, -.08, .06], [0, .16, -.06], .17, .16), F.ei(x, y, z, ...pandaK, .26, .23, .22), .06),
+    kopfHell: (x, y, z) => {
+      const d = Math.hypot((Math.abs(x) - .09) / .065, (y - (pandaK[1] + .045)) / .08, (z - (pandaK[2] - .18)) / .09);
+      return [klemme((1.05 - d) * 3)];
+    },
+    kopfBox: [[-.36, -.26, -.44], [.36, .6, .32]],
+    ansaetze: [[-.19, .5, -.25], [.19, .5, -.25], [-.2, .46, .3], [.2, .46, .3]], oben: [[.11, .1, .24]], unten: [[.1, .095, .2]], pfote: [[.1, .045, .12]],
+    bein: pandaSchwarz, pfoteMat: pandaSchwarz,
+    extra: ({ kopf, schwanz, ohren }) => {
+      teil(kugel, nasenMat, kopf, 0, -.04, -.235).scale.set(.045, .032, .03);
+      for (const s of [-1, 1]) {
+        const ohr = gelenk(kopf, s * .2, .19, 0); ohr.userData.s = s; ohr.userData.basis = 0; ohren.push(ohr);
+        teil(kugel, pandaSchwarz, ohr).scale.set(.085, .085, .05);
+      }
+      teil(kugel, pandaSchwarz, schwanz).scale.setScalar(.065);
+    },
+  });
+  // --- Fips, der Mops (gedrungen, kurze schwarze Schnauze, Klappohren, Ringelschwanz) ---
+  const mopsFell = zweiFarbenMat("mops", "#d8b07c", "#1e1a18", "#f3dcb4"), mopsBein = pluesch("#d8b07c", "#f3dcb4"), mopsSchwarz = pluesch("#1e1a18", "#4a3f3a"), mopsZunge = std({ color: "#e8707a", roughness: .5 });
+  const mopsK = [0, .27, -.1];
+  const mops = () => tierBauen({
+    id: "mops", fell: mopsFell, skala: 1.1, hals: [0, .82, -.34], K: mopsK, augen: [.09, .055, -.175, .042], schwanz: [0, .74, .42],
+    rumpf: (x, y, z) => F.weich(F.ei(x, y, z, 0, .6, .06, .31, .29, .42), F.ei(x, y, z, 0, .64, -.2, .3, .3, .25), .1),
+    rumpfHell: () => [0], rumpfBox: [[-.42, .25, -.55], [.42, .98, .55]],
+    kopf: (x, y, z) => F.weich(F.weich(F.stab(x, y, z, [0, -.08, .06], [0, .15, -.04], .15, .14), F.ei(x, y, z, ...mopsK, .23, .21, .21), .06),
+      F.ei(x, y, z, 0, mopsK[1] - .07, mopsK[2] - .16, .13, .09, .08), .05),
+    kopfHell: (x, y, z) => [klemme(((mopsK[2] - .11) - z) / .045) * (y < mopsK[1] + .05 ? 1 : 0)], kopfBox: [[-.34, -.26, -.42], [.34, .56, .32]],
+    ansaetze: [[-.16, .46, -.22], [.16, .46, -.22], [-.17, .46, .3], [.17, .46, .3]], oben: [[.08, .07, .2]], unten: [[.07, .065, .18]], pfote: [[.075, .04, .1]],
+    bein: mopsBein, pfoteMat: mopsBein,
+    extra: ({ kopf, schwanz, ohren }) => {
+      teil(kugel, nasenMat, kopf, 0, -.035, -.265).scale.set(.05, .032, .026);
+      teil(kugel, mopsZunge, kopf, 0, -.13, -.23).scale.set(.03, .012, .025);
+      for (const s of [-1, 1]) {
+        const ohr = gelenk(kopf, s * .17, .14, -.02); ohr.userData.s = s; ohr.userData.basis = s * .5; ohren.push(ohr);
+        const o = teil(kugel, mopsSchwarz, ohr, s * .035, -.02, -.02); o.scale.set(.075, .06, .03); o.rotation.z = s * .7;
+      }
+      teil(rohr([[0, 0, 0], [0, .12, .04], [0, .2, -.02], [0, .16, -.1], [0, .08, -.07]], .045, .03, 14), mopsBein, schwanz);
+    },
+  });
   const FIGUREN = {
     giraffe: { bauen: () => giraffeBauen(), name: "Fröbelinchen" }, leo: { bauen: () => leoBauen(), name: "Leo" },
     hase: { bauen: haseBauen, name: "Rambo Rabbit" }, baer: { bauen: baerBauen, name: "Baylin" }, elefant: { bauen: elefantBauen, name: "Jensfant" },
     affe: { bauen: affe, name: "Momo" }, pinguin: { bauen: pinguin, name: "Pingo" }, koala: { bauen: koala, name: "Kalle" }, katze: { bauen: katze, name: "Mimi" },
     anja: { bauen: anjaFigur, name: "Anja" },
+    fuchs: { bauen: fuchs, name: "Ferdi" }, panda: { bauen: panda, name: "Paula" }, mops: { bauen: mops, name: "Fips" },
   };
   const figurBauen = (id) => (FIGUREN[id] || FIGUREN.giraffe).bauen();
 
@@ -1465,6 +1541,11 @@ export function welt(T, handy) {
     bunt: std({ map: bunt, roughness: .7 }), rot: std({ color: "#d32f2f", roughness: .6 }), schwarz: std({ color: "#26282c", roughness: .4 }),
     orange: std({ color: "#ff8f1f", roughness: .7 }), umhang: std({ color: "#c62828", roughness: .7, side: T.DoubleSide }),
     feder: std({ color: "#f6e3ff", roughness: .4, emissive: "#d9a8ff", emissiveIntensity: .35, transparent: true, opacity: .9, side: T.DoubleSide }),
+    braun: std({ color: "#8b5a2b", roughness: .85 }), silber: std({ color: "#cfd6de", metalness: .75, roughness: .28 }), horn: std({ color: "#f1e6c8", roughness: .6 }),
+    perle: std({ color: "#fbf8f2", metalness: .1, roughness: .18 }), gruen: std({ color: "#3f9d4a", roughness: .8 }),
+    flamme: std({ color: "#ffb020", emissive: "#ff6a00", emissiveIntensity: 1.4, roughness: .5 }),
+    drache: std({ color: "#2f9e5b", roughness: .55, side: T.DoubleSide, emissive: "#0d3a20", emissiveIntensity: .25 }),
+    tuerkis: std({ color: "#19b5c7", roughness: .35 }),
   };
   // Preise in Sternen: nach einer guten Runde reicht es für ein günstiges Teil, die Krone ist ein langes Sparziel.
   // platz: pro Platz trägt Fröbelinchen nur ein Teil; kopf/gesicht/ohr sitzen am Kopf, hals am Hals, ruecken am Körper.
@@ -1534,6 +1615,47 @@ export function welt(T, handy) {
     krone: { name: "Goldkrone", preis: 2000, platz: "kopf", bauen: () => {
       const g = new T.Group(); teil(zyl(.14, .14, .08, 20, 1, true), A_MAT.gold, g, 0, .2, .02);
       for (let i = 0; i < 6; i++) { const w = i / 6 * Math.PI * 2; teil(kegel(.035, .1, 8), A_MAT.gold, g, Math.cos(w) * .14, .29, .02 + Math.sin(w) * .14); }
+      return g; } },
+    sternspange: { name: "Sternspange", preis: 520, platz: "ohr", bauen: () => {
+      const g = new T.Group(); const st = teil(geo.stern, A_MAT.gold, g, -.17, .2, .05); st.scale.setScalar(.22); st.rotation.y = Math.PI / 2; return g; } },
+    krawatte: { name: "Krawatte", preis: 650, platz: "hals", bauen: () => {
+      const g = new T.Group(); teil(kiste(.07, .055, .035), A_MAT.lila, g, 0, .13, -.27);
+      const k = teil(kegel(.055, .26, 4), A_MAT.lila, g, 0, -.03, -.29); k.rotation.x = Math.PI; k.rotation.y = Math.PI / 4; k.scale.z = .35; return g; } },
+    perlenkette: { name: "Perlenkette", preis: 780, platz: "hals", bauen: () => {
+      const g = new T.Group(), ring = new T.Group(); ring.position.set(0, .12, -.1); ring.rotation.x = Math.PI / 2 + .25; g.add(ring);
+      for (let i = 0; i < 22; i++) { const w = i / 22 * Math.PI * 2; teil(kugel, A_MAT.perle, ring, Math.cos(w) * .2, Math.sin(w) * .2, 0).scale.setScalar(.028); }
+      return g; } },
+    heldenmaske: { name: "Heldenmaske", preis: 850, platz: "gesicht", bauen: () => {
+      const g = new T.Group();
+      for (const sx of [-1, 1]) { const m = teil(kugel, A_MAT.rot, g, sx * .085, .06, -.155); m.scale.set(.085, .05, .025); m.rotation.z = sx * .25; }
+      teil(kiste(.06, .03, .02), A_MAT.rot, g, 0, .07, -.17);
+      const b = teil(new T.TorusGeometry(.17, .014, 6, 24), A_MAT.rot, g, 0, .06, 0); b.rotation.x = Math.PI / 2; return g; } },
+    taucherbrille: { name: "Taucherbrille", preis: 910, platz: "gesicht", bauen: () => {
+      const g = new T.Group(); teil(kiste(.27, .11, .045), A_MAT.orange, g, 0, .06, -.15); teil(kiste(.22, .075, .02), A_MAT.tuerkis, g, 0, .06, -.175);
+      const b = teil(new T.TorusGeometry(.17, .016, 6, 24), A_MAT.schwarz, g, 0, .06, 0); b.rotation.x = Math.PI / 2; return g; } },
+    blumenkranz: { name: "Blumenkranz", preis: 1040, platz: "kopf", bauen: () => {
+      const g = new T.Group(); const r = teil(new T.TorusGeometry(.15, .02, 8, 28), A_MAT.gruen, g, 0, .16, .02); r.rotation.x = Math.PI / 2;
+      const farben = [A_MAT.bluete, A_MAT.mitte, A_MAT.weiss, A_MAT.lila];
+      for (let i = 0; i < 9; i++) { const w = i / 9 * Math.PI * 2; teil(kugel, farben[i % 4], g, Math.cos(w) * .15, .18, .02 + Math.sin(w) * .15).scale.setScalar(.04); }
+      return g; } },
+    cowboyhut: { name: "Cowboyhut", preis: 1170, platz: "kopf", bauen: () => {
+      const g = new T.Group(); const k = teil(zyl(.31, .31, .02, 28), A_MAT.braun, g, 0, .15, .02); k.scale.z = .85;
+      teil(zyl(.13, .16, .17, 20), A_MAT.braun, g, 0, .24, .02); teil(zyl(.162, .162, .035, 20), A_MAT.schwarz, g, 0, .18, .02); return g; } },
+    wikingerhelm: { name: "Wikingerhelm", preis: 1560, platz: "kopf", bauen: () => {
+      const g = new T.Group(); teil(new T.SphereGeometry(.17, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2), A_MAT.silber, g, 0, .12, .02);
+      teil(zyl(.172, .172, .04, 24), A_MAT.braun, g, 0, .13, .02);
+      for (const s of [-1, 1]) { const h = teil(kegel(.045, .22, 12), A_MAT.horn, g, s * .2, .27, .02); h.rotation.z = -s * .7; }
+      return g; } },
+    jetpack: { name: "Jetpack", preis: 1950, platz: "ruecken", bauen: () => {
+      const g = new T.Group();
+      for (const s of [-1, 1]) {
+        teil(new T.CapsuleGeometry(.09, .3, 8, 16), A_MAT.silber, g, s * .11, 1.66, .2).rotation.x = Math.PI / 2;
+        const f = teil(kegel(.07, .22, 14), A_MAT.flamme, g, s * .11, 1.66, .55); f.rotation.x = Math.PI / 2;
+      }
+      teil(kiste(.12, .1, .3), A_MAT.rot, g, 0, 1.66, .2); return g; } },
+    drachenfluegel: { name: "Drachenflügel", preis: 2600, platz: "ruecken", bauen: () => {
+      const g = new T.Group();
+      for (const s of [-1, 1]) { const f = teil(fluegelForm, A_MAT.drache, g, s * .14, 1.62, -.02); f.scale.set(s * 1.9, 1.7, 1.7); f.rotation.y = s * -.45; f.rotation.x = -.15; }
       return g; } },
   };
   function ausstattungSetzen(sp, ids) {

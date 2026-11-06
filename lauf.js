@@ -31,7 +31,7 @@ if (rahmen) {
   function laden() {
     if (!bereit) {
       const text = losKnopf.textContent; losKnopf.disabled = true; losKnopf.textContent = "Lädt die 3D-Welt …";
-      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=36"), import("./lauf-ton.js?v=3"), import("./lauf-flug.js?v=3"), import("./lauf-effekte.js?v=3")])
+      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=37"), import("./lauf-ton.js?v=3"), import("./lauf-flug.js?v=3"), import("./lauf-effekte.js?v=3")])
         .then(([m, w, t, f, e]) => { THREE = m; T = t.ton(); aufbauen(w, f, e); losKnopf.disabled = false; losKnopf.textContent = text; });
     }
     return bereit;
@@ -53,6 +53,8 @@ if (rahmen) {
     { id: "elefant", emoji: "🐘", name: "Jensfant", stufe: 20, preis: 250 }, { id: "affe", emoji: "🐒", name: "Momo", stufe: 30, preis: 1000 },
     { id: "pinguin", emoji: "🐧", name: "Pingo", stufe: 50, preis: 1000 }, { id: "koala", emoji: "🐨", name: "Kalle", stufe: 70, preis: 1000 },
     { id: "katze", emoji: "🐱", name: "Mimi", stufe: 100, preis: 1000 }, { id: "anja", emoji: "👱‍♀️", name: "Anja", stufe: 150, preis: 1000 },
+    { id: "fuchs", emoji: "🦊", name: "Ferdi", stufe: 400, preis: 1500 }, { id: "panda", emoji: "🐼", name: "Paula", stufe: 600, preis: 2000 },
+    { id: "mops", emoji: "🐶", name: "Fips", stufe: 1000, preis: 3000 },
   ];
   const EP_JE_STUFE = 5000;
   let erfahrung = +lies("froebelinchen-rennt-erfahrung", 0) || 0;
