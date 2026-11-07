@@ -451,7 +451,7 @@ export function welt(T, handy) {
       fotoGanz: [[0, .75, -.1], [2.2, 1.5, -3.1]], fotoRuecken: [[0, .95, .1], [1.5, 2, 1.9]] },
     panda: { name: "Paula", blick: .95, rueckenY: -.52, blaseY: .72, blaseS: 1.05, cockpit: [.05, .4, .58], kopfSkala: 1.5, halsSkala: 1.15,
       fotoGanz: [[0, .82, -.1], [2.4, 1.6, -3.3]], fotoRuecken: [[0, 1.08, .1], [1.7, 2.2, 2.1]] },
-    pip: { name: "Pip", blick: 1.1, rueckenY: -.35, blaseY: .85, blaseS: 1.15, cockpit: [-.05, .38, .55], kopfSkala: 1.9, halsSkala: 1.4,
+    pip: { name: "Fröbelix", blick: 1.1, rueckenY: -.35, blaseY: .85, blaseS: 1.15, cockpit: [-.05, .38, .55], kopfSkala: 1.9, halsSkala: 1.4,
       fotoGanz: [[0, .85, -.1], [2.4, 1.7, -3.4]], fotoRuecken: [[0, 1.15, .1], [1.7, 2.2, 2.1]] },
     mops: { name: "Fips", blick: .9, rueckenY: -.6, blaseY: .7, blaseS: 1, cockpit: [.05, .4, .6], kopfSkala: 1.35, halsSkala: 1.05,
       fotoGanz: [[0, .8, -.1], [2.3, 1.55, -3.2]], fotoRuecken: [[0, 1.02, .1], [1.6, 2.1, 2.0]] },
@@ -739,7 +739,7 @@ export function welt(T, handy) {
       const sw = teil(new T.ConeGeometry(.08, .16, 10), pinguinFlosse, schwanz); sw.rotation.x = 1.9;
     },
   });
-  // --- Pip, der Sprössling: runder gelber Plüsch mit Knopfaugen, Bäckchen und einem Blattspross auf dem Kopf ---
+  // --- Fröbelix, der Sprössling: runder gelber Plüsch mit Knopfaugen, Bäckchen und einem Blattspross auf dem Kopf ---
   const pipFell = zweiFarbenMat("pip", "#ffd43a", "#ffe57a", "#fff6c8"), pipGelb = pluesch("#ffd43a", "#fff6c8");
   const pipBlatt = pluesch("#7ccf4a", "#d6ffb0"), pipStiel = pluesch("#5aa83a", "#c4f0a0"), pipMund = std({ color: "#3a2a22", roughness: .5 });
   const pipBand = pluesch("#25b3c8", "#a8f0ff"), pipRahmen = std({ color: "#2a2d36", roughness: .45, side: T.DoubleSide });
@@ -893,7 +893,7 @@ export function welt(T, handy) {
     hase: { bauen: haseBauen, name: "Rambo Rabbit" }, baer: { bauen: baerBauen, name: "Baylin" }, elefant: { bauen: elefantBauen, name: "Jensfant" },
     affe: { bauen: affe, name: "Momo" }, pinguin: { bauen: pinguin, name: "Pingo" }, koala: { bauen: koala, name: "Kalle" }, katze: { bauen: katze, name: "Mimi" },
     anja: { bauen: anjaFigur, name: "Anja" },
-    fuchs: { bauen: fuchs, name: "Ferdi" }, panda: { bauen: panda, name: "Paula" }, mops: { bauen: mops, name: "Fips" }, pip: { bauen: pip, name: "Pip" },
+    fuchs: { bauen: fuchs, name: "Ferdi" }, panda: { bauen: panda, name: "Paula" }, mops: { bauen: mops, name: "Fips" }, pip: { bauen: pip, name: "Fröbelix" },
   };
   const figurBauen = (id) => (FIGUREN[id] || FIGUREN.giraffe).bauen();
 
