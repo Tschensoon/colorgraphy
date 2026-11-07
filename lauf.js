@@ -783,7 +783,7 @@ if (rahmen) {
   // Chat: verbindet sich gleich beim Öffnen der Seite, damit man sieht, wer online ist und ob es Neues gibt
   const chatFeld = $(".lauf-chat"), chatKnopf = $(".lauf-chat-knopf");
   let chat = null;
-  import("./lauf-chat.js?v=1").then(m => { chat = m.chatStarten({ db: DB, feld: chatFeld, knopf: chatKnopf }); }).catch(() => { chatKnopf.hidden = true; });
+  import("./lauf-chat.js?v=2").then(m => { chat = m.chatStarten({ db: DB, feld: chatFeld, knopf: chatKnopf }); }).catch(() => { chatKnopf.hidden = true; });
   chatKnopf.addEventListener("click", () => { if (chat) chat.oeffnen(); });
   $(".lc-x").addEventListener("click", () => { if (chat) chat.schliessen(); else chatFeld.hidden = true; });
   const panelBeobachter = new MutationObserver(() => rahmen.classList.toggle("panel-offen", !shop.hidden || !topFeld.hidden || !chatFeld.hidden));

@@ -1,6 +1,6 @@
 // Live-Chat für „Fröbelinchen rennt“: alle, die gerade die Spielseite offen haben, sehen neue Nachrichten sofort.
 // Läuft über den Realtime-Kanal von Supabase (Broadcast für Nachrichten, Presence für „wer ist online“).
-// Gespeichert wird nichts: Wer neu dazukommt, bekommt die letzten Nachrichten von einem anderen Teilnehmer geschickt.
+// Nachrichten liegen außerdem 30 Tage in der Tabelle chat_nachrichten bei Supabase; beim Öffnen werden die letzten 100 geladen.
 export function chatStarten({ db, feld, knopf }) {
   const test = new URLSearchParams(location.search).get("chatkanal");
   const kanal = "realtime:froebel-chat" + (test ? "-" + test.replace(/[^a-z0-9]/gi, "").slice(0, 12) : "");
@@ -100,7 +100,7 @@ export function chatStarten({ db, feld, knopf }) {
     if (Date.now() - zuletzt < 700) return;
     zuletzt = Date.now();
     const n = { id: ich + "-" + Date.now().toString(36), von: ich, name: name(), text, zeit: Date.now() };
-    dazu(n, false); rufen("nachricht", n); eingabe.value = "";
+    dazu(n, false); rufen("nachricht", n); speichern(n); eingabe.value = "";
   });
   nameFeld.addEventListener("change", () => {
     try { localStorage.setItem("froebelinchen-name", name()); } catch (e) {}
@@ -108,7 +108,25 @@ export function chatStarten({ db, feld, knopf }) {
   });
   for (const f of [eingabe, nameFeld]) f.addEventListener("keydown", (e) => e.stopPropagation());   // Tippen steuert nicht das Spiel
 
-  zeichnen(); zeigen(); verbinden();
+  // Gespeicherte Nachrichten der letzten 30 Tage holen (der Testkanal bleibt ungespeichert)
+  async function laden() {
+    if (test) return;
+    try {
+      const r = await fetch(`${db.url}/rest/v1/chat_nachrichten?select=id,von,name,text,zeit&order=zeit.desc&limit=100`, { headers: { apikey: db.key }, cache: "no-store" });
+      if (!r.ok) return;
+      for (const n of await r.json()) dazu({ ...n, zeit: Date.parse(n.zeit) }, false);
+    } catch (e) {}
+  }
+  async function speichern(n) {
+    if (test) return;
+    try {
+      const r = await fetch(`${db.url}/rest/v1/rpc/chat_senden`, { method: "POST", headers: { apikey: db.key, "Content-Type": "application/json" },
+        body: JSON.stringify({ p_id: n.id, p_von: n.von, p_name: n.name, p_text: n.text }) });
+      if (!r.ok) { let m = ""; try { m = (await r.json()).message; } catch (x) {} status.textContent = "Nicht gespeichert" + (m ? ": " + m : "") + ". Wer gerade online ist, hat sie trotzdem gesehen."; }
+    } catch (e) { status.textContent = "Nicht gespeichert (keine Verbindung)."; }
+  }
+
+  zeichnen(); zeigen(); laden(); verbinden();
   return {
     oeffnen() { offen = true; ungelesen = 0; feld.hidden = false; zeichnen(); zeigen(); if (!matchMedia("(pointer: coarse)").matches) (name() ? eingabe : nameFeld).focus(); },
     schliessen() { offen = false; feld.hidden = true; zeigen(); },
