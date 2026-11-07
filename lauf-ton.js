@@ -8,7 +8,7 @@ export function ton() {
   function start() {
     if (!ctx) {
       const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
-      ctx = new AC(); graphBauen();
+      ctx = new AC(); graphBauen(); weckLaden();
     }
     if (ctx.state === "suspended") ctx.resume();
   }
@@ -311,5 +311,29 @@ export function ton() {
     return puffer;
   }
 
-  return { start, umschalten, istAn: () => an, musik, musikStop, aufnehmen, ...sfx };
+  // ---------- Weckton beim Verlieren (Audiodatei, wird beim ersten Start im Hintergrund geladen) ----------
+  let weckPuffer = null, weckLaedt = null, weckQuelle = null;
+  function weckLaden() {
+    if (weckPuffer || weckLaedt || !ctx) return;
+    weckLaedt = fetch("ton/verloren.m4a?v=1").then(r => r.arrayBuffer())
+      .then(b => new Promise((ok, nein) => ctx.decodeAudioData(b, ok, nein)))   // Rückruf-Form: läuft auch auf älteren iPhones
+      .then(p => { weckPuffer = p; }).catch(() => { weckLaedt = null; });
+  }
+  function verloren() {
+    if (!ctx) return;
+    verlorenStop();
+    if (!weckPuffer) { weckLaden(); return; }
+    const q = ctx.createBufferSource(), g = ctx.createGain();
+    q.buffer = weckPuffer; g.gain.value = .7; q.connect(g); g.connect(effektBus); q.start();
+    weckQuelle = { q, g };
+    q.onended = () => { if (weckQuelle && weckQuelle.q === q) weckQuelle = null; };
+  }
+  function verlorenStop() {               // „Nochmal“, Spiel schließen oder Seite verlassen: Ton kurz ausblenden
+    if (!weckQuelle) return;
+    const { q, g } = weckQuelle; weckQuelle = null;
+    g.gain.setTargetAtTime(0, ctx.currentTime, .03);
+    try { q.stop(ctx.currentTime + .2); } catch (e) {}
+  }
+
+  return { start, umschalten, istAn: () => an, musik, musikStop, aufnehmen, verloren, verlorenStop, ...sfx };
 }

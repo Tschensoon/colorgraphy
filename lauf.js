@@ -31,7 +31,7 @@ if (rahmen) {
   function laden() {
     if (!bereit) {
       const text = losKnopf.textContent; losKnopf.disabled = true; losKnopf.textContent = "Lädt die 3D-Welt …";
-      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=43"), import("./lauf-ton.js?v=7"), import("./lauf-flug.js?v=4"), import("./lauf-effekte.js?v=3")])
+      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=43"), import("./lauf-ton.js?v=8"), import("./lauf-flug.js?v=4"), import("./lauf-effekte.js?v=3")])
         .then(([m, w, t, f, e]) => { THREE = m; T = t.ton(); aufbauen(w, f, e); losKnopf.disabled = false; losKnopf.textContent = text; });
     }
     return bereit;
@@ -434,7 +434,7 @@ if (rahmen) {
   }
   pauseKnopf.addEventListener("click", () => { if (zustand === "laeuft" || zustand === "pause") pauseUm(); });
   $(".lauf-weiter").addEventListener("click", pauseUm);
-  document.addEventListener("visibilitychange", () => { if (document.hidden && zustand === "laeuft") pauseUm(); });
+  document.addEventListener("visibilitychange", () => { if (document.hidden && T) T.verlorenStop(); if (document.hidden && zustand === "laeuft") pauseUm(); });
   const tonAnzeigen = (an) => { tonKnopf.textContent = an ? "🔊" : "🔇"; tonKnopf.setAttribute("aria-label", an ? "Ton aus" : "Ton an"); };
   tonKnopf.addEventListener("click", async () => { await laden(); T.start(); tonAnzeigen(T.umschalten()); });
   try { tonAnzeigen(localStorage.getItem("froebelinchen-ton") !== "aus"); } catch (e) {}
@@ -447,7 +447,7 @@ if (rahmen) {
   }
   function vollbildAus() {
     if (!vollbild) return;
-    vollbild = false; rahmen.classList.remove("vollbild"); document.body.classList.remove("spiel-offen");
+    vollbild = false; rahmen.classList.remove("vollbild"); document.body.classList.remove("spiel-offen"); if (T) T.verlorenStop();
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
     if (zustand === "laeuft" || zustand === "pause" || zustand === "fang") { pauseFeld.hidden = true; ende("Pause gemacht"); }
   }
@@ -459,7 +459,7 @@ if (rahmen) {
   losKnopf.addEventListener("click", async () => {
     if (handy && !vollbild) vollbildAn();
     await laden();
-    T.start();
+    T.start(); T.verlorenStop();
     if (zustand === "aus") neu();
     zustand = "laeuft"; window.froebelAktiv = "lauf";
     ueber.hidden = true; ladenZu(); topFeld.hidden = true; eintragForm.hidden = true; uhr.getDelta();
@@ -471,6 +471,7 @@ if (rahmen) {
     if (zustand !== "laeuft") return;
     zustand = "fang"; schlussSzene = { grund, art, t: 0 };
     T.musikStop(); if (art === "anja") T.anja(); else T.knall();
+    T.verloren();                                       // Weckton, bis man „Nochmal“ drückt oder das Spiel schließt
     if (navigator.vibrate) navigator.vibrate(art === "anja" ? [60, 40, 60] : 80);
     wackeln = .5;
   }
