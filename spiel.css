@@ -398,3 +398,25 @@ body.spiel-offen { overflow: hidden; }
   @keyframes fo-rechts { to { transform: translateX(5px); } }
 }
 @media (max-width: 720px) { .fo-kopf { top: calc(env(safe-area-inset-top) + 4.4rem); width: calc(100% - 2rem); } }
+
+/* Chat im Menü */
+.lauf-chat { justify-content: flex-start; background: #fff; }
+.chat-online { margin: -.3rem 0 0; font-size: .85rem; color: #4a5a55; text-align: center; max-width: 520px; }
+.chat-name-zeile { display: flex; align-items: center; gap: .5rem; font-size: .9rem; color: #24332f; font-weight: 700; }
+.chat-name::placeholder, .chat-text::placeholder { color: #8a9a95; }
+.chat-name { width: 11rem; padding: .35rem .6rem; border: 1px solid #c9d6d0; border-radius: 10px; font: inherit; font-weight: 400; background: #fff; color: #24332f; }
+.chat-liste { list-style: none; margin: 0; padding: .5rem; width: 100%; max-width: 520px; flex: 1 1 auto; min-height: 9rem; overflow-y: auto;
+  border-radius: 14px; background: #f1f6f2; display: flex; flex-direction: column; gap: .35rem; }
+.chat-liste li { align-self: flex-start; max-width: 85%; padding: .4rem .65rem; border-radius: 12px 12px 12px 4px; background: #fff; color: #24332f;
+  text-align: left; box-shadow: 0 1px 3px rgba(0, 40, 30, .08); overflow-wrap: anywhere; }
+.chat-liste li.eigen { align-self: flex-end; border-radius: 12px 12px 4px 12px; background: #d9f2e3; }
+.chat-liste li b { font-size: .8rem; color: #034a3e; margin-right: .4rem; }
+.chat-liste li time { font-size: .72rem; color: #7a8a85; }
+.chat-liste li span { display: block; white-space: pre-wrap; }
+.chat-liste li.chat-leer { align-self: center; background: none; box-shadow: none; color: #7a8a85; font-size: .9rem; }
+.chat-form { display: flex; gap: .5rem; width: 100%; max-width: 520px; }
+.chat-text { flex: 1; min-width: 0; padding: .55rem .8rem; border: 1px solid #c9d6d0; border-radius: 999px; font: inherit; background: #fff; color: #24332f; }
+.chat-status { margin: 0; min-height: 1.1em; font-size: .85rem; color: #b3261e; }
+.chat-hinweis { margin: 0; font-size: .75rem; color: #7a8a85; text-align: center; }
+.lauf-chat-knopf.neu { background: #ffe9a8 !important; }
+.lauf-overlay .lauf-knoepfe .lauf-chat-knopf { grid-column: 1 / -1; }

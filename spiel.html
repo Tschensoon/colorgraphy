@@ -65,7 +65,7 @@
 </script>
 <link rel="stylesheet" href="style.css?v=17">
 <link rel="stylesheet" href="tools.css?v=9">
-<link rel="stylesheet" href="spiel.css?v=31">
+<link rel="stylesheet" href="spiel.css?v=32">
 </head>
 <body>
 <a class="skip-link" href="#top">Zum Inhalt springen</a>
@@ -157,6 +157,7 @@
               <button type="button" class="pill lauf-los">Los geht’s</button>
               <button type="button" class="pill ghost lauf-shop-knopf">★ Shop</button>
               <button type="button" class="pill ghost lauf-top-knopf">🏆 Bestenliste</button>
+              <button type="button" class="pill ghost lauf-chat-knopf">💬 Chat</button>
             </div>
            </div>
            </div>
@@ -165,6 +166,19 @@
               <p class="ls-bank">Bestenliste</p>
               <ol class="lauf-top-liste"></ol>
               <button type="button" class="pill small ghost lt-zu">Fertig</button>
+            </div>
+            <div class="lauf-shop lauf-chat" hidden>
+              <button type="button" class="panel-x lc-x" aria-label="Chat schließen">✕</button>
+              <p class="ls-bank">Chat</p>
+              <p class="chat-online" role="status">Verbinde …</p>
+              <label class="chat-name-zeile">Dein Name <input class="chat-name" maxlength="16" autocomplete="nickname" spellcheck="false" placeholder="Spitzname"></label>
+              <ul class="chat-liste" aria-live="polite"></ul>
+              <form class="chat-form">
+                <input class="chat-text" maxlength="500" autocomplete="off" enterkeyhint="send" placeholder="Nachricht schreiben …" aria-label="Nachricht">
+                <button type="submit" class="pill small">Senden</button>
+              </form>
+              <p class="chat-status" role="status"></p>
+              <p class="chat-hinweis">Alle, die gerade im Spiel sind, sehen deine Nachrichten. Gespeichert wird nichts.</p>
             </div>
             <div class="lauf-shop lauf-laden" hidden>
               <button type="button" class="panel-x ls-x" aria-label="Laden schließen">✕</button>
@@ -190,6 +204,7 @@
       <div class="patchnotes">
         <h2>Patchnotes</h2>
         <ul>
+          <li><time datetime="2026-11-07">07.11.</time> Neu im Menü: der Chat. Schreib mit allen, die gerade auch im Spiel sind.</li>
           <li><time datetime="2026-11-07">07.11.</time> Wer verliert, wird jetzt von einem Weckton geweckt. Er hört auf, sobald du „Nochmal“ drückst oder das Spiel schließt.</li>
           <li><time datetime="2026-11-07">07.11.</time> Neue Figur ab Stufe 300: Fröbelix, der kleine Sprössling mit Skibrille.</li>
           <li><time datetime="2026-11-07">07.11.</time> Ganz neue Musik: jede Welt hat jetzt ein eigenes Stück mit Akkorden, Bass, Schlagzeug und Hall, vom E-Piano im Kita-Garten bis zur Marimba im Dschungel.</li>
@@ -231,7 +246,7 @@
 </footer>
 
 <script src="spiel.js?v=11" defer></script>
-<script type="module" src="lauf.js?v=60"></script>
+<script type="module" src="lauf.js?v=61"></script>
 <script src="seite.js?v=12" defer></script>
 <script src="nav-mehr.js?v=5" defer></script>
 <script src="ziehen.js?v=2" defer></script>
