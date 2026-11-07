@@ -451,6 +451,8 @@ export function welt(T, handy) {
       fotoGanz: [[0, .75, -.1], [2.2, 1.5, -3.1]], fotoRuecken: [[0, .95, .1], [1.5, 2, 1.9]] },
     panda: { name: "Paula", blick: .95, rueckenY: -.52, blaseY: .72, blaseS: 1.05, cockpit: [.05, .4, .58], kopfSkala: 1.5, halsSkala: 1.15,
       fotoGanz: [[0, .82, -.1], [2.4, 1.6, -3.3]], fotoRuecken: [[0, 1.08, .1], [1.7, 2.2, 2.1]] },
+    pip: { name: "Pip", blick: 1.1, rueckenY: -.35, blaseY: .85, blaseS: 1.15, cockpit: [-.05, .38, .55], kopfSkala: 1.9, halsSkala: 1.4,
+      fotoGanz: [[0, .85, -.1], [2.4, 1.7, -3.4]], fotoRuecken: [[0, 1.15, .1], [1.7, 2.2, 2.1]] },
     mops: { name: "Fips", blick: .9, rueckenY: -.6, blaseY: .7, blaseS: 1, cockpit: [.05, .4, .6], kopfSkala: 1.35, halsSkala: 1.05,
       fotoGanz: [[0, .8, -.1], [2.3, 1.55, -3.2]], fotoRuecken: [[0, 1.02, .1], [1.6, 2.1, 2.0]] },
   };
@@ -737,6 +739,44 @@ export function welt(T, handy) {
       const sw = teil(new T.ConeGeometry(.08, .16, 10), pinguinFlosse, schwanz); sw.rotation.x = 1.9;
     },
   });
+  // --- Pip, der Sprössling: runder gelber Plüsch mit Knopfaugen, Bäckchen und einem Blattspross auf dem Kopf ---
+  const pipFell = zweiFarbenMat("pip", "#ffd43a", "#ffe57a", "#fff6c8"), pipGelb = pluesch("#ffd43a", "#fff6c8");
+  const pipBlatt = pluesch("#7ccf4a", "#d6ffb0"), pipStiel = pluesch("#5aa83a", "#c4f0a0"), pipMund = std({ color: "#3a2a22", roughness: .5 });
+  const pipBand = pluesch("#25b3c8", "#a8f0ff"), pipRahmen = std({ color: "#2a2d36", roughness: .45, side: T.DoubleSide });
+  const pipGlas = std({ color: "#ffb24a", roughness: .1, metalness: .1, emissive: "#ff7a1a", emissiveIntensity: .5, transparent: true, opacity: .45, depthWrite: false, side: T.DoubleSide });   // getönt: die Augen sieht man dahinter
+  const pipK = [0, .12, -.02];
+  const pip = () => tierBauen({
+    id: "pip", fell: pipFell, skala: 1.05, hals: [0, .98, 0], K: pipK, augen: [.105, .06, -.31, .055], schwanz: [0, .58, .3],
+    rumpf: (x, y, z) => F.ei(x, y, z, 0, .7, 0, .41, .46, .37),
+    rumpfHell: (x, y, z) => [klemme((-.26 - z) / .06) * klemme((.74 - y) / .1)], rumpfBox: [[-.47, .16, -.45], [.47, 1.24, .45]],
+    kopf: (x, y, z) => F.ei(x, y, z, ...pipK, .37, .34, .35), kopfBox: [[-.44, -.28, -.44], [.44, .52, .42]],
+    beine: (koerper) => {
+      const b = [];
+      for (const s of [-1, 1]) {                         // keine Arme: leere Gelenke, damit die Laufbewegung vier Glieder findet
+        const o = gelenk(koerper, s * .3, .7, 0); b.push({ oben: o, unten: gelenk(o, 0, -.17, 0) });
+      }
+      for (const s of [-1, 1]) {                         // runde Füße
+        const o = gelenk(koerper, s * .2, .36, 0); teil(rundStab(.19, .18, .25), pipGelb, o);   // dicke Stummelbeine, zusammen so breit wie der Bauch
+        const u = gelenk(o, 0, -.25, 0); teil(kugel, pipGelb, u, 0, -.04, -.02).scale.set(.185, .07, .2);
+        b.push({ oben: o, unten: u });
+      }
+      return b;
+    },
+    extra: ({ kopf, ohren }) => {
+      // Skibrille über den Augen: buntes Band rundherum, dunkler Rahmen, verspiegeltes Glas mit Steg in der Mitte
+      const brille = gelenk(kopf, 0, .06, 0); brille.scale.z = .95;
+      teil(new T.CylinderGeometry(.367, .367, .07, 40, 1, true, Math.PI + .9, Math.PI * 2 - 1.8), pipBand, brille);   // Band nur hinten und an den Seiten
+      for (const y of [-.072, .072]) teil(new T.CylinderGeometry(.392, .392, .028, 32, 1, true, Math.PI - .93, 1.86), pipRahmen, brille, 0, y, 0);   // Rahmen oben und unten
+      for (const sx of [-1, 1]) { const w = Math.PI - sx * .9; teil(new T.BoxGeometry(.035, .17, .03), pipRahmen, brille, .392 * Math.sin(w), 0, .392 * Math.cos(w)).rotation.y = w; }
+      teil(new T.CylinderGeometry(.398, .398, .13, 32, 1, true, Math.PI - .86, 1.72), pipGlas, brille).castShadow = false;
+      teil(new T.BoxGeometry(.035, .14, .025), pipRahmen, brille, 0, 0, -.402);   // Steg in der Mitte
+      const stiel = gelenk(kopf, 0, .47, .0); teil(rundStab(.02, .026, .15), pipStiel, stiel);
+      for (const s of [-1, 1]) {                         // zwei Blätter: wippen beim Laufen, gehen bei Freude hoch
+        const ohr = gelenk(stiel, 0, .01, 0); ohr.userData.s = s; ohr.userData.basis = s * .45; ohren.push(ohr);
+        const bl = teil(kugel, pipBlatt, ohr, s * .13, .01, 0); bl.scale.set(.14, .026, .085); bl.rotation.y = s * .25;
+      }
+    },
+  });
   // --- Kalle, der Koala (große flauschige Ohren, dicke Nase) ---
   const koalaFell = zweiFarbenMat("koala", "#9aa1a8", "#eceef0", "#ffffff"), koalaBein = pluesch("#9aa1a8", "#ffffff"), koalaHell = pluesch("#eceef0", "#ffffff");
   const koalaK = [0, .3, -.12];
@@ -853,7 +893,7 @@ export function welt(T, handy) {
     hase: { bauen: haseBauen, name: "Rambo Rabbit" }, baer: { bauen: baerBauen, name: "Baylin" }, elefant: { bauen: elefantBauen, name: "Jensfant" },
     affe: { bauen: affe, name: "Momo" }, pinguin: { bauen: pinguin, name: "Pingo" }, koala: { bauen: koala, name: "Kalle" }, katze: { bauen: katze, name: "Mimi" },
     anja: { bauen: anjaFigur, name: "Anja" },
-    fuchs: { bauen: fuchs, name: "Ferdi" }, panda: { bauen: panda, name: "Paula" }, mops: { bauen: mops, name: "Fips" },
+    fuchs: { bauen: fuchs, name: "Ferdi" }, panda: { bauen: panda, name: "Paula" }, mops: { bauen: mops, name: "Fips" }, pip: { bauen: pip, name: "Pip" },
   };
   const figurBauen = (id) => (FIGUREN[id] || FIGUREN.giraffe).bauen();
 
