@@ -59,10 +59,13 @@ if (rahmen) {
   const EP_JE_STUFE = 5000;
   let erfahrung = +lies("froebelinchen-rennt-erfahrung", 0) || 0;
   const stufeVon = (ep) => Math.floor(ep / EP_JE_STUFE) + 1;
-  const frei = (id) => stufeVon(erfahrung) >= (FIGUR_LISTE.find(f => f.id === id) || { stufe: 99 }).stufe;
+  // Geheimer Link: ?figuren=alle-sprosse schaltet auf diesem Gerät alle Figuren frei, ?figuren=normal nimmt es wieder zurück
+  { const p = new URLSearchParams(location.search).get("figuren"); if (p === "alle-sprosse") schreib("froebelinchen-rennt-alle", true); else if (p === "normal") schreib("froebelinchen-rennt-alle", false); }
+  const alleFrei = lies("froebelinchen-rennt-alle", false) === true;
+  const frei = (id) => alleFrei || stufeVon(erfahrung) >= (FIGUR_LISTE.find(f => f.id === id) || { stufe: 99 }).stufe;
   const figurDaten = (id) => FIGUR_LISTE.find(f => f.id === id) || FIGUR_LISTE[0];
   if (!Array.isArray(konto.figuren)) konto.figuren = [];
-  const gekauft = (id) => figurDaten(id).preis === 0 || konto.figuren.includes(id);
+  const gekauft = (id) => alleFrei || figurDaten(id).preis === 0 || konto.figuren.includes(id);
   let figur = lies("froebelinchen-rennt-figur", "giraffe");
   // wer vor den Preisen schon mit einer freigeschalteten Figur gespielt hat, behält sie
   if (frei(figur) && !gekauft(figur) && !konto.figurenGeprueft) { konto.figuren.push(figur); }
