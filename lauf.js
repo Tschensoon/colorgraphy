@@ -8,7 +8,7 @@ if (rahmen) {
   const $ = (sel) => rahmen.querySelector(sel);
   const huelle = $(".lauf-buehne"), hud = $(".lauf-hud"), ueber = $(".lauf-overlay"), warnung = $(".lauf-warnung");
   const losKnopf = $(".lauf-los"), ueberTitel = ueber.querySelector(".lauf-titel"), ueberText = $(".lauf-text"), zu = $(".lauf-zu");
-  const ergebnis = $(".lauf-ergebnis"), aufgabenFeld = $(".lauf-aufgaben"), shop = $(".lauf-laden"), pauseFeld = $(".lauf-pause");
+  const ergebnis = $(".lauf-ergebnis"), aufgabenFeld = $(".lauf-aufgaben"), shop = $(".lauf-laden"), pauseFeld = $(".lauf-pause"), weiterFeld = $(".lauf-rettung");
   const pauseKnopf = $(".lauf-pause-knopf"), tonKnopf = $(".lauf-ton-knopf");
   const eintragForm = $(".lauf-eintragen"), eintragName = $("#lauf-name"), eintragMeldung = $(".le-meldung");
   const topFeld = $(".lauf-top"), topListe = $(".lauf-top-liste");
@@ -367,6 +367,7 @@ if (rahmen) {
     Object.assign(B, { schild: 0, ruhe: 0, magnet: 0, doppelt: 0, schubs: null });
     FL.naechsteArt = "folie"; FL.schlittenBei = 0; FL.sonder = null;
     Object.assign(R, { boote: 0, fluege: 0, anjaPhase: false, tempoF: 1, booster: 0, schubs: 0, welt: 0, zeit: 0, laufZeit: 0, flug: 0, ringe: 0, tore: 0, schlitten: 0, frauBei: 20, kombo: 0, fahne: false, jubel: false });
+    RE.genutzt = false; RE.schutz = 0; RE.szene = null; weiterFeld.hidden = true;
     tempo = START_TEMPO; punkte = 0; sternZahl = 0; strecke = 0; wackeln = 0; schlussSzene = null;
     Object.assign(S, { idx: 0, s: 0, spur: 0, x: 0, y: 0, vy: 0, duck: 0, abbiegen: 0, stolper: 0, sprungPuffer: 0, eis: 0, lande: 0 });
     Object.assign(A, { nah: false, zeit: 0, abstand: 16, bis: 5 });
@@ -464,7 +465,7 @@ if (rahmen) {
     if (!vollbild) return;
     vollbild = false; rahmen.classList.remove("vollbild"); document.body.classList.remove("spiel-offen"); if (T) T.verlorenStop();
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
-    if (zustand === "laeuft" || zustand === "pause" || zustand === "fang") { pauseFeld.hidden = true; ende("Pause gemacht"); }
+    if (zustand === "laeuft" || zustand === "pause" || zustand === "fang" || zustand === "rettung") { pauseFeld.hidden = true; weiterFeld.hidden = true; ende("Pause gemacht"); }
   }
   zu.addEventListener("click", vollbildAus);
   // Aufruf aus der Spielauswahl: am Handy Vollbild mit Anleitung, gestartet wird erst mit „Los geht’s“
@@ -1050,7 +1051,7 @@ if (rahmen) {
         if (!tipps.has("eis")) { tipps.add("eis"); meldung("Glatteis!", "Lenken geht kurz langsamer"); }
         continue;
       }
-      if (unverwundbar && !(R.anjaPhase && h.art !== "block")) continue;   // in der Anja-Phase schützt das Schild nur vor Bauklötzen
+      if (RE.schutz > 0 || (unverwundbar && !(R.anjaPhase && h.art !== "block"))) continue;   // in der Anja-Phase schützt das Schild nur vor Bauklötzen
       if (h.art === "frau") {                          // umgerannt: Fröbelinchen stolpert, die Frau ruft hinterher
         h.getroffen = true; stolpern(); if (zustand !== "laeuft") return;
         meldung("Huch, Zusammenstoß!", "„Hast du meine Schlüssel gesehen?“"); continue;
@@ -1094,8 +1095,49 @@ if (rahmen) {
     const sz = schlussSzene; sz.t += dt;
     if (sz.art === "anja") A.abstand += (1 - A.abstand) * Math.min(1, dt * 5);
     else spieler.koerper.rotation.z = Math.min(.5, sz.t * 1.5) * (S.spur >= 0 ? 1 : -1);
-    if (sz.t > 1.6) ende(sz.grund);
+    if (sz.t > 1.6 && !weiterAnbieten(sz)) ende(sz.grund);
   }
+  // Weiterspielen für Sterne: einmal pro Runde, kurze Bedenkzeit, die Knöpfe sind zuerst gesperrt (gegen versehentliches Tippen)
+  const WEITER_PREIS = 5000, WEITER_ZEIT = 8, WEITER_SPERRE = .7, WEITER_SCHUTZ = 4;
+  const RE = { genutzt: false, zeit: 0, sperre: 0, schutz: 0, szene: null };
+  const weiterKnoepfe = [$(".lw-ja"), $(".lw-nein")];
+  function weiterAnbieten(sz) {
+    if (RE.genutzt || konto.sterne + sternZahl < WEITER_PREIS) return false;
+    zustand = "rettung"; RE.zeit = WEITER_ZEIT; RE.sperre = WEITER_SPERRE; RE.szene = sz;
+    T.verlorenStop();
+    weiterFeld.querySelector(".lw-grund").textContent = sz.grund;
+    weiterFeld.querySelector(".lw-konto").textContent = `Du hast ${(konto.sterne + sternZahl).toLocaleString("de-DE")} ★`;
+    weiterKnoepfe.forEach(k => { k.disabled = true; });
+    weiterFeld.hidden = false;
+    return true;
+  }
+  function weiterSchritt(echt) {
+    const d = Math.min(.1, echt);
+    if (RE.sperre > 0 && (RE.sperre -= d) <= 0) weiterKnoepfe.forEach(k => { k.disabled = false; });
+    RE.zeit -= d;
+    weiterFeld.querySelector(".lw-zeit i").style.transform = `scaleX(${Math.max(0, RE.zeit / WEITER_ZEIT)})`;
+    if (RE.zeit <= 0) weiterAblehnen();
+  }
+  function weiterAblehnen() {
+    if (zustand !== "rettung") return;
+    const sz = RE.szene; weiterFeld.hidden = true; RE.szene = null;
+    T.verloren(); ende(sz.grund);
+  }
+  function weiterSpielen() {
+    if (zustand !== "rettung" || RE.sperre > 0 || konto.sterne + sternZahl < WEITER_PREIS) return;
+    const sz = RE.szene;                                // bezahlt wird zuerst vom Konto, der Rest aus den Sternen dieser Runde
+    const vomKonto = Math.min(konto.sterne, WEITER_PREIS); konto.sterne -= vomKonto; sternZahl -= WEITER_PREIS - vomKonto; schreib("froebelinchen-rennt-konto", konto);
+    RE.genutzt = true; RE.szene = null; RE.schutz = WEITER_SCHUTZ; weiterFeld.hidden = true;
+    zustand = "laeuft"; schlussSzene = null; uhr.getDelta();
+    B.schild = Math.max(B.schild, WEITER_SCHUTZ); A.nah = false; A.zeit = 0; A.abstand = FL.an ? 22 : 18; A.bis = 12;
+    spieler.koerper.rotation.set(0, 0, 0); FL.trudeln = 0; wackeln = 0;
+    if (sz.art === "hecke") S.abbiegen = abschnitte.find(a => a.nr === S.idx).dreh;   // sonst stünde sie gleich wieder vor der Hecke
+    if (sz.art === "duell") { DU.ende = .6; DU.sieg = false; }                       // die Kissenschlacht ist damit vorbei, es geht zurück in die Laufwelt
+    T.musik(FL.an ? flugMusik() : zoneMusik()); hudZeigen();
+    meldung("Weiter geht's!", `${WEITER_SCHUTZ} Sekunden geschützt · noch ${(konto.sterne + sternZahl).toLocaleString("de-DE")} ★`);
+  }
+  weiterKnoepfe[0].addEventListener("click", weiterSpielen);
+  weiterKnoepfe[1].addEventListener("click", () => { if (RE.sperre <= 0) weiterAblehnen(); });
 
   // Sonne mit dem Spieler mitführen, aber nur in ganzen Schatten-Pixeln: so bleiben Schattenkanten ruhig
   const SONNE_RICHTUNG = [-10, 18, 6];
@@ -1122,6 +1164,8 @@ if (rahmen) {
   function bild() {
     const echt = uhr.getDelta(), dt = Math.min(.05, echt);
     if (zustand === "pause") { zeichnen(); return; }
+    if (zustand === "rettung") { weiterSchritt(echt); zeichnen(); return; }
+    if (RE.schutz > 0) RE.schutz = Math.max(0, RE.schutz - dt);
     if (zustand === "laeuft") { schritt(dt); leistungMessen(echt); }
     else if (zustand === "fang") schlussSchritt(dt);
     if (DU.an) { duellBild(dt); return; }
@@ -2256,6 +2300,7 @@ if (rahmen) {
   }
 
   function flugTreffer(o) {
+    if (RE.schutz > 0) return;
     komboWeg();
     if (R.anjaPhase || (A.nah && A.abstand < 7)) { verlieren(o.typ === "gewitter" ? `Blitz und Donner, ${JAGD()} hat dich!` : `${JAGD()} hat dich eingeholt!`, "anja"); return; }
     FL.trudeln = .8; FL.v = Math.max(16, FL.v * .85);

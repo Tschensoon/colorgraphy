@@ -148,6 +148,19 @@ body.spiel-offen { overflow: hidden; }
 .lauf-pause { position: absolute; inset: 0; z-index: 5; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .8rem;
   background: rgba(255, 255, 255, .6); backdrop-filter: blur(3px); }
 .lauf-pause[hidden] { display: none; }
+/* Weiterspielen für Sterne */
+.lauf-rettung { position: absolute; inset: 0; z-index: 7; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .55rem; padding: 1rem; text-align: center; background: rgba(3, 40, 33, .78); color: #fff; }
+.lauf-rettung[hidden] { display: none; }
+.lauf-rettung p { margin: 0; }
+.lw-titel { font-size: 1.7rem; font-weight: 800; }
+.lw-grund { font-size: 1rem; opacity: .9; }
+.lw-konto { font-size: .95rem; font-weight: 700; color: #ffd86b; }
+.lw-zeit { width: min(280px, 80%); height: 7px; margin: .3rem 0; border-radius: 4px; background: rgba(255, 255, 255, .25); overflow: hidden; }
+.lw-zeit i { display: block; height: 100%; background: #ffd86b; transform-origin: left; }
+.lauf-rettung .pill { min-width: min(280px, 80%); }
+.lauf-rettung .pill.ghost { color: #fff; border-color: rgba(255, 255, 255, .6); background: transparent; }
+.lauf-rettung .pill:disabled { opacity: .55; cursor: default; }
+.lw-hinweis { font-size: .8rem; opacity: .75; }
 .lauf-overlay.ergebnis .lauf-anleitung { display: none; }
 .lauf-ergebnis { text-align: center; }
 .lauf-ergebnis[hidden] { display: none; }
