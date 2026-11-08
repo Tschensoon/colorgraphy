@@ -65,7 +65,7 @@
 </script>
 <link rel="stylesheet" href="style.css?v=17">
 <link rel="stylesheet" href="tools.css?v=9">
-<link rel="stylesheet" href="spiel.css?v=34">
+<link rel="stylesheet" href="spiel.css?v=35">
 </head>
 <body>
 <a class="skip-link" href="#top">Zum Inhalt springen</a>
@@ -164,7 +164,7 @@
             <div class="lauf-shop lauf-top" hidden>
               <button type="button" class="panel-x lt-x" aria-label="Bestenliste schließen">✕</button>
               <p class="ls-bank">Bestenliste</p>
-              <ol class="lauf-top-liste"></ol>
+              <div class="bl-reiter" role="tablist" aria-label="Zeitraum"><button type="button" role="tab" data-reiter="alle" aria-selected="true">All Time</button><button type="button" role="tab" data-reiter="woche" aria-selected="false">Wöchentlich</button></div><ol class="lauf-top-liste"></ol><p class="bl-woche-info" hidden>Beginnt jeden Montag neu.</p>
               <button type="button" class="pill small ghost lt-zu">Fertig</button>
             </div>
             <div class="lauf-shop lauf-chat" hidden>
@@ -198,12 +198,13 @@
       </div>
       <div class="bestenliste" id="lauf-bestenliste" hidden>
         <h2>Bestenliste: Fröbelinchen rennt</h2>
-        <ol class="lauf-top-seite" aria-live="polite"></ol>
+        <div class="bl-reiter" role="tablist" aria-label="Zeitraum"><button type="button" role="tab" data-reiter="alle" aria-selected="true">All Time</button><button type="button" role="tab" data-reiter="woche" aria-selected="false">Wöchentlich</button></div><ol class="lauf-top-seite" aria-live="polite"></ol><p class="bl-woche-info" hidden>Beginnt jeden Montag neu.</p>
         <p class="bl-hinweis">Nach jeder Runde kannst du dich mit einem Spitznamen eintragen. Gespeichert werden nur Name und Punkte.</p>
       </div>
       <div class="patchnotes">
         <h2>Patchnotes</h2>
         <ul>
+          <li><time datetime="2026-11-08">08.11.</time> Die Bestenliste hat jetzt zwei Reiter: All Time und Wöchentlich. Die Wochenliste beginnt jeden Montag neu.</li>
           <li><time datetime="2026-11-08">08.11.</time> Die Punkte werden nicht mehr vom Ton-Knopf verdeckt, und das Spiel hält nicht mehr an, wenn es die Grafik automatisch herunterschaltet, zum Beispiel bei der Bootsfahrt.</li>
           <li><time datetime="2026-11-08">08.11.</time> Neue Figur, kostenlos für alle: Schnäuzchen, der Igel mit der Wintermütze.</li>
           <li><time datetime="2026-11-08">08.11.</time> Neue Sonderphase: Anke hat Fröbelinchen in ihrem Büro versteckt. Öffne die Schranktüren und finde sie, bevor Anke mit ihrem Kaffee zurück ist. Hör gut hin, sie kichert!</li>
@@ -249,7 +250,7 @@
 </footer>
 
 <script src="spiel.js?v=11" defer></script>
-<script type="module" src="lauf.js?v=66"></script>
+<script type="module" src="lauf.js?v=67"></script>
 <script src="seite.js?v=12" defer></script>
 <script src="nav-mehr.js?v=5" defer></script>
 <script src="ziehen.js?v=2" defer></script>

@@ -211,6 +211,11 @@ body.spiel-offen { overflow: hidden; }
 .lauf-top-seite li:first-child { border-top: 0; }
 .lauf-top-seite li.eigen { color: #24332f; }
 @media (pointer: coarse) { #lauf-bestenliste { margin-top: 1rem; } }
+.bl-reiter { display: flex; gap: .25rem; width: 100%; max-width: 380px; margin: 0 auto .6rem; padding: .25rem; border-radius: 999px; background: #e3ece6; }
+.bl-reiter button { flex: 1; min-height: 2.5rem; padding: .35rem .6rem; border: 0; border-radius: 999px; background: transparent; color: #24332f; font: inherit; font-size: .95rem; font-weight: 700; cursor: pointer; }
+.bl-reiter button[aria-selected="true"] { background: #034a3e; color: #fff; }
+.bl-woche-info { margin: .4rem 0 0; font-size: .82rem; color: #4b5b56; text-align: center; }
+.bl-woche-info[hidden] { display: none; }
 
 /* Turbo: Geschwindigkeitslinien am Bildrand */
 .lauf-tempo { position: absolute; inset: -15%; pointer-events: none; opacity: 0; transition: opacity .35s;

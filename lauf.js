@@ -726,7 +726,7 @@ if (rahmen) {
   // ---------- Bestenliste ----------
   const ERLAUBT = /^[A-Za-zÄÖÜäöüßÀ-ÿ0-9 ._-]+$/;
   const SPERRE = ["arsch", "fick", "fotze", "hure", "nazi", "hitler", "wichs", "schlampe", "spast", "missgeburt", "fuck", "shit", "bitch", "cunt", "nigg", "porn"];
-  let offeneRunde = null, meinEintrag = null, topDaten = [];
+  let offeneRunde = null, meinEintrag = null, topDaten = { alle: [], woche: [] }, topReiter = "alle";
   const zeile = (rang, name, punkte, eigen) => {
     const li = document.createElement("li"); if (eigen) li.className = "eigen";
     for (const [k, t] of [["bl-rang", rang], ["bl-name", name], ["bl-punkte", punkte]]) {
@@ -736,23 +736,37 @@ if (rahmen) {
   };
   function topZeigen() {
     let markiert = false;
-    const bauen = () => topDaten.length
-      ? topDaten.map((e, i) => {
+    const liste = topDaten[topReiter];
+    const bauen = () => liste.length
+      ? liste.map((e, i) => {
           const eigen = !markiert && meinEintrag && e.name === meinEintrag.name && e.punkte === meinEintrag.punkte;
           if (eigen) markiert = true;
           return zeile(i + 1 + ".", e.name, e.punkte, eigen);
         })
-      : [zeile("", "Noch keine Einträge. Lauf los und trag dich als Erstes ein!", "", false)];
+      : [zeile("", topReiter === "woche" ? "Diese Woche noch keine Einträge. Lauf los!" : "Noch keine Einträge. Lauf los und trag dich als Erstes ein!", "", false)];
     topListe.replaceChildren(...bauen());
     markiert = false;
     if (seitenOl) { seitenOl.replaceChildren(...bauen()); seitenListe.hidden = false; }
+    for (const k of document.querySelectorAll(".bl-reiter button")) k.setAttribute("aria-selected", k.dataset.reiter === topReiter);
+    for (const p of document.querySelectorAll(".bl-woche-info")) p.hidden = topReiter !== "woche";
   }
+  // Die Woche läuft von Montag 0 Uhr deutscher Zeit bis Sonntagnacht, egal wo das Gerät gerade steht
+  const berlin = (d) => Object.fromEntries(new Intl.DateTimeFormat("en-US", { timeZone: "Europe/Berlin", weekday: "short", year: "numeric", month: "numeric", day: "numeric", hour: "numeric", hourCycle: "h23" }).formatToParts(d).map(x => [x.type, x.value]));
+  function wochenStart() {
+    const p = berlin(new Date()), tag = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].indexOf(p.weekday);
+    const montag = Date.UTC(+p.year, +p.month - 1, +p.day - tag);
+    return new Date(montag - berlin(new Date(montag)).hour * 3600000).toISOString();
+  }
+  const topHolen = async (filter) => {
+    const r = await fetch(`${DB.url}/rest/v1/bestenliste?select=name,punkte&spiel=eq.rennt${filter}&order=punkte.desc,erstellt.asc&limit=10`,
+                          { headers: { apikey: DB.key }, cache: "no-store" });
+    if (!r.ok) throw new Error(r.status);
+    return r.json();
+  };
   async function bestenlisteLaden() {
     try {
-      const r = await fetch(`${DB.url}/rest/v1/bestenliste?select=name,punkte&spiel=eq.rennt&order=punkte.desc,erstellt.asc&limit=10`,
-                            { headers: { apikey: DB.key }, cache: "no-store" });
-      if (!r.ok) throw new Error(r.status);
-      topDaten = await r.json(); topZeigen();
+      const [alle, woche] = await Promise.all([topHolen(""), topHolen(`&erstellt=gte.${wochenStart()}`)]);
+      topDaten = { alle, woche }; topZeigen();
     } catch (e) {
       topListe.replaceChildren(zeile("", "Die Bestenliste ist gerade nicht erreichbar.", "", false));
     }
@@ -783,14 +797,17 @@ if (rahmen) {
       try { localStorage.setItem("froebelinchen-name", name); } catch (x) {}
       meinEintrag = { name, punkte: runde.punkte };
       await bestenlisteLaden();
-      const platz = topDaten.findIndex(x => x.name === name && x.punkte === runde.punkte);
-      eintragMeldung.textContent = platz >= 0 ? `Eingetragen! Du bist auf Platz ${platz + 1}.` : "Eingetragen! Für die Top 10 hat es diesmal nicht gereicht.";
+      const platzIn = (l) => l.findIndex(x => x.name === name && x.punkte === runde.punkte) + 1;
+      const platz = platzIn(topDaten.alle), platzWoche = platzIn(topDaten.woche);
+      eintragMeldung.textContent = platz ? `Eingetragen! All Time Platz ${platz}, diese Woche Platz ${platzWoche}.`
+        : platzWoche ? `Eingetragen! Diese Woche bist du auf Platz ${platzWoche}.` : "Eingetragen! Für die Top 10 hat es diesmal nicht gereicht.";
       eintragForm.querySelector(".le-zeile").hidden = true; eintragForm.querySelector("label").hidden = true;
-      if (platz >= 0) T.rekord();
+      if (platz || platzWoche) T.rekord();
     } catch (err) {
       offeneRunde = runde; fehler("Hat nicht geklappt: " + err.message);
     } finally { knopf.disabled = false; }
   });
+  for (const k of document.querySelectorAll(".bl-reiter button")) k.addEventListener("click", () => { topReiter = k.dataset.reiter; topZeigen(); });
   $(".lauf-top-knopf").addEventListener("click", () => { bestenlisteLaden(); topFeld.hidden = false; });
   $(".lt-zu").addEventListener("click", () => { topFeld.hidden = true; });
   $(".lt-x").addEventListener("click", () => { topFeld.hidden = true; });
