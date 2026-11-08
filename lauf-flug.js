@@ -199,6 +199,31 @@ export function flugWelt(T, W) {
     return { gruppe: g, propeller, sitz };
   }
 
+  // Im Flugzeug schauen nur Hals und Kopf aus dem Cockpit, der Rest der Figur wird solange ausgeblendet.
+  // Die Größe richtet sich nach dem Kopf; nur lange Hälse wie bei der Giraffe zeigen den ganzen Hals, sonst schaut nur der Kopf über den Rand.
+  const halsBox = new T.Box3(), halsMass = new T.Vector3(), halsPunkt = new T.Vector3(), kopfPunkt = new T.Vector3();
+  const COCKPIT_Y = .4, COCKPIT_Z = .26, KOPF_BREITE = .46, KOPF_MAX = 1.2, KOPF_UEBER_RAND = .27;
+  function insCockpit(f) {
+    const koerper = f.koerper || f.k, hals = f.hals || f.zopf.parent, g = f.gruppe, person = f.mensch || !f.hals, eltern = g.parent;
+    // Bei Personen gehört das Gesicht zum Körpermodell: Es bleibt sichtbar, der Rumpf steckt im Flugzeug.
+    koerper.position.set(0, 0, 0); koerper.rotation.set(0, 0, 0);
+    f.cockpitAus = (f.cockpitAus || []).concat(koerper.children.filter(c => c !== hals && c.visible && !(person && c.isMesh)));
+    for (const c of f.cockpitAus) c.visible = false;
+    if (eltern) eltern.remove(g);                // ausmessen ohne das Flugzeug, sonst zählen dessen Neigung und Größe mit
+    g.position.set(0, 0, 0); g.rotation.set(0, 0, 0); g.scale.setScalar(1); g.updateMatrixWorld(true);
+    halsBox.setFromObject(hals).getSize(halsMass);
+    hals.getWorldPosition(halsPunkt); (f.kopf || hals).getWorldPosition(kopfPunkt);
+    const langerHals = kopfPunkt.distanceTo(halsPunkt) > .6, skala = Math.min(langerHals ? 1 : KOPF_MAX, KOPF_BREITE / Math.max(halsMass.x, .01));
+    g.scale.setScalar(skala);
+    if (langerHals) g.position.set(0, COCKPIT_Y - .06 - halsBox.min.y * skala, COCKPIT_Z - (halsPunkt.z + kopfPunkt.z) / 2 * skala);
+    else g.position.set(0, COCKPIT_Y + KOPF_UEBER_RAND - kopfPunkt.y * skala, COCKPIT_Z - kopfPunkt.z * skala);
+    if (eltern) eltern.add(g);
+  }
+  function ausCockpit(f) {
+    for (const c of f.cockpitAus || []) c.visible = true;
+    f.cockpitAus = null;
+  }
+
   function ring() {
     const g = new T.Group(); teil(ringGeo, M.ring, g); return g;
   }
@@ -355,5 +380,5 @@ export function flugWelt(T, W) {
     }
     return g;
   }
-  return { buckel, bergkette, schlitten, tor, boot, pylone, boje, wasserFlaeche, flieger, ring, heissluftballon, gewitter, voegel, insel, regenbogen, wolkenMeer, wolkenBild, wolkenBallen, strahlen };
+  return { insCockpit, ausCockpit, buckel, bergkette, schlitten, tor, boot, pylone, boje, wasserFlaeche, flieger, ring, heissluftballon, gewitter, voegel, insel, regenbogen, wolkenMeer, wolkenBild, wolkenBallen, strahlen };
 }

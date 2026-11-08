@@ -31,7 +31,7 @@ if (rahmen) {
   function laden() {
     if (!bereit) {
       const text = losKnopf.textContent; losKnopf.disabled = true; losKnopf.textContent = "Lädt die 3D-Welt …";
-      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=44"), import("./lauf-ton.js?v=9"), import("./lauf-flug.js?v=5"), import("./lauf-effekte.js?v=3"), import("./lauf-buero.js?v=1"), import("./detektiv-figuren.js?v=4")])
+      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=44"), import("./lauf-ton.js?v=9"), import("./lauf-flug.js?v=6"), import("./lauf-effekte.js?v=3"), import("./lauf-buero.js?v=1"), import("./detektiv-figuren.js?v=4")])
         .then(([m, w, t, f, e, bm, fm]) => { THREE = m; T = t.ton(); aufbauen(w, f, e, bm, fm); losKnopf.disabled = false; losKnopf.textContent = text; });
     }
     return bereit;
@@ -637,11 +637,13 @@ if (rahmen) {
       spieler.gruppe.position.set(0, cy, cz); spieler.gruppe.scale.setScalar(cs); spieler.beine.forEach(b => { b.oben.visible = false; });
     } else { spieler.gruppe.position.copy(alt.position); spieler.gruppe.rotation.copy(alt.rotation); }
     W.ausstattungSetzen(spieler, konto.an);
+    if (FL.an && FL.art === "luft") FW.insCockpit(spieler);
     if (anja.wer !== JAGD()) {                              // Anja gewählt (oder wieder abgewählt): Verfolgerin austauschen
       const altA = anja, el = altA.gruppe.parent || szene;
       anja = verfolgerBauen(); el.remove(altA.gruppe); el.add(anja.gruppe);
       anja.gruppe.position.copy(altA.gruppe.position); anja.gruppe.rotation.copy(altA.gruppe.rotation); anja.gruppe.visible = altA.gruppe.visible;
       anja.beine.forEach(b => { b.oben.visible = altA.beine[0].oben.visible; });
+      if (FL.an && FL.art === "luft") FW.insCockpit(anja);
     }
     T.booster();
   }
@@ -710,7 +712,7 @@ if (rahmen) {
         else { konto.an = konto.an.filter(x => W.AUSSTATTUNG[x].platz !== a.platz); konto.an.push(id); }   // pro Platz nur ein Teil
         anprobe = null;
         schreib("froebelinchen-rennt-konto", konto);
-        W.ausstattungSetzen(spieler, konto.an); shopZeigen();
+        W.ausstattungSetzen(spieler, konto.an); if (FL.an && FL.art === "luft") FW.insCockpit(spieler); shopZeigen();
       });
       li.append(bild, name, k); ul.append(li);
     }
@@ -2054,8 +2056,10 @@ if (rahmen) {
     fahrzeug().sitz.add(spieler.gruppe); spieler.gruppe.position.set(0, cy, cz); spieler.gruppe.rotation.set(0, 0, 0); spieler.gruppe.scale.setScalar(cs);
     spieler.koerper.position.y = 0; spieler.beine.forEach(b => { b.oben.visible = false; });
     blase.scale.setScalar(2.3 / spieler.cockpit[2]); blase.position.y = .6;
+    if (FL.art === "luft") { FW.insCockpit(spieler); const sk = spieler.gruppe.scale.x; blase.scale.setScalar(2.3 / sk); blase.position.y = (-.1 - spieler.gruppe.position.y) / sk; }
     anjaFahrzeug().sitz.add(anja.gruppe); anja.gruppe.visible = true; anja.gruppe.position.set(0, -.75, .25);   // sichtbar: in der Laufwelt war sie evtl. gerade ausgeblendet anja.gruppe.rotation.set(0, 0, 0);
     anja.k.rotation.x = 0; anja.k.position.y = 0; anja.beine.forEach(b => { b.oben.visible = false; });
+    if (FL.art === "luft") FW.insCockpit(anja);
     sternchen.forEach(st => { st.visible = false; });
     B.schubs = null; Object.assign(A, { nah: false, zeit: 0, abstand: 18, bis: 8 });
     if (ski) { const Z = W.zonen[WINTER()]; szene.fog.color.set(Z.nebel); himmelKugel.material.color.set(Z.himmel); sonne.color.set(Z.sonne); }
@@ -2073,7 +2077,7 @@ if (rahmen) {
   function flugAus() {
     if (!FW) return;
     if (FL.an) {
-      szene.add(spieler.gruppe, anja.gruppe);
+      szene.add(spieler.gruppe, anja.gruppe); FW.ausCockpit(spieler); FW.ausCockpit(anja);
       spieler.gruppe.position.set(0, 0, 0); spieler.gruppe.rotation.set(0, 0, 0); spieler.beine.forEach(b => { b.oben.visible = true; });
       anja.gruppe.position.set(0, 0, 0); anja.gruppe.rotation.set(0, 0, 0); anja.beine.forEach(b => { b.oben.visible = true; });
       spieler.gruppe.scale.setScalar(1); blasePassen(1);
