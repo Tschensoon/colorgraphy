@@ -202,9 +202,9 @@ export function flugWelt(T, W) {
   // Im Flugzeug schauen nur Hals und Kopf aus dem Cockpit, der Rest der Figur wird solange ausgeblendet.
   // Die Größe richtet sich nach dem Kopf; nur lange Hälse wie bei der Giraffe zeigen den ganzen Hals, sonst schaut nur der Kopf über den Rand.
   const halsBox = new T.Box3(), halsMass = new T.Vector3(), halsPunkt = new T.Vector3(), kopfPunkt = new T.Vector3();
-  const COCKPIT = { luft: [.4, .26], wasser: [.31, .05] }, KOPF_BREITE = .46, KOPF_MAX = 1.2, KOPF_UEBER_RAND = .27;
+  const COCKPIT = { luft: [.4, .26], wasser: [.31, .05], schlitten: [.5, .05] }, KOPF_BREITE = .46, KOPF_MAX = 1.2, KOPF_UEBER_RAND = .27;
   function insCockpit(f, ort = "luft") {
-    const [COCKPIT_Y, COCKPIT_Z] = COCKPIT[ort];
+    const [COCKPIT_Y, COCKPIT_Z] = COCKPIT[ort] || COCKPIT.luft;
     const koerper = f.koerper || f.k, hals = f.hals || f.zopf.parent, g = f.gruppe, person = f.mensch || !f.hals, eltern = g.parent;
     // Bei Personen gehört das Gesicht zum Körpermodell: Es bleibt sichtbar, der Rumpf steckt im Flugzeug.
     koerper.position.set(0, 0, 0); koerper.rotation.set(0, 0, 0);
@@ -464,15 +464,96 @@ export function flugWelt(T, W) {
   };
   const torGeo = { stange: new T.CylinderGeometry(.045, .045, 1.8, 8), fahne: new T.PlaneGeometry(.75, .55).translate(.375, 0, 0), huegel: new T.SphereGeometry(.3, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2) };
   for (const k of Object.values(torGeo)) k.userData.geteilt = true;
+  // Prunkschlitten mit Schwanenhals (Fröbelinchen rot und gold, Anja rosa und silbern); die Figur sitzt unter einer Karodecke
+  const SCHLITTEN_FARBEN = [
+    { lack: "#b3161c", dunkel: "#7c0d12", gold: "#e6b53a", decke: "#c62828", decke2: "#1f5a3a", decke3: "#f4d35e" },
+    { lack: "#f06a9f", dunkel: "#c24478", gold: "#eef1f5", decke: "#ffffff", decke2: "#f48fb1", decke3: "#b9a7e8" },
+  ];
+  const schlittenLackSpeicher = [null, null];
+  const schlittenLack = (nr) => schlittenLackSpeicher[nr] || (schlittenLackSpeicher[nr] = (() => {
+    const f = SCHLITTEN_FARBEN[nr];
+    const ranke = (g, x, y, r, dreh) => {                 // goldene Schnörkel-Spirale
+      g.beginPath();
+      for (let i = 0; i <= 44; i++) { const a = i * .34, q = r * (1 - i / 50); g.lineTo(x + Math.cos(a) * q * dreh, y + Math.sin(a) * q); }
+      g.stroke();
+    };
+    // Seitenwand: Bild passt auf die Länge z -1.6 bis 1.3 und die Höhe .2 bis 1.1
+    const seite = leinwand(1024, 320, (g, w, h) => {
+      g.fillStyle = f.lack; g.fillRect(0, 0, w, h);
+      g.fillStyle = f.dunkel; g.fillRect(0, h * .78, w, h * .22);
+      g.fillStyle = f.gold; g.fillRect(0, h * .75, w, h * .03); g.fillRect(0, h * .93, w, h * .02);
+      g.strokeStyle = f.gold; g.lineWidth = 5; g.lineCap = "round";
+      for (const [x, y, r, d] of [[.3, .55, 34, 1], [.4, .55, 34, -1], [.62, .55, 34, 1], [.72, .55, 34, -1], [.86, .44, 28, 1]]) ranke(g, w * x, h * y, r, d);
+      g.fillStyle = f.gold; for (let x = 16; x < w; x += 30) { g.beginPath(); g.arc(x, h * .86, 4, 0, 7); g.fill(); }
+      g.save(); g.translate(w * .51, h * .53); g.scale(.82, 1); sternMalen(g, 0, 0, 44, f.dunkel); g.restore();
+    });
+    seite.repeat.set(1 / 2.9, 1 / .9); seite.offset.set(1.6 / 2.9, -.2 / .9); seite.wrapS = seite.wrapT = T.ClampToEdgeWrapping;
+    // Rückwand mit goldenem Stern im Kranz
+    const hinten = leinwand(384, 256, (g, w, h) => {
+      g.fillStyle = f.lack; g.fillRect(0, 0, w, h);
+      g.strokeStyle = f.gold; g.lineWidth = 7; g.strokeRect(12, 12, w - 24, h - 24);
+      g.lineWidth = 4; g.lineCap = "round";
+      ranke(g, 72, h / 2, 42, 1); ranke(g, w - 72, h / 2, 42, -1);
+      sternMalen(g, w / 2, h / 2, 76, f.dunkel);
+    });
+    // Karierte Decke
+    const decke = leinwand(256, 256, (g, w, h) => {
+      g.fillStyle = f.decke; g.fillRect(0, 0, w, h);
+      g.globalAlpha = .72; g.fillStyle = f.decke2;
+      for (let i = 0; i < 4; i++) { g.fillRect(i * 64 + 8, 0, 30, h); g.fillRect(0, i * 64 + 8, w, 30); }
+      g.globalAlpha = 1; g.fillStyle = f.decke3;
+      for (let i = 0; i < 4; i++) { g.fillRect(i * 64 + 50, 0, 5, h); g.fillRect(0, i * 64 + 50, w, 5); }
+    }, true);
+    decke.repeat.set(2, 2);
+    const glatt = (color, r = .3, m = .25) => std({ color, roughness: r, metalness: m });
+    return { seite: std({ map: seite, roughness: .3, metalness: .15 }), wand: glatt(f.lack), hinten: std({ map: hinten, roughness: .3, metalness: .15 }), decke: std({ map: decke, roughness: .95 }), gold: glatt(f.gold, .25, .85), sitz: glatt(f.dunkel, .6, 0) };
+  })());
+  const S_M = {
+    fell: std({ color: "#fff8ec", roughness: 1 }), licht: std({ color: "#ffd98a", emissive: "#ffb545", emissiveIntensity: 1.8 }),
+    kranz: std({ color: "#1f5a3a", roughness: .9 }), beere: std({ color: "#d32f2f", roughness: .4 }), riemen: std({ color: "#5a3216", roughness: .8 }),
+  };
+  let schlittenGeo = null;
+  function schlittenFormen() {
+    // Seitenansicht (x = z in der Welt, nach vorn negativ): Rückenlehne, Sitz, Fußraum, Schwanenhals
+    const s = new T.Shape();
+    s.moveTo(1.1, .24); s.lineTo(1.2, .5); s.quadraticCurveTo(1.27, .82, 1.02, .78); s.quadraticCurveTo(.82, .7, .78, .52); s.lineTo(-.5, .5);
+    s.quadraticCurveTo(-.82, .54, -.98, .76); s.quadraticCurveTo(-1.14, 1.05, -1.42, 1.06); s.quadraticCurveTo(-1.62, 1.03, -1.56, .86); s.quadraticCurveTo(-1.48, .78, -1.36, .84);
+    s.quadraticCurveTo(-1.3, .6, -1.16, .42); s.quadraticCurveTo(-1.05, .26, -.86, .24); s.closePath();
+    const koerper = new T.ExtrudeGeometry(s, { depth: .94, bevelEnabled: true, bevelThickness: .03, bevelSize: .03, bevelSegments: 2, curveSegments: 14 }).translate(0, 0, -.47).rotateY(-Math.PI / 2);
+    const entlang = (x, p, r, n = 80) => new T.TubeGeometry(new T.CatmullRomCurve3(p.map(([z, y]) => new T.Vector3(x, y, z))), n, r, 7, false);
+    const OBEN = [[1.08, .78], [.9, .72], [.78, .54], [.2, .52], [-.5, .52], [-.82, .57], [-.98, .78], [-1.14, 1.05], [-1.42, 1.08], [-1.59, 1.02], [-1.56, .87], [-1.4, .84]];
+    const KUFE = [[1.42, .08], [1.3, .03], [.3, .03], [-.8, .03], [-1.35, .12], [-1.72, .42], [-1.86, .76], [-1.74, .98], [-1.56, .96]];
+    return {
+      koerper, kufeL: entlang(-.46, KUFE, .04), kufeR: entlang(.46, KUFE, .04), goldL: entlang(-.515, OBEN, .022), goldR: entlang(.515, OBEN, .022),
+      rueck: new T.PlaneGeometry(.86, .46), decke: new T.SphereGeometry(1, 26, 14, 0, Math.PI * 2, 0, Math.PI / 2), fell: new T.TorusGeometry(.3, .075, 10, 26).rotateX(Math.PI / 2),
+      polster: new T.CapsuleGeometry(.1, .66, 6, 12).rotateZ(Math.PI / 2), strebe: new T.CylinderGeometry(.03, .04, .26, 8),
+      stab: new T.CylinderGeometry(.016, .016, .34, 6), laterne: new T.CylinderGeometry(.08, .08, .17, 10), dach: new T.ConeGeometry(.105, .09, 10), knauf: new T.SphereGeometry(.07, 14, 10),
+      kranz: new T.TorusGeometry(.42, .05, 8, 28, Math.PI), beere: new T.SphereGeometry(.03, 8, 6), riemen: new T.BoxGeometry(.02, .05, 1.1), glocke: new T.SphereGeometry(.05, 12, 8),
+    };
+  }
   function schlitten(anja) {
-    const g = new T.Group(), h = anja ? SM.holzAnja : SM.holz;
-    for (const sx of [-.42, .42]) {
-      teil(new T.BoxGeometry(.07, .07, 2), SM.kufe, g, sx, .04, .1);
-      teil(new T.BoxGeometry(.07, .07, .5), SM.kufe, g, sx, .23, -1.05).rotation.x = .9;   // vorn hochgebogen
-      for (const sz of [-.6, .6]) teil(new T.BoxGeometry(.06, .26, .06), h, g, sx, .19, sz);
+    const g = new T.Group(), L = schlittenLack(anja ? 1 : 0), G = schlittenGeo || (schlittenGeo = schlittenFormen());
+    for (const k in G) G[k].userData.geteilt = true;
+    const klein = (geom, m, x, y, z) => { const k = teil(geom, m, g, x, y, z); k.castShadow = false; return k; };
+    teil(G.koerper, [L.seite, L.wand], g);
+    teil(G.kufeL, F_M.metall, g); teil(G.kufeR, F_M.metall, g);
+    klein(G.goldL, L.gold, 0, 0, 0); klein(G.goldR, L.gold, 0, 0, 0);
+    klein(G.rueck, L.hinten, 0, .49, 1.215);
+    klein(G.knauf, L.gold, 0, 1.1, -1.42); for (const s of [-1, 1]) klein(G.knauf, L.gold, s * .46, .98, -1.56).scale.setScalar(.8);
+    for (const s of [-1, 1]) for (const z of [-.75, 0, .75]) klein(G.strebe, L.gold, s * .46, .15, z);
+    // Sitzpolster, Decke, Fellkragen um den Hals
+    klein(G.polster, L.sitz, 0, .84, .92);
+    const decke = teil(G.decke, L.decke, g, 0, .5, .14); decke.scale.set(.47, .27, .66);
+    klein(G.fell, S_M.fell, 0, .73, .2);
+    // Laternen vorn, Tannenkranz mit Beeren hinten, Schellen an Lederriemen
+    for (const s of [-1, 1]) {
+      klein(G.stab, L.gold, s * .57, .72, -.72);
+      klein(G.laterne, S_M.licht, s * .57, .96, -.72); klein(G.dach, L.gold, s * .57, 1.09, -.72);
+      klein(G.riemen, S_M.riemen, s * .525, .42, -.1);
+      for (let i = 0; i < 4; i++) klein(G.glocke, L.gold, s * .55, .38, -.5 + i * .27);
     }
-    for (let i = 0; i < 5; i++) teil(new T.BoxGeometry(1, .05, .22), h, g, 0, .33, -.6 + i * .3);   // Sitzlatten
-    teil(new T.BoxGeometry(.95, .05, .06), h, g, 0, .4, -1.2);
+    klein(G.kranz, S_M.kranz, 0, .3, 1.225);
+    for (let i = 0; i < 7; i++) { const a = (i + .5) / 7 * Math.PI; klein(G.beere, S_M.beere, Math.cos(a) * .42, .3 + Math.sin(a) * .42, 1.27); }
     const propeller = gelenk(g, 0, 0, 0), sitz = gelenk(g, 0, .2, .15);
     return { gruppe: g, propeller, sitz };
   }
