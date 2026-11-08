@@ -172,20 +172,29 @@ if (rahmen) {
   }
 
   // Automatische Qualität: ruckelt es, werden nacheinander Schatten, Auflösung und Wetter reduziert
-  function qualitaetSetzen(stufe) {
+  function qualitaetSetzen(stufe, zurLaufzeit) {
     qualitaet = stufe;
     renderer.setPixelRatio(Math.min(devicePixelRatio || 1, stufe >= 2 ? 1 : (handy ? (stufe ? 1.15 : 1.3) : 2)));
-    sonne.castShadow = stufe < 1;
+    if (!zurLaufzeit) sonne.castShadow = stufe < 1;
+    else if (stufe >= 1 && sonne.castShadow && renderer.shadowMap.autoUpdate) {   // castShadow umzuschalten würde alle Shader neu übersetzen und das Spiel anhalten: stattdessen wird die Schattenkarte einmal leer gezeichnet
+      const sk = sonne.shadow.camera; sk.far = sk.near + .001; sk.updateProjectionMatrix();
+      renderer.shadowMap.autoUpdate = false; renderer.shadowMap.needsUpdate = true;
+    }
     W.luft.visible = stufe < 3 && !FL.an;
     if (kamera) groesse();
   }
-  let messZeit = 0, messBilder = 0;
+  let messZeit = 0, messBilder = 0, messLangsam = 0, messSperre = 2;
   function leistungMessen(echt) {
     if (zustand !== "laeuft" || qualitaet >= 3) return;
+    if (echt > .25) { messZeit = 0; messBilder = 0; return; }   // ein einzelner Hänger (Phasenwechsel, Hintergrund) sagt nichts über die Bildrate
+    if ((messSperre -= echt) > 0) return;
     messZeit += echt; messBilder++;
     if (messZeit < 3) return;
     const fps = messBilder / messZeit; messZeit = 0; messBilder = 0;
-    if (fps < (handy ? 50 : 40)) { qualitaetSetzen(qualitaet + 1); schreib("froebelinchen-rennt-qualitaet", qualitaet); }
+    if (fps >= (handy ? 50 : 40)) { messLangsam = 0; return; }
+    if (++messLangsam < 2) return;                       // erst wenn es zweimal hintereinander zu langsam war
+    messLangsam = 0; messSperre = 4;
+    qualitaetSetzen(qualitaet + 1, true); schreib("froebelinchen-rennt-qualitaet", qualitaet);
   }
 
   // ---------- Weg erzeugen ----------
