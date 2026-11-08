@@ -217,13 +217,6 @@ body.spiel-offen { overflow: hidden; }
 .bl-woche-info { margin: .4rem 0 0; font-size: .82rem; color: #4b5b56; text-align: center; }
 .bl-woche-info[hidden] { display: none; }
 
-/* Turbo: Geschwindigkeitslinien am Bildrand */
-.lauf-tempo { position: absolute; inset: -15%; pointer-events: none; opacity: 0; transition: opacity .35s;
-  background: repeating-conic-gradient(from 0deg at 50% 45%, rgba(255, 255, 255, 0) 0deg 2.4deg, rgba(255, 255, 255, .6) 2.6deg 2.9deg, rgba(255, 255, 255, 0) 3.1deg 7deg);
-  -webkit-mask: radial-gradient(ellipse at 50% 45%, transparent 30%, #000 72%); mask: radial-gradient(ellipse at 50% 45%, transparent 30%, #000 72%); }
-.lauf-tempo.an { opacity: .65; animation: lauf-tempo .3s linear infinite; }
-@keyframes lauf-tempo { 50% { transform: rotate(1.2deg) scale(1.04); } }
-@media (prefers-reduced-motion: reduce) { .lauf-tempo.an { animation: none; opacity: .35; } }
 
 /* Start- und Ergebnisfenster: eine Karte mit Info-Teil (scrollt) und Wahl-Teil (Figur und Knöpfe, immer sichtbar).
    Am breiten Bild rechts (Figur links sichtbar), hochkant unten (Figur oben sichtbar), quer am Handy zweispaltig. */

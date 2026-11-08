@@ -31,7 +31,7 @@ if (rahmen) {
   function laden() {
     if (!bereit) {
       const text = losKnopf.textContent; losKnopf.disabled = true; losKnopf.textContent = "Lädt die 3D-Welt …";
-      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=46"), import("./lauf-ton.js?v=9"), import("./lauf-flug.js?v=11"), import("./lauf-effekte.js?v=4"), import("./lauf-buero.js?v=1"), import("./detektiv-figuren.js?v=4")])
+      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=47"), import("./lauf-ton.js?v=9"), import("./lauf-flug.js?v=11"), import("./lauf-effekte.js?v=4"), import("./lauf-buero.js?v=1"), import("./detektiv-figuren.js?v=4")])
         .then(([m, w, t, f, e, bm, fm]) => { THREE = m; T = t.ton(); aufbauen(w, f, e, bm, fm); losKnopf.disabled = false; losKnopf.textContent = text; });
     }
     return bereit;
@@ -90,7 +90,7 @@ if (rahmen) {
   let startNr = 0;                                 // Nummer des ersten Abschnitts (nach der Landung geht es weiter)
   let abschnitte = [], hindernisse = [], sterne = [], booster = [];
   // Booster-Zeiten in Sekunden; schubs = laufende Szene, in der Fröbelinchen Anja wegschubst
-  const B = { turbo: 0, schild: 0, ruhe: 0, magnet: 0, doppelt: 0, schubs: null };
+  const B = { schild: 0, ruhe: 0, magnet: 0, doppelt: 0, schubs: null };
   let blase, sternchen = [];
   let zustand = "start", tempo, punkte, sternZahl, strecke, wackeln = 0, schlussSzene = null;
   const S = { idx: 0, s: 0, spur: 0, x: 0, y: 0, vy: 0, duck: 0, abbiegen: 0, stolper: 0, lauf: 0, sprungPuffer: 0, eis: 0, lande: 0 };
@@ -110,7 +110,7 @@ if (rahmen) {
   // ---------- Aufbau ----------
   let W, sonne, himmelKugel, wolkenGruppe, ferneGruppe, sonnenBild, laterneLicht, aktZone = 0;
   let teilchen = [], staubTakt = 0;               // kleine Partikel (Funken, Staub)
-  let NB = null, himmelLicht, schattenF, schattenA, tempoLinien;
+  let NB = null, himmelLicht, schattenF, schattenA;
   function aufbauen(weltModul, flugModul, fxModul, bueroModul, figurModul) {
     renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
     renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -153,7 +153,6 @@ if (rahmen) {
     if (renderer.capabilities.isWebGL2 && (ext.has("EXT_color_buffer_float") || ext.has("EXT_color_buffer_half_float"))) NB = fxModul.effekte(THREE, renderer, handy);
     tempoL = fxModul.tempoLinien(THREE, handy); szene.add(tempoL.gruppe);
     schattenF = W.kontaktSchatten(1.1, 2.1); schattenA = W.kontaktSchatten(.9, .9); szene.add(schattenF, schattenA);
-    tempoLinien = document.createElement("div"); tempoLinien.className = "lauf-tempo"; blende.after(tempoLinien);
     duellAufbauen();
     folieAufbauen();
     bueroAufbauen(bueroModul, figurModul);
@@ -365,7 +364,7 @@ if (rahmen) {
     abschnitte = []; hindernisse = []; sterne = []; booster = []; startNr = 0;
     FL.ab = PHASEN_ABSTAND[0]; FL.rueck = 0; FL.phaseNr = 0;
     aktZone = 0; W.zoneWechsel(0, true); stimmungSetzen(true);
-    Object.assign(B, { turbo: 0, schild: 0, ruhe: 0, magnet: 0, doppelt: 0, schubs: null });
+    Object.assign(B, { schild: 0, ruhe: 0, magnet: 0, doppelt: 0, schubs: null });
     FL.naechsteArt = "folie"; FL.schlittenBei = 0; FL.sonder = null;
     Object.assign(R, { boote: 0, fluege: 0, anjaPhase: false, tempoF: 1, booster: 0, schubs: 0, welt: 0, zeit: 0, laufZeit: 0, flug: 0, ringe: 0, tore: 0, schlitten: 0, frauBei: 20, kombo: 0, fahne: false, jubel: false });
     tempo = START_TEMPO; punkte = 0; sternZahl = 0; strecke = 0; wackeln = 0; schlussSzene = null;
@@ -858,8 +857,7 @@ if (rahmen) {
   const flugBooster = () => Math.random() < .325 ? "schild" : wahl(["magnet", "doppelt"]);
   function boosterNehmen(typ) {
     R.booster++; T.booster();
-    if (typ === "turbo") { B.turbo = 6; wackeln = Math.max(wackeln, .2); meldung("Turbo!", `${NAME()} rennt schneller`); }
-    else if (typ === "schild") { B.schild = 7; meldung("Schutzschild!", "7 Sekunden unverwundbar"); }
+    if (typ === "schild") { B.schild = 7; meldung("Schutzschild!", "7 Sekunden unverwundbar"); }
     else if (typ === "magnet") { B.magnet = 8; meldung("Sterne-Magnet!", "Alle Sterne fliegen zu dir"); }
     else if (typ === "doppelt") { B.doppelt = 10; meldung("Doppelte Punkte!", "10 Sekunden lang alles ×2"); }
     else if (!B.schubs) { B.schubs = { t: 0, umfallen: 0, getroffen: false }; A.nah = true; A.zeit = 99; meldung("Schubs-Booster!", `Hol sie dir, ${NAME()}!`); }
@@ -929,7 +927,6 @@ if (rahmen) {
     let t = `${Math.floor(punkte)} Punkte · ★ ${sternZahl}`;
     if (komboFaktor() > 1) t += ` · 🔥×${komboFaktor()}`;
     if (FL.an) t += FL.art === "schlitten" ? ` · 🛷 ${tempoKmh()} km/h` + (handy ? "" : ` · ${Math.max(0, Math.ceil(FL.dauer - FL.zeit))} s`) : ` · ✈ ${Math.max(0, Math.ceil(FL.dauer - FL.zeit))} s`;
-    if (B.turbo > 0) t += ` · ⚡ ${Math.ceil(B.turbo)}`;
     if (B.magnet > 0) t += ` · 🧲 ${Math.ceil(B.magnet)}`;
     if (B.doppelt > 0) t += ` · ×2 ${Math.ceil(B.doppelt)}`;
     if (B.schild > 0) t += ` · 🛡 ${Math.ceil(B.schild)}`;
@@ -976,8 +973,8 @@ if (rahmen) {
     R.zeit += dt; R.laufZeit += dt;
     anjaPhasePruefen();
     tempoPruefen();
-    const v = tempo * tempoFaktor() * (S.stolper > 0 ? .6 : 1) * (B.turbo > 0 ? 1.35 : 1);
-    for (const k of ["turbo", "schild", "ruhe", "magnet", "doppelt"]) B[k] = Math.max(0, B[k] - dt);
+    const v = tempo * tempoFaktor() * (S.stolper > 0 ? .6 : 1);
+    for (const k of ["schild", "ruhe", "magnet", "doppelt"]) B[k] = Math.max(0, B[k] - dt);
     const faktor = B.doppelt > 0 ? 2 : 1;
     const unverwundbar = B.schild > 0 || !!B.schubs || FL.abflug > 0 || FL.rueck > 0;
     S.s += v * dt; strecke += v * dt; punkte += v * dt * faktor;
@@ -1142,7 +1139,7 @@ if (rahmen) {
     // beim Schubser dreht sie sich kurz um (zu Anja nach hinten) und wieder zurück
     const umdrehen = B.schubs ? Math.max(0, Math.sin(Math.min(1, Math.max(0, (B.schubs.t - .45) / 1.1)) * Math.PI)) : 0;
     g.rotation.y = winkel(g.rotation.y, yaw + umdrehen * Math.PI, Math.min(1, dt * 12));
-    if (lauft) S.lauf += dt * tempo * tempoFaktor() * (A.nah ? 1.5 : 1.1) * (B.turbo > 0 ? 1.35 : 1);
+    if (lauft) S.lauf += dt * tempo * tempoFaktor() * (A.nah ? 1.5 : 1.1);
     if (spieler.mensch) {                  // Anja als Figur: läuft wie eine Läuferin, die Arme schwingen gegengleich
       spieler.beine.forEach((b, i) => {
         if (S.y > 0) { b.oben.rotation.x = i ? -.4 : .9; b.unten.rotation.x = i ? -.3 : -1.3; return; }
@@ -1265,7 +1262,7 @@ if (rahmen) {
     }
     for (const bo of booster) { bo.mesh.userData.innen.rotation.y += dt * 3; bo.mesh.position.y = 1.05 + Math.sin(performance.now() / 300 + bo.s) * .1; }
     const tempoRun = zustand === "laeuft" ? .12 + (tempoFaktor() - 1) / .2 * .68 : 0; tempoZiel = tempoRun;
-    kamera.fov += (((kamera.aspect < .8 ? 72 : 62) + (B.turbo > 0 ? 8 : 0) + tempoRun * 5) - kamera.fov) * Math.min(1, dt * 3); kamera.updateProjectionMatrix();
+    kamera.fov += (((kamera.aspect < .8 ? 72 : 62) + tempoRun * 5) - kamera.fov) * Math.min(1, dt * 3); kamera.updateProjectionMatrix();
     W.bodenFolgen(px, pz);   // Bodenmuster bleibt am Ort, obwohl die Fläche mitwandert
     // neue Welt erreicht: Boden, Farben, Wetter und Musik wechseln, Namen einblenden
     if (ab.zone !== aktZone) {
@@ -1308,10 +1305,9 @@ if (rahmen) {
     sonnenBild.position.set(kamera.position.x - 85, 95, kamera.position.z + 50);   // passend zur Lichtrichtung
     // Staubwölkchen unter den Hufen beim Laufen (nicht bei niedrigster Qualität)
     if (lauft && S.y === 0 && qualitaet < 3 && (staubTakt -= dt) <= 0) {
-      staubTakt = B.turbo > 0 ? .05 : .11;
+      staubTakt = .11;
       const st = teilchenHolen("staub"); st.position.set(g.position.x + (Math.random() - .5) * .4, .12, g.position.z + (Math.random() - .5) * .4);
       st.scale.setScalar(.25); szene.add(st); teilchen.push({ k: st, v: new THREE.Vector3(0, .25, 0), t: 0, dauer: .7, wachsen: 1.1 });
-      if (B.turbo > 0) funkeln(new THREE.Vector3(g.position.x, .25, g.position.z), "#ffd54a", 2);   // Funken unter den Hufen
     }
     teilchenSchritt(dt);
     zeichnen();
@@ -1373,8 +1369,6 @@ if (rahmen) {
     if (spieler) { laterneLicht.position.copy(spieler.gruppe.position); laterneLicht.position.y += 3.4; }
     if (NB) NB.schritt(dt);
     wolkenGruppe.rotation.y += dt * .004;                 // die Wolken ziehen langsam
-    const turbo = B.turbo > 0 && zustand === "laeuft";
-    if (tempoLinien.classList.contains("an") !== turbo) tempoLinien.classList.toggle("an", turbo);
   }
   // Gesicht: blinzeln, Ohren wippen; sie freut sich über Sterne und legt die Ohren an, wenn Anja nah ist
   const GE = { blinzel: 2, freude: 0 };
@@ -1428,7 +1422,7 @@ if (rahmen) {
       <div class="du-balken rechts"><i></i><span class="du-gegner"></span></div></div><div class="du-herzen"></div>
       <div class="du-bahn"><div class="du-ziel"></div></div>
       <div class="du-knoepfe"><button type="button" data-b="A">A<small>Taste A</small></button><button type="button" data-b="B">B<small>Taste B</small></button></div>`;
-    tempoLinien.after(duellUI);
+    blende.after(duellUI);
     duellUI.querySelectorAll(".du-knoepfe button").forEach(k => k.addEventListener("pointerdown", (e) => { e.preventDefault(); duellTaste(k.dataset.b); }));
     // Direkt auf den Kreis oder den Buchstaben tippen zählt auch
     duellBahn().addEventListener("pointerdown", (e) => {
@@ -1614,7 +1608,7 @@ if (rahmen) {
     fStreifen = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), W.folieStoff); fBuehne.add(fStreifen);
     folieUI = document.createElement("div"); folieUI.className = "folie"; folieUI.hidden = true;
     folieUI.innerHTML = `<div class="fo-kopf"><div class="fo-balken"><i></i><span></span></div><div class="fo-zeit">20</div></div><p class="fo-tipp" aria-hidden="true"><b>⇠</b><span>${handy ? "Wisch hin und her" : "Pfeiltasten im Wechsel oder Maus ziehen"}</span><b>⇢</b></p>`;
-    tempoLinien.after(folieUI);
+    blende.after(folieUI);
   }
   function folieAnzeige() {
     const n = FO.lagen.length;
@@ -1818,7 +1812,7 @@ if (rahmen) {
     bOhr = BW.ohr(); bOhr.visible = false;
     bueroUI = document.createElement("div"); bueroUI.className = "folie buero"; bueroUI.hidden = true;
     bueroUI.innerHTML = `<div class="fo-kopf"><div class="fo-balken"><i></i><span></span></div><div class="fo-zeit">20</div></div><p class="fo-tipp" aria-hidden="true"><span>${handy ? "Tipp auf die Türen" : "Tür anklicken oder mit ← → wählen und ↑ öffnen"}</span></p>`;
-    tempoLinien.after(bueroUI);
+    blende.after(bueroUI);
   }
   const versteckX = (v) => v.schrank.position.x, versteckY = (v) => v.y0 + v.hoehe / 2;
   function bueroRunde(nr) {
@@ -2279,10 +2273,10 @@ if (rahmen) {
     }
     if (FL.art === "schlitten") FL.v += (SCHLITTEN_GRUND - FL.v) * .05 * dt;   // ohne Tore wird der Schlitten langsam wieder gemütlicher
     else FL.v = Math.min(FL.art === "wasser" ? 25 : 30, FL.v + .15 * dt);
-    for (const k of ["turbo", "schild", "ruhe", "magnet", "doppelt"]) B[k] = Math.max(0, B[k] - dt);
+    for (const k of ["schild", "ruhe", "magnet", "doppelt"]) B[k] = Math.max(0, B[k] - dt);
     const faktor = B.doppelt > 0 ? 2 : 1, unverwundbar = B.schild > 0 || FL.abflug > 0 || FL.landung > 0;
     tempoPruefen();
-    const v = FL.v * tempoFaktor() * (B.turbo > 0 ? 1.3 : 1) * (FL.trudeln > 0 ? .75 : 1);
+    const v = FL.v * tempoFaktor() * (FL.trudeln > 0 ? .75 : 1);
     const zAlt = FL.z;
     FL.z -= v * dt; strecke += v * dt; FL.strecke += v * dt; punkte += v * dt * faktor;
     if (FL.abflug) {                                     // Blende wieder ausblenden
@@ -2357,13 +2351,13 @@ if (rahmen) {
       fg.rotation.set(-.04, FL.neig * .5, FL.neig * .35 + wackel);
     } else if (nass) {                                  // Boot: schaukelt auf den Wellen und legt sich leicht in die Kurve
       fg.position.set(FL.x, FL.y + Math.sin(t * 3) * .05, FL.z);
-      fg.rotation.set(Math.sin(t * 2.1) * .04 - (B.turbo > 0 ? .08 : .03), 0, FL.neig * .45 + Math.sin(t * 1.7) * .03 + wackel);
+      fg.rotation.set(Math.sin(t * 2.1) * .04 - .03, 0, FL.neig * .45 + Math.sin(t * 1.7) * .03 + wackel);
     } else {
       fg.position.set(FL.x, FL.y + Math.sin(t * 2) * .08, FL.z);
       fg.rotation.set(FL.nick, 0, FL.neig + wackel);
     }
-    fzg.propeller.rotation.z += dt * (B.turbo > 0 ? 55 : 38);
-    spieler.hals.rotation.x = Math.sin(t * 1.6) * .07 + (B.turbo > 0 ? -.25 : 0);
+    fzg.propeller.rotation.z += dt * 38;
+    spieler.hals.rotation.x = Math.sin(t * 1.6) * .07;
     spieler.schwanz.rotation.z = Math.sin(t * 3) * .3;
     blase.visible = B.schild > 0 && (B.schild > 1 || Math.floor(B.schild * 8) % 2 === 0);
     // Anjas Flieger folgt mit etwas Verzögerung, beim Fangen fliegt sie direkt daneben
@@ -2410,7 +2404,7 @@ if (rahmen) {
     if (wackeln > 0) { wackeln = Math.max(0, wackeln - dt); kamera.position.x += (Math.random() - .5) * wackeln * .6; kamera.position.y += (Math.random() - .5) * wackeln * .4; }
     kamera.lookAt(FL.x * .85 - sin * 10, FL.y + (ski ? -.6 : nass ? .9 : .4), FL.z - cos * 10);   // am Hang geht der Blick bergab
     const tempoFahrt = zustand !== "laeuft" ? 0 : Math.max(0, Math.min(1, ski ? (FL.v - 14) / 18 : nass ? (FL.v - 13) / 20 : (FL.v - 16) / 22)); tempoZiel = tempoFahrt;
-    kamera.fov += (((hoch ? 72 : 62) + (B.turbo > 0 ? 10 : 0) + tempoFahrt * 6) - kamera.fov) * Math.min(1, dt * 3); kamera.updateProjectionMatrix();
+    kamera.fov += (((hoch ? 72 : 62) + tempoFahrt * 6) - kamera.fov) * Math.min(1, dt * 3); kamera.updateProjectionMatrix();
     himmelKugel.position.copy(kamera.position); wolkenGruppe.position.set(kamera.position.x, 0, kamera.position.z);
     if (nass) sonnenBild.position.set(kamera.position.x - 85, 95, kamera.position.z + 50);   // Mittagssonne wie in der Laufwelt
     else { sonnenBild.position.set(kamera.position.x - 55, 26, kamera.position.z - 150); strahlen.position.copy(sonnenBild.position); }   // tief stehende Abendsonne vorn

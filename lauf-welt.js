@@ -1308,7 +1308,6 @@ export function welt(T, handy) {
 
   // Booster: Münze mit Symbol und Leuchten
   const boosterArt = {
-    turbo: ["#ffb300", (g) => { g.beginPath(); [[70, 14], [34, 70], [60, 70], [50, 114], [94, 52], [66, 52], [80, 14]].forEach(([x, y], i) => g[i ? "lineTo" : "moveTo"](x, y)); g.closePath(); g.fill(); }],
     schild: ["#2f8be0", (g) => { g.beginPath(); g.moveTo(64, 18); g.lineTo(100, 32); g.quadraticCurveTo(98, 88, 64, 112); g.quadraticCurveTo(30, 88, 28, 32); g.closePath(); g.fill(); }],
     magnet: ["#e53935", (g) => {
       g.lineWidth = 16; g.strokeStyle = "#fff"; g.beginPath(); g.arc(64, 58, 26, Math.PI, 0, true); g.stroke();
