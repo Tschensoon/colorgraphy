@@ -351,5 +351,74 @@ export function ton() {
     try { q.stop(ctx.currentTime + .2); } catch (e) {}
   }
 
-  return { start, umschalten, istAn: () => an, musik, musikStop, aufnehmen, verloren, verlorenStop, ...sfx };
+  // ---------- Fahrgeräusche: Wind im Flug, Motor und Wellen beim Boot, Kufen und Schellen beim Schlitten ----------
+  // Das Spiel meldet in jedem Bild, was gerade fährt; wechselt das, wird das alte Geräusch weich aus- und das neue eingeblendet.
+  let fahrtAktiv = null, fahrtNaechstes = 0;
+  function rauschSchleife(ziel, typ, frequenz, q = .7) {
+    const q0 = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+    q0.buffer = rauschPuffer; q0.loop = true; f.type = typ; f.frequency.value = frequenz; f.Q.value = q; g.gain.value = 0;
+    q0.connect(f); f.connect(g); g.connect(ziel); q0.start();
+    return { quelle: q0, filter: f, gain: g };
+  }
+  function brummen(ziel, typ, frequenz, grenze) {
+    const o = ctx.createOscillator(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+    o.type = typ; o.frequency.value = frequenz; f.type = "lowpass"; f.frequency.value = grenze; g.gain.value = 0;
+    o.connect(f); f.connect(g); g.connect(ziel); o.start();
+    return { quelle: o, filter: f, gain: g };
+  }
+  function schellen(start, laut) {
+    for (const [f, v] of [[2637, 1], [3520, .7], [4699, .4]]) note(f + Math.random() * 40, start, .13, { typ: "sine", laut: laut * v, attack: .002 });
+  }
+  function fahrtBauen(art) {
+    const bus = ctx.createGain(); bus.gain.value = 0; bus.connect(effektBus);
+    bus.gain.setTargetAtTime(1, ctx.currentTime, .3);
+    const setze = (p, wert, zeit = .2) => p.setTargetAtTime(wert, ctx.currentTime, zeit);
+    if (art === "wasser") {
+      const motor = brummen(bus, "sawtooth", 58, 360), tief = brummen(bus, "square", 116, 280), wellen = rauschSchleife(bus, "lowpass", 900);
+      return { art, bus, teile: [motor, tief, wellen], schritt(s, t) {
+        setze(motor.quelle.frequency, 58 + s * 34); setze(tief.quelle.frequency, 116 + s * 68);
+        setze(motor.gain.gain, .05 + s * .03); setze(tief.gain.gain, .022); setze(wellen.gain.gain, .05 + Math.sin(t * 1.3) * .018);
+      } };
+    }
+    if (art === "schlitten") {
+      const kufen = rauschSchleife(bus, "highpass", 2600);
+      let schelle = 0, schlag = 0;
+      return { art, bus, teile: [kufen], schritt(s, t) {
+        setze(kufen.gain.gain, .018 + s * .022);
+        if (t >= schelle) {                              // Schellen im Trab: lang, kurz-kurz; je schneller, desto dichter
+          const takt = .3 - s * .1;
+          schellen(t + .02, .026 + s * .012); schlag = (schlag + 1) % 3; schelle = t + takt * (schlag === 0 ? 1.4 : .8);
+        }
+      } };
+    }
+    const wind = rauschSchleife(bus, "bandpass", 700, .5), propeller = brummen(bus, "sawtooth", 72, 240);
+    return { art, bus, teile: [wind, propeller], schritt(s, t) {
+      setze(wind.filter.frequency, 520 + s * 900 + Math.sin(t * .7) * 90); setze(wind.gain.gain, .075 + s * .06 + Math.sin(t * .9) * .012);
+      setze(propeller.quelle.frequency, 72 + s * 26); setze(propeller.gain.gain, .016);
+    } };
+  }
+  function fahrtAus() {
+    if (!fahrtAktiv) return;
+    const { bus, teile } = fahrtAktiv, t = ctx.currentTime; fahrtAktiv = null;
+    bus.gain.cancelScheduledValues(t); bus.gain.setTargetAtTime(0, t, .12);
+    for (const k of teile) { try { k.quelle.stop(t + .7); } catch (e) {} }
+    setTimeout(() => bus.disconnect(), 900);
+  }
+  function fahrt(art, staerke = 0) {
+    if (!ctx || !rauschPuffer) return;
+    if ((fahrtAktiv ? fahrtAktiv.art : null) !== (art || null)) { fahrtAus(); if (art) fahrtAktiv = fahrtBauen(art); }
+    if (!fahrtAktiv) return;
+    const t = ctx.currentTime;
+    if (t >= fahrtNaechstes) { fahrtNaechstes = t + .08; fahrtAktiv.schritt(Math.max(0, Math.min(1, staerke)), t); }
+  }
+  function glocke(seite = 0) {                           // Bojenglocke im Vorbeifahren, links oder rechts
+    if (!ctx) return;
+    const p = ctx.createStereoPanner ? ctx.createStereoPanner() : ctx.createGain(); if (p.pan) p.pan.value = seite * .75;
+    p.connect(effektBus); const t = ctx.currentTime;
+    for (const [f, v] of [[880, 1], [1318, .55], [2217, .3]]) note(f, t, 1.3, { typ: "sine", laut: .075 * v, bus: p, attack: .004 });
+    note(880, t + .42, .9, { typ: "sine", laut: .04, bus: p, attack: .004 });
+    setTimeout(() => p.disconnect(), 2600);
+  }
+
+  return { fahrt, fahrtJetzt: () => (fahrtAktiv ? fahrtAktiv.art : null), glocke, start, umschalten, istAn: () => an, musik, musikStop, aufnehmen, verloren, verlorenStop, ...sfx };
 }

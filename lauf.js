@@ -31,7 +31,7 @@ if (rahmen) {
   function laden() {
     if (!bereit) {
       const text = losKnopf.textContent; losKnopf.disabled = true; losKnopf.textContent = "Lädt die 3D-Welt …";
-      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=47"), import("./lauf-ton.js?v=9"), import("./lauf-flug.js?v=11"), import("./lauf-effekte.js?v=4"), import("./lauf-buero.js?v=1"), import("./detektiv-figuren.js?v=4")])
+      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=47"), import("./lauf-ton.js?v=10"), import("./lauf-flug.js?v=11"), import("./lauf-effekte.js?v=4"), import("./lauf-buero.js?v=1"), import("./detektiv-figuren.js?v=4")])
         .then(([m, w, t, f, e, bm, fm]) => { THREE = m; T = t.ton(); aufbauen(w, f, e, bm, fm); losKnopf.disabled = false; losKnopf.textContent = text; });
     }
     return bereit;
@@ -450,7 +450,7 @@ if (rahmen) {
   }
   pauseKnopf.addEventListener("click", () => { if (zustand === "laeuft" || zustand === "pause") pauseUm(); });
   $(".lauf-weiter").addEventListener("click", pauseUm);
-  document.addEventListener("visibilitychange", () => { if (document.hidden && T) T.verlorenStop(); if (document.hidden && zustand === "laeuft") pauseUm(); });
+  document.addEventListener("visibilitychange", () => { if (document.hidden && T) { T.verlorenStop(); T.fahrt(null); } if (document.hidden && zustand === "laeuft") pauseUm(); });
   const tonAnzeigen = (an) => { tonKnopf.textContent = an ? "🔊" : "🔇"; tonKnopf.setAttribute("aria-label", an ? "Ton aus" : "Ton an"); };
   tonKnopf.addEventListener("click", async () => { await laden(); T.start(); tonAnzeigen(T.umschalten()); });
   try { tonAnzeigen(localStorage.getItem("froebelinchen-ton") !== "aus"); } catch (e) {}
@@ -492,7 +492,7 @@ if (rahmen) {
     wackeln = .5;
   }
   function ende(grund) {
-    zustand = "aus"; window.froebelAktiv = null; T.musikStop(); warnung.classList.remove("an");
+    zustand = "aus"; window.froebelAktiv = null; T.musikStop(); T.fahrt(null); warnung.classList.remove("an");
     const p = Math.floor(punkte), neuerRekord = p > rekord && p > 0;
     if (neuerRekord) { rekord = p; schreib("froebelinchen-rennt-rekord", rekord); }
     konto.sterne += sternZahl; schreib("froebelinchen-rennt-konto", konto);
@@ -1163,6 +1163,7 @@ if (rahmen) {
   const winkel = (a, b, k) => a + (((b - a + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI) * k;
   function bild() {
     const echt = uhr.getDelta(), dt = Math.min(.05, echt);
+    if (T) T.fahrt(zustand === "laeuft" && FL.an && !FL.landung ? FL.art : null, FL.v / 30);   // Pause, Verlieren und Landen blenden es von selbst aus
     if (zustand === "pause") { zeichnen(); return; }
     if (zustand === "rettung") { weiterSchritt(echt); zeichnen(); return; }
     if (RE.schutz > 0) RE.schutz = Math.max(0, RE.schutz - dt);
@@ -2347,6 +2348,7 @@ if (rahmen) {
     for (const o of FL.objekte) {
       if (o.vx) { o.x += o.vx * dt; o.mesh.position.x = o.x; }
       if (o.typ === "ballon") { o.y = o.y0 + Math.sin(R.zeit * .8 + o.ph) * .6; o.mesh.position.y = o.y; }
+      if (o.boje && !o.gelaeutet && o.z > FL.z - 16) { o.gelaeutet = true; T.glocke(Math.sign(o.x - FL.x)); }
       if (o.typ === "pylon" || o.boje) o.mesh.position.y = Math.sin(R.zeit * 2.2 + o.ph) * .06;   // schaukeln auf den Wellen
       if (o.weg || o.typ === "deko") continue;
       if (o.typ === "durch") {
