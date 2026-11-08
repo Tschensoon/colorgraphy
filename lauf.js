@@ -31,7 +31,7 @@ if (rahmen) {
   function laden() {
     if (!bereit) {
       const text = losKnopf.textContent; losKnopf.disabled = true; losKnopf.textContent = "Lädt die 3D-Welt …";
-      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=43"), import("./lauf-ton.js?v=9"), import("./lauf-flug.js?v=4"), import("./lauf-effekte.js?v=3"), import("./lauf-buero.js?v=1"), import("./detektiv-figuren.js?v=4")])
+      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=44"), import("./lauf-ton.js?v=9"), import("./lauf-flug.js?v=4"), import("./lauf-effekte.js?v=3"), import("./lauf-buero.js?v=1"), import("./detektiv-figuren.js?v=4")])
         .then(([m, w, t, f, e, bm, fm]) => { THREE = m; T = t.ton(); aufbauen(w, f, e, bm, fm); losKnopf.disabled = false; losKnopf.textContent = text; });
     }
     return bereit;
@@ -46,9 +46,9 @@ if (rahmen) {
   let qualitaet = lies("froebelinchen-rennt-qualitaet", 0);
   let tutorialFertig = lies("froebelinchen-rennt-tutorial", false);
   // Figuren: Fröbelinchen und Leo gibt es sofort, die anderen ab einer Fröbel-Stufe (eine Stufe je 5000 gesammelte Punkte)
-  // Figuren: Fröbelinchen und Leo gibt es sofort. Die anderen gibt es ab einer Fröbel-Stufe zu kaufen (Sterne).
+  // Figuren: Fröbelinchen, Leo und Schnäuzchen gibt es sofort. Die anderen gibt es ab einer Fröbel-Stufe zu kaufen (Sterne).
   const FIGUR_LISTE = [
-    { id: "giraffe", emoji: "🦒", name: "Fröbelinchen", stufe: 1, preis: 0 }, { id: "leo", emoji: "🐢", name: "Leo", stufe: 1, preis: 0 },
+    { id: "giraffe", emoji: "🦒", name: "Fröbelinchen", stufe: 1, preis: 0 }, { id: "leo", emoji: "🐢", name: "Leo", stufe: 1, preis: 0 }, { id: "igel", emoji: "🦔", name: "Schnäuzchen", stufe: 1, preis: 0 },
     { id: "hase", emoji: "🐰", name: "Rambo Rabbit", stufe: 5, preis: 250 }, { id: "baer", emoji: "🐻", name: "Baylin", stufe: 10, preis: 250 },
     { id: "elefant", emoji: "🐘", name: "Jensfant", stufe: 20, preis: 250 }, { id: "affe", emoji: "🐒", name: "Momo", stufe: 30, preis: 1000 },
     { id: "pinguin", emoji: "🐧", name: "Pingo", stufe: 50, preis: 1000 }, { id: "koala", emoji: "🐨", name: "Kalle", stufe: 70, preis: 1000 },

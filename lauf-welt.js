@@ -453,6 +453,8 @@ export function welt(T, handy) {
       fotoGanz: [[0, .82, -.1], [2.4, 1.6, -3.3]], fotoRuecken: [[0, 1.08, .1], [1.7, 2.2, 2.1]] },
     pip: { name: "Fröbelix", blick: 1.1, rueckenY: -.35, blaseY: .85, blaseS: 1.15, cockpit: [-.05, .38, .55], kopfSkala: 1.9, halsSkala: 1.4,
       fotoGanz: [[0, .85, -.1], [2.4, 1.7, -3.4]], fotoRuecken: [[0, 1.15, .1], [1.7, 2.2, 2.1]] },
+    igel: { name: "Schnäuzchen", blick: .8, rueckenY: -.6, blaseY: .72, blaseS: 1.05, cockpit: [.05, .4, .6], kopfSkala: 1.45, halsSkala: 1.1,
+      fotoGanz: [[0, .8, -.1], [2.3, 1.6, -3.2]], fotoRuecken: [[0, 1.05, .1], [1.6, 2.1, 2.0]] },
     mops: { name: "Fips", blick: .9, rueckenY: -.6, blaseY: .7, blaseS: 1, cockpit: [.05, .4, .6], kopfSkala: 1.35, halsSkala: 1.05,
       fotoGanz: [[0, .8, -.1], [2.3, 1.55, -3.2]], fotoRuecken: [[0, 1.02, .1], [1.6, 2.1, 2.0]] },
   };
@@ -777,6 +779,87 @@ export function welt(T, handy) {
       }
     },
   });
+  // --- Schnäuzchen, der Igel: runder Plüschigel mit Stacheln (dunkel mit heller Spitze), spitzer Schnauze und roter Strickmütze ---
+  // Stacheln: viele kleine Kegel in einem Netz, Fuß dunkel, Spitze hell. liste: je [Punkt, Richtung, Länge, Radius]
+  function stachelNetz(liste) {
+    const pos = [], col = [], fuss = new T.Color("#21150d"), spitze = new T.Color("#d6c29e"), seg = 5;
+    const u = new T.Vector3(), v = new T.Vector3(), hilf = new T.Vector3();
+    for (const [p, d, l, r] of liste) {
+      hilf.set(Math.abs(d.y) < .9 ? 0 : 1, Math.abs(d.y) < .9 ? 1 : 0, 0);
+      u.crossVectors(d, hilf).normalize(); v.crossVectors(d, u);
+      const tip = p.clone().addScaledVector(d, l), ring = [];
+      for (let i = 0; i <= seg; i++) { const w = i / seg * Math.PI * 2; ring.push(p.clone().addScaledVector(u, Math.cos(w) * r).addScaledVector(v, Math.sin(w) * r)); }
+      for (let i = 0; i < seg; i++) {
+        for (const q of [ring[i], ring[i + 1], tip]) pos.push(q.x, q.y, q.z);
+        col.push(fuss.r, fuss.g, fuss.b, fuss.r, fuss.g, fuss.b, spitze.r, spitze.g, spitze.b);
+      }
+    }
+    const g = new T.BufferGeometry();
+    g.setAttribute("position", new T.Float32BufferAttribute(pos, 3)); g.setAttribute("color", new T.Float32BufferAttribute(col, 3));
+    g.computeVertexNormals(); g.computeBoundingSphere(); return geteilt(g);
+  }
+  // Stacheln über eine Ellipsoid-Oberfläche verteilen (Fibonacci-Kugel), nur wo „wo(Richtung)“ zustimmt; alle leicht nach hinten gekämmt
+  function stachelnAuf(c, rad, n, wo, l, r, nachHinten) {
+    const liste = [], gold = Math.PI * (3 - Math.sqrt(5));
+    for (let i = 0; i < n; i++) {
+      const y = 1 - 2 * (i + .5) / n, rr = Math.sqrt(1 - y * y), w = i * gold;
+      const dir = new T.Vector3(Math.cos(w) * rr, y, Math.sin(w) * rr);
+      if (!wo(dir)) continue;
+      const zufall = Math.abs(Math.sin(i * 12.9898) * 43758.5453) % 1;
+      const p = new T.Vector3(c[0] + dir.x * rad[0], c[1] + dir.y * rad[1], c[2] + dir.z * rad[2]);
+      const norm = new T.Vector3(dir.x / rad[0], dir.y / rad[1], dir.z / rad[2]).normalize();
+      p.addScaledVector(norm, -.025);
+      const d = norm.clone().add(new T.Vector3(0, .12, nachHinten)).normalize();
+      liste.push([p, d, l * (.85 + zufall * .35), r]);
+    }
+    return liste;
+  }
+  const igelFell = zweiFarbenMat("igel", "#4d3625", "#f3e2c6", "#c9a07a"), igelBein = pluesch("#9a7556", "#ffe8cc"), igelHell = pluesch("#f3e2c6", "#fff6e6");
+  const igelStachel = std({ vertexColors: true, roughness: .75 });
+  const muetzeMuster = leinwand(64, 64, (g, w, h) => {             // Strickrippen
+    g.fillStyle = "#d42a3c"; g.fillRect(0, 0, w, h);
+    g.fillStyle = "rgba(0,0,0,.2)"; for (let x = 0; x < w; x += 8) g.fillRect(x, 0, 2, h);
+    g.fillStyle = "rgba(255,255,255,.1)"; for (let x = 4; x < w; x += 8) g.fillRect(x, 0, 2, h);
+  });
+  muetzeMuster.wrapS = muetzeMuster.wrapT = T.RepeatWrapping; muetzeMuster.repeat.set(4, 1);
+  const muetzeRot = std({ map: muetzeMuster, roughness: .95 }), muetzeWeiss = pluesch("#f7f3ec", "#ffffff");
+  const igelK = [0, .18, -.1], igelKR = [.21, .19, .2], igelRumpf = [[0, .47, .08], [.4, .35, .47]];
+  const igel = () => {
+    const f = tierBauen({
+      id: "igel", fell: igelFell, skala: 1.12, hals: [0, .59, -.42], K: igelK, augen: [.085, .05, -.17, .03], schwanz: [0, .38, .52],
+      rumpf: (x, y, z) => F.weich(F.ei(x, y, z, ...igelRumpf[0], ...igelRumpf[1]), F.ei(x, y, z, 0, .44, -.24, .28, .27, .24), .1),
+      rumpfHell: (x, y, z) => [Math.max(klemme((.3 - y) / .1), klemme((-.3 - z) / .1) * klemme((.62 - y) / .08))], rumpfBox: [[-.5, .04, -.55], [.5, .89, .62]],
+      kopf: (x, y, z) => {
+        let d = F.weich(F.stab(x, y, z, [0, -.08, .08], [0, .1, -.06], .15, .14), F.ei(x, y, z, ...igelK, ...igelKR), .06);
+        return F.weich(d, F.stab(x, y, z, [0, igelK[1] - .03, igelK[2] - .1], [0, igelK[1] - .08, igelK[2] - .33], .1, .035), .05);   // spitze Schnauze
+      },
+      kopfHell: (x, y, z) => [Math.max(klemme((.1 - y) / .08), klemme(((igelK[2] - .04) - z) / .06) * (y < igelK[1] + .1 ? 1 : 0))], kopfBox: [[-.32, -.24, -.5], [.32, .48, .32]],
+      ansaetze: [[-.17, .3, -.24], [.17, .3, -.24], [-.18, .3, .3], [.18, .3, .3]], oben: [[.085, .08, .13]], unten: [[.08, .075, .1]], pfote: [[.085, .035, .11]],
+      bein: igelBein, pfoteMat: igelHell,
+      extra: ({ kopf, koerper, schwanz, ohren }) => {
+        if (!tierFormen.igel.stacheln) {
+          const [c, rad] = igelRumpf;
+          tierFormen.igel.stacheln = stachelNetz(stachelnAuf(c, rad, handy ? 560 : 900, (d) => d.y > -.42 && !(d.z < -.55 && d.y < .5), .17, .036, .55));
+          tierFormen.igel.kopfStacheln = stachelNetz(stachelnAuf([0, 0, 0], igelKR, handy ? 220 : 340,
+            (d) => d.y < .42 && d.y > -.45 && (d.z > .05 || (d.z > -.3 && Math.abs(d.x) > .75)), .12, .027, .7));
+        }
+        teil(tierFormen.igel.stacheln, igelStachel, koerper);
+        teil(tierFormen.igel.kopfStacheln, igelStachel, kopf);
+        teil(kugel, nasenMat, kopf, 0, -.09, -.345).scale.set(.04, .032, .03);                 // Knopfnase vorn an der Schnauze
+        for (const s of [-1, 1]) {                         // kleine runde Ohren schauen unter der Mütze hervor
+          const ohr = gelenk(kopf, s * .17, .06, .03); ohr.userData.s = s; ohr.userData.basis = 0; ohren.push(ohr);
+          teil(kugel, igelBein, ohr).scale.set(.04, .05, .03); teil(kugel, rosaMat, ohr, s * .006, 0, -.012).scale.set(.025, .033, .018);
+        }
+        // Wintermütze: gestrickte Kuppel, weißer Umschlag, dicker Bommel; leicht nach hinten gekippt
+        const muetze = gelenk(kopf, 0, .11, .02); muetze.rotation.x = .22;
+        teil(new T.SphereGeometry(1, 28, 14, 0, Math.PI * 2, 0, Math.PI / 2), muetzeRot, muetze).scale.set(.2, .23, .2);
+        const umschlag = teil(new T.TorusGeometry(.2, .045, 12, 32), muetzeWeiss, muetze, 0, .015, 0); umschlag.rotation.x = Math.PI / 2; umschlag.scale.z = 1.35;
+        teil(kugel, muetzeWeiss, muetze, 0, .27, 0).scale.setScalar(.075);
+        teil(kugel, igelBein, schwanz).scale.set(.05, .04, .06);
+      },
+    });
+    return f;
+  };
   // --- Kalle, der Koala (große flauschige Ohren, dicke Nase) ---
   const koalaFell = zweiFarbenMat("koala", "#9aa1a8", "#eceef0", "#ffffff"), koalaBein = pluesch("#9aa1a8", "#ffffff"), koalaHell = pluesch("#eceef0", "#ffffff");
   const koalaK = [0, .3, -.12];
@@ -893,7 +976,7 @@ export function welt(T, handy) {
     hase: { bauen: haseBauen, name: "Rambo Rabbit" }, baer: { bauen: baerBauen, name: "Baylin" }, elefant: { bauen: elefantBauen, name: "Jensfant" },
     affe: { bauen: affe, name: "Momo" }, pinguin: { bauen: pinguin, name: "Pingo" }, koala: { bauen: koala, name: "Kalle" }, katze: { bauen: katze, name: "Mimi" },
     anja: { bauen: anjaFigur, name: "Anja" },
-    fuchs: { bauen: fuchs, name: "Ferdi" }, panda: { bauen: panda, name: "Paula" }, mops: { bauen: mops, name: "Fips" }, pip: { bauen: pip, name: "Fröbelix" },
+    fuchs: { bauen: fuchs, name: "Ferdi" }, panda: { bauen: panda, name: "Paula" }, mops: { bauen: mops, name: "Fips" }, pip: { bauen: pip, name: "Fröbelix" }, igel: { bauen: igel, name: "Schnäuzchen" },
   };
   const figurBauen = (id) => (FIGUREN[id] || FIGUREN.giraffe).bauen();
 
