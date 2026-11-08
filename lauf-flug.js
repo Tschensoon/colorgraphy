@@ -46,17 +46,155 @@ export function flugWelt(T, W) {
   }, true);
   wolkenBild.repeat.set(12, 12);
 
-  // Spielzeug-Flugzeug; „sitz“ ist der Platz für Fröbelinchen bzw. Anja
+  // Spielzeug-Flugzeug; „sitz“ ist der Platz für Fröbelinchen bzw. Anja. Die Lackierungen werden nur einmal gemalt.
+  const FARBEN = [
+    { rumpf: "#e53935", bauch: "#f7f1e3", streifen: "#fdd835", fluegel: "#fdd835", akzent: "#e53935", linie: "rgba(70,10,10,.42)", fLinie: "rgba(120,80,0,.42)", stern: "#fdd835", sternF: "#e53935" },
+    { rumpf: "#f48fb1", bauch: "#ffffff", streifen: "#ffffff", fluegel: "#ffffff", akzent: "#f48fb1", linie: "rgba(120,30,70,.38)", fLinie: "rgba(150,90,120,.4)", stern: "#ec5f94", sternF: "#ec5f94" },
+  ];
+  const sternMalen = (g, x, y, r, farbe) => {
+    g.fillStyle = "#fff"; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill();
+    g.fillStyle = farbe; g.beginPath();
+    for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, q = i % 2 ? r * .4 : r * .86; g.lineTo(x + Math.cos(a) * q, y + Math.sin(a) * q); }
+    g.closePath(); g.fill();
+  };
+  const fliegerLack = [null, null];
+  const lackFuer = (nr) => fliegerLack[nr] || (fliegerLack[nr] = (() => {
+    const f = FARBEN[nr];
+    // Rumpf: oben im Bild die Nase, unten das Heck; die Bildränder sind die Oberseite, die Bildmitte die Unterseite
+    const rumpf = leinwand(1024, 512, (g, w, h) => {
+      g.fillStyle = f.rumpf; g.fillRect(0, 0, w, h);
+      g.fillStyle = f.bauch; g.fillRect(w * .36, 0, w * .28, h);
+      g.fillStyle = f.streifen; for (const x of [.3, .66]) g.fillRect(w * x, 0, w * .04, h);
+      for (let i = 0; i < 4; i++) for (let k = 0; k < 16; k++) if ((i + k) % 2 === 0) {    // Schachbrett-Band am Heck
+        g.fillStyle = f.streifen; g.fillRect(k * w / 16, h * .8 + i * h * .03, w / 16, h * .03);
+      }
+      g.strokeStyle = f.linie; g.lineWidth = 2;
+      for (const y of [.12, .25, .38, .52, .66, .77]) { g.beginPath(); g.moveTo(0, h * y); g.lineTo(w, h * y); g.stroke(); }
+      for (const x of [.125, .375, .625, .875]) { g.beginPath(); g.moveTo(w * x, h * .12); g.lineTo(w * x, h * .77); g.stroke(); }
+      g.fillStyle = f.linie;
+      for (const y of [.12, .25, .38, .52, .66, .77]) for (let x = 0; x < w; x += 16) { g.beginPath(); g.arc(x + 4, h * y + 7, 1.6, 0, 7); g.fill(); }
+      for (const x of [.25, .75]) sternMalen(g, w * x, h * .62, 44, f.stern);
+    });
+    // Flügel: Rippen, Querruder, Landeklappen, farbige Spitzen und Sterne
+    const fluegel = leinwand(1024, 320, (g, w, h) => {
+      g.fillStyle = f.fluegel; g.fillRect(0, 0, w, h);
+      g.strokeStyle = f.fLinie; g.lineWidth = 2;
+      for (let x = 32; x < w; x += 44) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, h); g.stroke(); }
+      for (const y of [.22, .62]) { g.beginPath(); g.moveTo(0, h * y); g.lineTo(w, h * y); g.stroke(); }
+      g.fillStyle = f.fLinie;
+      for (const y of [.22, .62]) for (let x = 6; x < w; x += 12) { g.beginPath(); g.arc(x, h * y + 6, 1.4, 0, 7); g.fill(); }
+      g.lineWidth = 5;
+      for (const [a, b] of [[.08, .3], [.7, .92]]) g.strokeRect(w * a, h * .14, w * (b - a), h * .24);    // Querruder an der Hinterkante
+      for (const [a, b] of [[.31, .44], [.56, .69]]) g.strokeRect(w * a, h * .14, w * (b - a), h * .24);  // Landeklappen
+      g.fillStyle = f.akzent; g.fillRect(0, 0, w * .075, h); g.fillRect(w * .925, 0, w * .075, h);
+      g.fillStyle = "#fff"; g.fillRect(w * .075, 0, w * .012, h); g.fillRect(w * .913, 0, w * .012, h);
+      g.fillStyle = "rgba(40,40,45,.72)"; g.fillRect(w * .44, h * .3, w * .12, h * .5);                   // Trittfläche am Rumpf
+      for (const x of [.205, .795]) sternMalen(g, w * x, h * .62, 44, f.sternF);
+    });
+    fluegel.repeat.set(1 / 5.2, 1 / 1.6); fluegel.offset.set(.5, .625); fluegel.wrapS = fluegel.wrapT = T.ClampToEdgeWrapping;
+    // Seitenleitwerk mit Ruder und Streifen, Höhenleitwerk mit Ruderkante
+    const seite = leinwand(256, 256, (g, w, h) => {
+      g.fillStyle = f.rumpf; g.fillRect(0, 0, w, h);
+      g.fillStyle = f.streifen; for (let y = 0; y < h; y += 44) g.fillRect(w * .62, y, w * .38, 22);
+      g.strokeStyle = f.linie; g.lineWidth = 4; g.beginPath(); g.moveTo(w * .62, 0); g.lineTo(w * .62, h); g.stroke();
+      sternMalen(g, w * .36, h * .62, 28, f.stern);
+    });
+    seite.repeat.set(1 / 1.1, 1 / 1.1); seite.offset.set(-1.05 / 1.1, -.1 / 1.1); seite.wrapS = seite.wrapT = T.ClampToEdgeWrapping;
+    const hoehe = leinwand(512, 128, (g, w, h) => {
+      g.fillStyle = f.fluegel; g.fillRect(0, 0, w, h);
+      g.fillStyle = f.akzent; g.fillRect(0, 0, w * .1, h); g.fillRect(w * .9, 0, w * .1, h);
+      g.strokeStyle = f.fLinie; g.lineWidth = 3; g.beginPath(); g.moveTo(0, h * .42); g.lineTo(w, h * .42); g.stroke();
+      g.lineWidth = 2; for (let x = 40; x < w; x += 44) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, h * .42); g.stroke(); }
+    });
+    hoehe.repeat.set(1 / 2.1, 1 / .8); hoehe.offset.set(.5, -1.15 / .8); hoehe.wrapS = hoehe.wrapT = T.ClampToEdgeWrapping;
+    const lack = (map) => std({ map, roughness: .38, metalness: .15 });
+    return { rumpf: lack(rumpf), fluegel: lack(fluegel), seite: lack(seite), hoehe: lack(hoehe), haube: std({ color: f.fluegel, roughness: .3, metalness: .3 }), spitze: std({ color: f.akzent, roughness: .3, metalness: .3 }) };
+  })());
+  const F_M = {
+    metall: std({ color: "#7d848c", roughness: .35, metalness: .8 }), gummi: std({ color: "#1d1d20", roughness: .85 }), innen: std({ color: "#33302c", roughness: .9 }),
+    blatt: std({ color: "#26272b", roughness: .45, metalness: .3 }), gelb: std({ color: "#ffd21f", roughness: .4 }),
+    rot: std({ color: "#ff3b30", emissive: "#ff1a10", emissiveIntensity: 1.4 }), gruen: std({ color: "#3dff7a", emissive: "#14e05a", emissiveIntensity: 1.4 }),
+  };
+  function fliegerFormen() {
+    // Rumpf als Drehkörper: von der Heckspitze bis zur Nase
+    const profil = [[.03, 2.02], [.13, 1.85], [.22, 1.4], [.38, .85], [.52, .25], [.585, -.4], [.57, -1], [.5, -1.5], [.44, -1.72]]
+      .map(([r, z]) => new T.Vector2(r, -z));
+    const rumpf = new T.LatheGeometry(new T.SplineCurve(profil).getPoints(36), 32).rotateX(-Math.PI / 2);
+    const flach = (s, tiefe, schraege) => new T.ExtrudeGeometry(s, { depth: tiefe, bevelEnabled: true, bevelThickness: schraege, bevelSize: schraege, bevelSegments: 2, curveSegments: 10 });
+    const w = new T.Shape();     // Flügel, von oben; Vorderkante bei -z
+    w.moveTo(-2.25, -.5); w.quadraticCurveTo(-2.58, -.42, -2.56, -.2); w.lineTo(-2.5, .08); w.quadraticCurveTo(-2.47, .22, -2.3, .22);
+    w.lineTo(-.6, .46); w.lineTo(.6, .46); w.lineTo(2.3, .22); w.quadraticCurveTo(2.47, .22, 2.5, .08); w.lineTo(2.56, -.2); w.quadraticCurveTo(2.58, -.42, 2.25, -.5);
+    w.lineTo(.6, -.82); w.lineTo(-.6, -.82); w.closePath();
+    const fluegel = flach(w, .05, .035).rotateX(Math.PI / 2).translate(0, .03, 0);
+    const h = new T.Shape();     // Höhenleitwerk
+    h.moveTo(-.9, 1.34); h.quadraticCurveTo(-1.02, 1.36, -1.02, 1.5); h.quadraticCurveTo(-1.02, 1.76, -.8, 1.8); h.lineTo(0, 1.92); h.lineTo(.8, 1.8); h.quadraticCurveTo(1.02, 1.76, 1.02, 1.5); h.quadraticCurveTo(1.02, 1.36, .9, 1.34); h.lineTo(.2, 1.18); h.lineTo(-.2, 1.18); h.closePath();
+    const hoehe = flach(h, .03, .02).rotateX(Math.PI / 2).translate(0, .02, 0);
+    const s = new T.Shape();     // Seitenleitwerk (x = Länge nach hinten, y = Höhe)
+    s.moveTo(1.08, .1); s.lineTo(1.5, .55); s.quadraticCurveTo(1.68, .98, 1.86, 1.02); s.quadraticCurveTo(2.08, 1.02, 2.1, .84); s.lineTo(2.08, .1); s.closePath();
+    const seite = flach(s, .04, .025).translate(0, 0, -.02).rotateY(-Math.PI / 2);
+    const blatt = new T.Shape(); blatt.moveTo(-.05, .08); blatt.quadraticCurveTo(-.13, .35, -.1, .62); blatt.lineTo(.1, .62); blatt.quadraticCurveTo(.13, .35, .05, .08); blatt.closePath();
+    const spinner = new T.LatheGeometry(new T.SplineCurve([[.27, 0], [.25, .13], [.15, .3], [.015, .42]].map(([r, y]) => new T.Vector2(r, y))).getPoints(10), 18).rotateX(-Math.PI / 2);
+    return {
+      rumpf, fluegel, hoehe, seite, spinner,
+      blatt: new T.ExtrudeGeometry(blatt, { depth: .025, bevelEnabled: false, curveSegments: 6 }),
+      spitze: new T.BoxGeometry(.2, .09, .03),
+      haube: new T.CylinderGeometry(.54, .6, .34, 32, 1, true).rotateX(-Math.PI / 2),
+      deckel: new T.CircleGeometry(.54, 32).rotateY(Math.PI),
+      lamellen: new T.TorusGeometry(.56, .03, 8, 32),
+      auspuff: new T.CylinderGeometry(.04, .05, .24, 8).rotateZ(Math.PI / 2),
+      scheibe: new T.SphereGeometry(.44, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2),
+      bogen: new T.TorusGeometry(.44, .022, 6, 22, Math.PI),
+      wanne: new T.CylinderGeometry(.31, .31, .4, 28, 1, true),
+      rand: new T.TorusGeometry(.31, .05, 8, 28).rotateX(Math.PI / 2),
+      boden: new T.CircleGeometry(.31, 24).rotateX(-Math.PI / 2),
+      buckel: new T.SphereGeometry(.26, 16, 10),
+      mast: new T.CylinderGeometry(.012, .022, .4, 6),
+      bein: new T.CylinderGeometry(.04, .055, .5, 8),
+      schuh: new T.SphereGeometry(.2, 16, 12),
+      rad: new T.CylinderGeometry(.17, .17, .09, 18).rotateZ(Math.PI / 2),
+      lampe: new T.SphereGeometry(.05, 10, 8),
+    };
+  }
+  let fliegerGeo = null;
   function flieger(anja) {
-    const g = new T.Group();
-    const r = teil(new T.CapsuleGeometry(.55, 2.4, 8, 20), anja ? M.rumpfAnja : M.rumpf, g, 0, 0, 0); r.rotation.x = Math.PI / 2;
-    teil(new T.BoxGeometry(5.2, .12, 1.1), anja ? M.fluegelAnja : M.fluegel, g, 0, -.15, -.2);
-    teil(new T.BoxGeometry(2, .1, .6), anja ? M.fluegelAnja : M.fluegel, g, 0, .1, 1.55);
-    teil(new T.BoxGeometry(.1, .8, .6), anja ? M.rumpfAnja : M.rumpf, g, 0, .5, 1.55);
-    const nase = teil(kugel, M.dunkel, g, 0, 0, -1.75); nase.scale.set(.25, .25, .2);
-    const propeller = gelenk(g, 0, 0, -1.9);
-    for (let i = 0; i < 2; i++) { const b = teil(new T.BoxGeometry(.14, 1.5, .04), M.dunkel, propeller); b.rotation.z = i * Math.PI / 2; }
-    const scheibe = teil(new T.SphereGeometry(.45, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), M.glas, g, 0, .4, -1.15); scheibe.scale.z = .6;
+    const g = new T.Group(), L = lackFuer(anja ? 1 : 0), G = fliegerGeo || (fliegerGeo = fliegerFormen());
+    for (const k in G) G[k].userData.geteilt = true;
+    const klein = (geom, m, eltern, x, y, z) => { const k = teil(geom, m, eltern, x, y, z); k.castShadow = false; return k; };
+    teil(G.rumpf, L.rumpf, g);
+    // Motor: Haube, Kühlrippen, Auspuffrohre
+    klein(G.haube, L.haube, g, 0, 0, -1.52);
+    klein(G.deckel, F_M.innen, g, 0, 0, -1.68);
+    klein(G.lamellen, F_M.metall, g, 0, 0, -1.34).scale.setScalar(1.06); klein(G.lamellen, F_M.metall, g, 0, 0, -1.7).scale.setScalar(.97);
+    for (const s of [-1, 1]) for (let i = 0; i < 3; i++) { const a = klein(G.auspuff, F_M.metall, g, s * .55, -.1, -1.2 + i * .17); a.rotation.y = s * .25; }
+    // Flügel und Leitwerk
+    teil(G.fluegel, L.fluegel, g, 0, -.15, 0);
+    teil(G.hoehe, L.hoehe, g, 0, .1, 0);
+    teil(G.seite, L.seite, g, 0, .1, 0);
+    // Positionslichter an den Flügelspitzen und am Ruder
+    klein(G.lampe, F_M.rot, g, -2.6, -.14, -.2); klein(G.lampe, F_M.gruen, g, 2.6, -.14, -.2); klein(G.lampe, F_M.rot, g, 0, .6, 2.2);
+    // Nase und Propeller: Spinner und Blätter drehen gemeinsam
+    const propeller = gelenk(g, 0, 0, -1.72);
+    klein(G.spinner, L.spitze, propeller, 0, 0, 0);
+    for (let i = 0; i < 4; i++) {
+      const arm = gelenk(propeller, 0, 0, -.1); arm.rotation.z = i * Math.PI / 2;
+      klein(G.blatt, F_M.blatt, arm, 0, 0, 0); klein(G.spitze, F_M.gelb, arm, 0, .6, .012);
+    }
+    // Cockpit: Wanne mit Rand, dunkler Boden, Windschutzscheibe mit Rahmen, Kopfstütze, Antenne
+    klein(G.wanne, L.haube, g, 0, .3, .36).scale.z = 1.4;
+    klein(G.boden, F_M.innen, g, 0, .505, .36).scale.z = 1.4;
+    klein(G.rand, L.haube, g, 0, .5, .36).scale.z = 1.4;
+    const scheibe = klein(G.scheibe, M.glas, g, 0, .42, -.5); scheibe.scale.set(.88, 1, .62);
+    klein(G.bogen, F_M.gummi, g, 0, .42, -.5).scale.set(.88, 1, 1);
+    const steg = klein(G.bogen, F_M.gummi, g, 0, .42, -.5); steg.rotation.y = Math.PI / 2; steg.scale.set(.62, 1, 1);
+    const buckel = klein(G.buckel, L.haube, g, 0, .42, 1.12); buckel.scale.set(.75, .7, 1.5);
+    klein(G.mast, F_M.metall, g, 0, .78, 1.12);
+    // Festes Fahrwerk mit verkleideten Rädern, Spornrad hinten
+    for (const s of [-1, 1]) {
+      const bein = klein(G.bein, F_M.metall, g, s * .95, -.42, -.4); bein.rotation.z = s * .12;
+      const schuh = klein(G.schuh, L.haube, g, s * .98, -.68, -.4); schuh.scale.set(.5, .7, 1.4);
+      klein(G.rad, F_M.gummi, g, s * .98, -.76, -.4);
+    }
+    klein(G.rad, F_M.gummi, g, 0, -.24, 1.7).scale.setScalar(.45);
     const sitz = gelenk(g, 0, .1, .1);
     return { gruppe: g, propeller, sitz };
   }
