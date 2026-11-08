@@ -95,3 +95,33 @@ export function effekte(T, renderer, handy) {
   }
   return { groesse, zeichnen, stimmung, schritt, bild, schwelle: hell.uniforms.schwelle };
 }
+
+// Fahrtwindlinien am Bildrand: schmale Streifen, die nach außen ziehen; je schneller, desto länger und deutlicher
+export function tempoLinien(T, handy) {
+  const n = handy ? 18 : 34, c = document.createElement("canvas"); c.width = 128; c.height = 8;
+  const g2 = c.getContext("2d"), v = g2.createLinearGradient(0, 0, 128, 0); v.addColorStop(0, "rgba(255,255,255,0)"); v.addColorStop(.75, "rgba(255,255,255,.9)"); v.addColorStop(1, "rgba(255,255,255,0)");
+  g2.fillStyle = v; g2.fillRect(0, 0, 128, 8);
+  const bild = new T.CanvasTexture(c), mat = new T.MeshBasicMaterial({ map: bild, transparent: true, depthTest: false, depthWrite: false, fog: false, toneMapped: false, opacity: 0 });
+  const mesh = new T.InstancedMesh(new T.PlaneGeometry(1, 1), mat, n); mesh.frustumCulled = false; mesh.renderOrder = 999;
+  const gruppe = new T.Group(); gruppe.add(mesh); gruppe.visible = false;
+  const L = Array.from({ length: n }, () => ({ a: Math.random() * 6.28, p: Math.random(), s: .7 + Math.random() * .7 }));
+  const m = new T.Matrix4(), pos = new T.Vector3(), q = new T.Quaternion(), achse = new T.Vector3(0, 0, 1), sk = new T.Vector3();
+  let stark = 0;
+  function schritt(dt, kamera, ziel) {
+    stark += (ziel - stark) * Math.min(1, dt * 3);
+    gruppe.visible = stark > .03;
+    if (!gruppe.visible) return;
+    gruppe.position.copy(kamera.position); gruppe.quaternion.copy(kamera.quaternion);
+    const hoehe = 5 * Math.tan(kamera.fov * Math.PI / 360), breite = hoehe * kamera.aspect;
+    mat.opacity = .5 * stark;
+    for (let i = 0; i < n; i++) {
+      const l = L[i]; l.p += dt * (1.5 + stark * 2.6) * l.s;
+      if (l.p > 1) { l.p = 0; l.a = Math.random() * 6.28; }
+      const r = .74 + l.p * .55, x = Math.cos(l.a) * breite * r, y = Math.sin(l.a) * hoehe * r, lang = hoehe * (.22 + .5 * stark) * Math.sin(l.p * Math.PI);
+      pos.set(x, y, -5); q.setFromAxisAngle(achse, Math.atan2(y, x)); sk.set(Math.max(.001, lang), hoehe * .012, 1);
+      m.compose(pos, q, sk); mesh.setMatrixAt(i, m);
+    }
+    mesh.instanceMatrix.needsUpdate = true;
+  }
+  return { gruppe, schritt };
+}

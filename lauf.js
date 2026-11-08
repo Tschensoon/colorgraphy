@@ -31,7 +31,7 @@ if (rahmen) {
   function laden() {
     if (!bereit) {
       const text = losKnopf.textContent; losKnopf.disabled = true; losKnopf.textContent = "Lädt die 3D-Welt …";
-      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=45"), import("./lauf-ton.js?v=9"), import("./lauf-flug.js?v=11"), import("./lauf-effekte.js?v=3"), import("./lauf-buero.js?v=1"), import("./detektiv-figuren.js?v=4")])
+      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=46"), import("./lauf-ton.js?v=9"), import("./lauf-flug.js?v=11"), import("./lauf-effekte.js?v=4"), import("./lauf-buero.js?v=1"), import("./detektiv-figuren.js?v=4")])
         .then(([m, w, t, f, e, bm, fm]) => { THREE = m; T = t.ton(); aufbauen(w, f, e, bm, fm); losKnopf.disabled = false; losKnopf.textContent = text; });
     }
     return bereit;
@@ -151,6 +151,7 @@ if (rahmen) {
     // Leuchten und Farbstimmung nur, wenn das Gerät Bilder mit hohem Helligkeitsumfang zeichnen kann
     const ext = renderer.extensions;
     if (renderer.capabilities.isWebGL2 && (ext.has("EXT_color_buffer_float") || ext.has("EXT_color_buffer_half_float"))) NB = fxModul.effekte(THREE, renderer, handy);
+    tempoL = fxModul.tempoLinien(THREE, handy); szene.add(tempoL.gruppe);
     schattenF = W.kontaktSchatten(1.1, 2.1); schattenA = W.kontaktSchatten(.9, .9); szene.add(schattenF, schattenA);
     tempoLinien = document.createElement("div"); tempoLinien.className = "lauf-tempo"; blende.after(tempoLinien);
     duellAufbauen();
@@ -230,7 +231,7 @@ if (rahmen) {
     const grasBreite = ab.zone === 2 ? 1 : 6;
     for (const seite of [-1, 1]) {
       const anf = erster ? -5 : H + 1, bis = seite === ab.dreh ? L - H - 1.5 : L + H;
-      if (bis - anf > 2) setze(W.grasBueschel(bis - anf, ab.zone, grasBreite), (anf + bis) / 2, seite * (H + 1.05 + grasBreite / 2), 0);
+      if (bis - anf > 2) { setze(W.grasBueschel(bis - anf, ab.zone, grasBreite), (anf + bis) / 2, seite * (H + 1.05 + grasBreite / 2), 0); setze(W.wiesenBlumen(bis - anf, ab.zone, grasBreite), (anf + bis) / 2, seite * (H + 1.05 + grasBreite / 2), 0); }
     }
     // Hecke quer am Ende, davor ein Pfeilschild und leuchtende Pfeile auf dem Weg: hier geht es ab
     setze(W.randFuer(2 * H + 2, ab.zone, 1.5, .9), L + H + .55, 0, 0, Math.PI / 2);   // etwas dicker und höher als die Seitenhecken: keine deckungsgleichen Flächen
@@ -912,6 +913,11 @@ if (rahmen) {
     for (const farbe of ["#ffd54a", "#3baa35", "#ff7aa2", "#6ec6ff", "#a8c700"]) funkeln(wo, farbe, 10);
   }
   function funkeln(wo, farbe, n) {
+    if (n >= 8 && qualitaet < 3) {                       // Lichtring bei allem, was man einsammelt
+      const b = teilchenHolen("blitz", farbe); b.position.copy(wo); b.scale.setScalar(.25); szene.add(b);
+      teilchen.push({ k: b, v: new THREE.Vector3(), t: 0, dauer: .36, wachsen: 3.4, alpha: .95 });
+    }
+    if (qualitaet < 2) n = Math.round(n * 1.5);
     for (let i = 0; i < n; i++) {
       const f = teilchenHolen("funke", farbe); f.position.copy(wo); f.scale.setScalar(zufall(.15, .3)); szene.add(f);
       const w = Math.random() * Math.PI * 2, h = zufall(1.5, 4);
@@ -1258,7 +1264,8 @@ if (rahmen) {
       }
     }
     for (const bo of booster) { bo.mesh.userData.innen.rotation.y += dt * 3; bo.mesh.position.y = 1.05 + Math.sin(performance.now() / 300 + bo.s) * .1; }
-    kamera.fov += (((kamera.aspect < .8 ? 72 : 62) + (B.turbo > 0 ? 8 : 0)) - kamera.fov) * Math.min(1, dt * 3); kamera.updateProjectionMatrix();
+    const tempoRun = zustand === "laeuft" ? .12 + (tempoFaktor() - 1) / .2 * .68 : 0; tempoZiel = tempoRun;
+    kamera.fov += (((kamera.aspect < .8 ? 72 : 62) + (B.turbo > 0 ? 8 : 0) + tempoRun * 5) - kamera.fov) * Math.min(1, dt * 3); kamera.updateProjectionMatrix();
     W.bodenFolgen(px, pz);   // Bodenmuster bleibt am Ort, obwohl die Fläche mitwandert
     // neue Welt erreicht: Boden, Farben, Wetter und Musik wechseln, Namen einblenden
     if (ab.zone !== aktZone) {
@@ -1315,7 +1322,7 @@ if (rahmen) {
     const g = new THREE.Group(), dazu = (o) => { o.position.set((g.children.length % 8 - 4) * 2, 0, -6 - Math.floor(g.children.length / 8) * 2); g.add(o); };
     W.zonen.forEach((z, i) => {
       z.deko.forEach(f => dazu(f()));
-      dazu(W.randFuer(3, i)); dazu(W.wegFuer(3, 2, i)); dazu(W.blumenFuer(3, i)); dazu(W.grasBueschel(3, i, 2));
+      dazu(W.randFuer(3, i)); dazu(W.wegFuer(3, 2, i)); dazu(W.blumenFuer(3, i)); dazu(W.grasBueschel(3, i, 2)); dazu(W.wiesenBlumen(3, i, 2));
       renderer.initTexture(z.boden);
     });
     ["kloetze", "ball", "balken", "pfuetze", "stange"].forEach(t => dazu(W.hindernis(t, 4)));
@@ -1327,9 +1334,9 @@ if (rahmen) {
     dazu(W.rekordFahne(1));
     { const f = W.frauBauen(); f.gruppe.add(W.sprechblase(["Ich suche meine", "Autoschlüssel!"])); dazu(f.gruppe); }
     [FW.ring(), FW.heissluftballon(), FW.gewitter(), FW.voegel(), FW.insel(), FW.insel(true), FW.regenbogen(), FW.wolkenBallen(), W.froebelBanner(2, .5)].forEach(dazu);
-    for (const art of ["staub", "funke", "dampf"]) { const k = teilchenHolen(art); dazu(k); }
+    for (const art of ["staub", "funke", "dampf", "blitz"]) { const k = teilchenHolen(art); dazu(k); }
     [FW.tor(true, 4), FW.tor(false, 4), W.tanne(), W.schneemann()].forEach(dazu);
-    const versteckt = [...alleSpuren.map(sp => sp.mesh), buehne, meer, flieger.gruppe, anjaFlieger.gruppe, strahlen, boot.gruppe, anjaBoot.gruppe, wasser, schlitten.gruppe, anjaSchlitten.gruppe, bBuehne, anja.gruppe, blase, schattenA, ...sternchen];   // auch was gerade unsichtbar ist
+    const versteckt = [...(tempoL ? [tempoL.gruppe] : []), ...alleSpuren.map(sp => sp.mesh), buehne, meer, flieger.gruppe, anjaFlieger.gruppe, strahlen, boot.gruppe, anjaBoot.gruppe, wasser, schlitten.gruppe, anjaSchlitten.gruppe, bBuehne, anja.gruppe, blase, schattenA, ...sternchen];   // auch was gerade unsichtbar ist
     const sichtbar = versteckt.map(o => o.visible);
     for (const o of versteckt) o.visible = true;
     szene.add(g);
@@ -1344,7 +1351,9 @@ if (rahmen) {
     W.entsorgen(g);
   }
   // Leuchten und Farbstimmung kosten Leistung: ab Qualitätsstufe 2 wird direkt gezeichnet
+  let tempoL = null, tempoZiel = 0, tempoZeit = 0;      // Fahrtwindlinien: werden mit dem Tempo stärker
   function zeichnen() {
+    if (tempoL) { const jetzt = performance.now() / 1000, d = Math.min(.1, jetzt - tempoZeit); tempoZeit = jetzt; tempoL.schritt(d, kamera, qualitaet < 3 ? tempoZiel : 0); tempoZiel = 0; }
     if (NB && qualitaet < 2) NB.zeichnen(szene, kamera);
     else { renderer.setRenderTarget(null); renderer.render(szene, kamera); }
   }
@@ -1384,9 +1393,9 @@ if (rahmen) {
       o.rotation.x = angst * .5;
     }
   }
-  const teilchenLager = { staub: [], funke: [], dampf: [] };
+  const teilchenLager = { staub: [], funke: [], dampf: [], blitz: [] };
   function teilchenHolen(art, farbe) {
-    const k = teilchenLager[art].pop() || (art === "staub" ? W.staub() : art === "dampf" ? W.dampf() : W.funke("#ffffff"));
+    const k = teilchenLager[art].pop() || (art === "staub" ? W.staub() : art === "dampf" ? W.dampf() : art === "blitz" ? W.blitz() : W.funke("#ffffff"));
     k.userData.art = art; k.material.opacity = 1;
     if (farbe) k.material.color.set(farbe);
     return k;
@@ -2400,7 +2409,8 @@ if (rahmen) {
     kamera.position.copy(kamPos);
     if (wackeln > 0) { wackeln = Math.max(0, wackeln - dt); kamera.position.x += (Math.random() - .5) * wackeln * .6; kamera.position.y += (Math.random() - .5) * wackeln * .4; }
     kamera.lookAt(FL.x * .85 - sin * 10, FL.y + (ski ? -.6 : nass ? .9 : .4), FL.z - cos * 10);   // am Hang geht der Blick bergab
-    kamera.fov += (((hoch ? 72 : 62) + (B.turbo > 0 ? 10 : 0)) - kamera.fov) * Math.min(1, dt * 3); kamera.updateProjectionMatrix();
+    const tempoFahrt = zustand !== "laeuft" ? 0 : Math.max(0, Math.min(1, ski ? (FL.v - 14) / 18 : nass ? (FL.v - 13) / 20 : (FL.v - 16) / 22)); tempoZiel = tempoFahrt;
+    kamera.fov += (((hoch ? 72 : 62) + (B.turbo > 0 ? 10 : 0) + tempoFahrt * 6) - kamera.fov) * Math.min(1, dt * 3); kamera.updateProjectionMatrix();
     himmelKugel.position.copy(kamera.position); wolkenGruppe.position.set(kamera.position.x, 0, kamera.position.z);
     if (nass) sonnenBild.position.set(kamera.position.x - 85, 95, kamera.position.z + 50);   // Mittagssonne wie in der Laufwelt
     else { sonnenBild.position.set(kamera.position.x - 55, 26, kamera.position.z - 150); strahlen.position.copy(sonnenBild.position); }   // tief stehende Abendsonne vorn

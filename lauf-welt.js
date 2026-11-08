@@ -1404,6 +1404,12 @@ export function welt(T, handy) {
     const v = g.createRadialGradient(32, 32, 0, 32, 32, 32); v.addColorStop(0, "rgba(255,255,255,.9)"); v.addColorStop(1, "rgba(255,255,255,0)");
     g.fillStyle = v; g.fillRect(0, 0, 64, 64);
   }, false);
+  // Lichtring, der beim Einsammeln aufblitzt
+  const blitzBild = leinwand(128, 128, (g) => {
+    const v = g.createRadialGradient(64, 64, 26, 64, 64, 62); v.addColorStop(0, "rgba(255,255,255,0)"); v.addColorStop(.62, "rgba(255,255,255,.95)"); v.addColorStop(1, "rgba(255,255,255,0)");
+    g.fillStyle = v; g.fillRect(0, 0, 128, 128);
+  }, false);
+  const blitz = () => new T.Sprite(new T.SpriteMaterial({ map: blitzBild, transparent: true, depthWrite: false, blending: T.AdditiveBlending }));
   const dampf = () => new T.Sprite(new T.SpriteMaterial({ map: dampfBild, transparent: true, depthWrite: false }));
   const schattenBild = leinwand(128, 128, (g) => {
     const v = g.createRadialGradient(64, 64, 0, 64, 64, 64);
@@ -2380,9 +2386,31 @@ export function welt(T, handy) {
     }
     k.receiveShadow = true; return k;
   }
+  // Wildblumen in kleinen Gruppen auf der Wiese hinter den Hecken
+  function wiesenBlumen(laenge, z, breite) {
+    if (ZONEN[z].hecke === "schnee") return new T.Group();
+    const gruppen = Math.max(1, Math.round(laenge * breite * (handy ? .018 : .04))), je = handy ? 7 : 11, n = gruppen * je;
+    const k = new T.InstancedMesh(bluetenGeo, bluetenMat, n), m = new T.Matrix4(), q = new T.Quaternion(), farben = [wahl(bluetenFarben), wahl(bluetenFarben)];
+    for (let i = 0; i < gruppen; i++) {
+      const cx = zufall(-breite / 2, breite / 2), cz = zufall(-laenge / 2, laenge / 2), farbe = wahl(farben);
+      for (let f = 0; f < je; f++) {
+        const s = zufall(.9, 1.5), w = Math.random() * 7, a = Math.random() * .85;
+        m.compose(new T.Vector3(cx + Math.cos(w) * a, zufall(.14, .3), cz + Math.sin(w) * a), q, new T.Vector3(s, s, s));
+        k.setMatrixAt(i * je + f, m); k.setColorAt(i * je + f, farbe);
+      }
+    }
+    k.castShadow = false; return k;
+  }
   const blumenFuer = (laenge, z) => ZONEN[z].hecke === "schnee" ? new T.Group() : blumen(laenge);
 
   // --- Bodenfläche mit Überblenden zwischen den Welten ---
+  const bodenFlecken = leinwand(512, 512, (g, w, h) => {
+    for (let i = 0; i < 60; i++) {
+      const x = Math.random() * w, y = Math.random() * h, r = 40 + Math.random() * 90, c = Math.random() < .55 ? "0,45,20" : "255,250,190", a = c[0] === "0" ? .16 : .13;
+      for (const dx of [-w, 0, w]) for (const dy of [-h, 0, h]) { const v = g.createRadialGradient(x + dx, y + dy, 0, x + dx, y + dy, r); v.addColorStop(0, `rgba(${c},${a})`); v.addColorStop(1, `rgba(${c},0)`); g.fillStyle = v; g.fillRect(x + dx - r, y + dy - r, r * 2, r * 2); }
+    }
+  }, true);
+  bodenFlecken.repeat.set(6, 6);
   let bodenA, bodenB, blende = 1, verbunden = null, zielZone = 0;
   const zielFarben = { nebel: new T.Color(), himmel: new T.Color(), sonne: new T.Color(), huegel: new T.Color(), kronen: new T.Color() };
   function bodenFlaeche() {
@@ -2391,9 +2419,12 @@ export function welt(T, handy) {
     bodenB = new T.Mesh(geom, std({ map: gras, roughness: 1, transparent: true, opacity: 0, depthWrite: false }));
     for (const b of [bodenA, bodenB]) { b.rotation.x = -Math.PI / 2; b.receiveShadow = true; }
     bodenA.position.y = -.12; bodenB.position.y = -.1;
+    // große hellere und dunklere Flächen, damit der Boden in der Ferne nicht einfarbig wirkt
+    const flecken = new T.Mesh(geom, new T.MeshBasicMaterial({ map: bodenFlecken, transparent: true, depthWrite: false })); flecken.position.z = .05; flecken.renderOrder = 1; bodenA.add(flecken);
     const g = new T.Group(); g.add(bodenA, bodenB); return g;
   }
   function bodenFolgen(px, pz) {
+    bodenFlecken.offset.set(px * 6 / 400, -pz * 6 / 400);
     for (const b of [bodenA, bodenB]) { b.position.x = px; b.position.z = pz; b.material.map.offset.set(px / (400 / 90), -pz / (400 / 90)); }
   }
   function verbinden(o) { verbunden = o; }
@@ -2482,6 +2513,6 @@ export function welt(T, handy) {
   }
   const luft = new T.Group(); luft.add(wetter, voegel);
 
-  return { wegFuer, randFuer, tanne, schneemann, stuhl, STUHL_SITZ, folienRolle, folieStoff, folieKante, marlenaBauen, kissen, duellBuehne, wasserNormal: wellen, rekordFahne, figurBauen, FIGUREN, leoBauen, FIGUR_INFO, toertchen, frauBauen, sprechblase, froebelBanner, froebelHeckenTafel, froebelTafel, froebelSchild, kontaktSchatten, grasBueschel, dampf, weltHindernis, entsorgen, pfeilSchild, bodenPfeil, AUSSTATTUNG, ausstattungSetzen, zonen: ZONEN, zoneFuer, dekoFuer, heckeFuer, blumenFuer, bodenFlaeche, bodenFolgen, verbinden, zoneWechsel, zoneSchritt,
+  return { blitz, wiesenBlumen, wegFuer, randFuer, tanne, schneemann, stuhl, STUHL_SITZ, folienRolle, folieStoff, folieKante, marlenaBauen, kissen, duellBuehne, wasserNormal: wellen, rekordFahne, figurBauen, FIGUREN, leoBauen, FIGUR_INFO, toertchen, frauBauen, sprechblase, froebelBanner, froebelHeckenTafel, froebelTafel, froebelSchild, kontaktSchatten, grasBueschel, dampf, weltHindernis, entsorgen, pfeilSchild, bodenPfeil, AUSSTATTUNG, ausstattungSetzen, zonen: ZONEN, zoneFuer, dekoFuer, heckeFuer, blumenFuer, bodenFlaeche, bodenFolgen, verbinden, zoneWechsel, zoneSchritt,
     animieren, wetterSchritt, voegelSchritt, luft, mat, geo, giraffeBauen, anjaBauen, boden, heckenStueck, blumen, ferne, sonnenScheibe, funke, staub, kante, dekoNeu, hindernis, stern, panzer, booster, blase, himmel, wolken, gras };
 }
