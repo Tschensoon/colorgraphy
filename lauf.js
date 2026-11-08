@@ -31,7 +31,7 @@ if (rahmen) {
   function laden() {
     if (!bereit) {
       const text = losKnopf.textContent; losKnopf.disabled = true; losKnopf.textContent = "Lädt die 3D-Welt …";
-      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=45"), import("./lauf-ton.js?v=9"), import("./lauf-flug.js?v=9"), import("./lauf-effekte.js?v=3"), import("./lauf-buero.js?v=1"), import("./detektiv-figuren.js?v=4")])
+      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=45"), import("./lauf-ton.js?v=9"), import("./lauf-flug.js?v=10"), import("./lauf-effekte.js?v=3"), import("./lauf-buero.js?v=1"), import("./detektiv-figuren.js?v=4")])
         .then(([m, w, t, f, e, bm, fm]) => { THREE = m; T = t.ton(); aufbauen(w, f, e, bm, fm); losKnopf.disabled = false; losKnopf.textContent = text; });
     }
     return bereit;
@@ -2414,6 +2414,7 @@ if (rahmen) {
         teilchen.push({ k: d, v: new THREE.Vector3(nass ? sx * 1.2 : 0, 0, 0), t: 0, dauer: nass ? .32 : .7, wachsen: nass ? .9 : .9, alpha: nass ? .4 : .55 });
       }
     }
+    if (FL.art === "wasser") FW.bojenBlinken(t);
     if (FL.art === "wasser") bootSpur.schritt(fg.localToWorld(spurPunkt.set(0, 0, 1.75)));
     else if (ski) schlittenSpuren.forEach((sp, i) => sp.schritt(fg.localToWorld(spurPunkt.set(i ? .46 : -.46, 0, 1.3))));
     if (ski) W.wetterSchritt(dt, kamera.position, t);

@@ -432,9 +432,42 @@ export function flugWelt(T, W) {
     const sitz = gelenk(g, 0, .2, .15);
     return { gruppe: g, propeller, sitz };
   }
-  // Pylone auf einem schwimmenden Sockel
-  const pylonGeo = { sockel: new T.CylinderGeometry(.55, .6, .18, 16), kegel: new T.ConeGeometry(.36, 1.15, 20), band: new T.CylinderGeometry(.215, .27, .2, 20) };
+  // Pylone auf einem schwimmenden Sockel mit Warnstreifen, Kegel mit reflektierenden Bändern
+  const warnBild = leinwand(256, 32, (g, w, h) => {
+    g.fillStyle = "#ffcf1a"; g.fillRect(0, 0, w, h); g.fillStyle = "#1c1c20";
+    for (let x = -32; x < w + 32; x += 32) { g.beginPath(); g.moveTo(x, h); g.lineTo(x + 16, h); g.lineTo(x + 32, 0); g.lineTo(x + 16, 0); g.closePath(); g.fill(); }
+  });
+  const kegelBild = leinwand(64, 256, (g, w, h) => {
+    g.fillStyle = "#ff6a13"; g.fillRect(0, 0, w, h);
+    g.fillStyle = "#ffffff"; g.fillRect(0, h * .3, w, h * .13); g.fillRect(0, h * .6, w, h * .13);
+    g.fillStyle = "rgba(120,30,0,.3)"; g.fillRect(0, h * .9, w, h * .1);
+  });
+  const pylonGeo = {
+    sockel: new T.CylinderGeometry(.6, .68, .22, 20),
+    rand: new T.TorusGeometry(.61, .035, 8, 28).rotateX(Math.PI / 2),
+    kegel: new T.LatheGeometry([[.42, 0], [.37, .05], [.27, .5], [.15, 1], [.07, 1.22], [.0, 1.25]].map(([r, y]) => new T.Vector2(r, y)), 22),
+  };
   for (const k of Object.values(pylonGeo)) k.userData.geteilt = true;
+  const pylonMat = {
+    seite: std({ map: warnBild, roughness: .5 }), oben: std({ color: "#2a2c31", roughness: .7 }),
+    kegel: std({ map: kegelBild, roughness: .4, emissive: "#ff4a00", emissiveIntensity: .1 }),
+  };
+  // Boje mit rot-weißem Körper, Gitterturm, Glocke und Blinklicht (alle blinken gemeinsam)
+  const bojeBild = leinwand(64, 256, (g, w, h) => {
+    for (let i = 0; i < 5; i++) { g.fillStyle = i % 2 ? "#ffffff" : "#d8262b"; g.fillRect(0, i * h / 5, w, h / 5 + 1); }
+  });
+  const bojeGeo = {
+    koerper: new T.LatheGeometry([[.56, -.05], [.58, .1], [.52, .34], [.32, .5], [.02, .52]].map(([r, y]) => new T.Vector2(r, y)), 22),
+    kragen: new T.TorusGeometry(.58, .05, 8, 26).rotateX(Math.PI / 2), strebe: new T.CylinderGeometry(.018, .025, .82, 6),
+    deckel: new T.CylinderGeometry(.2, .2, .05, 16), glocke: new T.LatheGeometry([[.1, 0], [.08, .06], [.06, .16], [.02, .21]].map(([r, y]) => new T.Vector2(r, y)), 14),
+    lampe: new T.SphereGeometry(.12, 14, 10), dach: new T.ConeGeometry(.17, .14, 14),
+  };
+  for (const k of Object.values(bojeGeo)) k.userData.geteilt = true;
+  const bojeMat = {
+    koerper: std({ map: bojeBild, roughness: .35, metalness: .1 }), gestell: std({ color: "#b8bec6", roughness: .4, metalness: .6 }), gold: std({ color: "#e6b53a", roughness: .25, metalness: .85 }),
+    licht: std({ color: "#ffe9a8", emissive: "#ffc23a", emissiveIntensity: 2 }), rot: std({ color: "#d8262b", roughness: .4 }),
+  };
+  const bojenBlinken = (t) => { bojeMat.licht.emissiveIntensity = (t % 1.4) < .35 ? 3.4 : .25; };
   // weißer Schaumkranz, wo Pylonen und Bojen im Wasser stehen
   const ringBild = leinwand(128, 128, (g, w, h) => {
     for (let i = 0; i < 170; i++) { const a = Math.random() * 7, q = 34 + Math.random() * 22, r = 1.5 + Math.random() * 4; g.fillStyle = `rgba(255,255,255,${(.2 + Math.random() * .5).toFixed(2)})`; g.beginPath(); g.arc(64 + Math.cos(a) * q, 64 + Math.sin(a) * q, r, 0, 7); g.fill(); }
@@ -444,14 +477,21 @@ export function flugWelt(T, W) {
   const schaumRing = (g, s) => { const k = new T.Mesh(ringGeoSchaum, ringMat); k.position.y = .04; k.scale.setScalar(s); g.add(k); };
   function pylone() {
     const g = new T.Group();
-    schaumRing(g, 1.25); teil(pylonGeo.sockel, M.dunkel, g, 0, .05, 0); teil(pylonGeo.kegel, M.pylone, g, 0, .7, 0); teil(pylonGeo.band, M.weiss, g, 0, .62, 0);
+    schaumRing(g, 1.25);
+    teil(pylonGeo.sockel, [pylonMat.seite, pylonMat.oben, pylonMat.oben], g, 0, .08, 0);
+    teil(pylonGeo.rand, M.dunkel, g, 0, .19, 0).castShadow = false;
+    teil(pylonGeo.kegel, pylonMat.kegel, g, 0, .2, 0);
     return g;
   }
   function boje() {
     const g = new T.Group();
-    schaumRing(g, 1); teil(kugel, M.bojeRot, g, 0, .25, 0).scale.set(.45, .4, .45);
-    teil(new T.CylinderGeometry(.04, .04, 1, 6), M.weiss, g, 0, .9, 0);
-    teil(kugel, M.weiss, g, 0, 1.42, 0).scale.setScalar(.09);
+    schaumRing(g, 1.15);
+    teil(bojeGeo.koerper, bojeMat.koerper, g);
+    const klein = (geom, m, x, y, z) => { const k = teil(geom, m, g, x, y, z); k.castShadow = false; return k; };
+    klein(bojeGeo.kragen, M.dunkel, 0, .08, 0);
+    for (let i = 0; i < 3; i++) { const a = i / 3 * Math.PI * 2, k = klein(bojeGeo.strebe, bojeMat.gestell, Math.cos(a) * .2, .9, Math.sin(a) * .2); k.rotation.set(Math.sin(a) * -.26, 0, Math.cos(a) * .26); }
+    klein(bojeGeo.glocke, bojeMat.gold, 0, .72, 0); klein(bojeGeo.deckel, bojeMat.gestell, 0, 1.3, 0);
+    klein(bojeGeo.lampe, bojeMat.licht, 0, 1.43, 0); klein(bojeGeo.dach, bojeMat.rot, 0, 1.6, 0);
     return g;
   }
   // Durchgehende Spur hinter Boot und Schlitten: ein Band aus Wegpunkten, das hinten ausläuft
@@ -537,7 +577,34 @@ export function flugWelt(T, W) {
     rot: std({ color: "#e53935", roughness: .6, side: T.DoubleSide }), blau: std({ color: "#1e63d6", roughness: .6, side: T.DoubleSide }),
     schnee: std({ color: "#ffffff", roughness: .9 }), buckel: std({ color: "#eef3fa", roughness: 1 }),
   };
-  const torGeo = { stange: new T.CylinderGeometry(.045, .045, 1.8, 8), fahne: new T.PlaneGeometry(.75, .55).translate(.375, 0, 0), huegel: new T.SphereGeometry(.3, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2) };
+  const torBilder = (farbe, dunkel) => ({
+    stange: leinwand(32, 256, (g, w, h) => { for (let i = 0; i < 8; i++) { g.fillStyle = i % 2 ? "#ffffff" : farbe; g.fillRect(0, i * h / 8, w, h / 8 + 1); } }),
+    fahne: leinwand(256, 180, (g, w, h) => {
+      g.fillStyle = farbe; g.fillRect(0, 0, w, h);
+      g.fillStyle = dunkel; g.fillRect(0, 0, 22, h);
+      g.fillStyle = "#fff"; g.fillRect(22, 0, 6, h); g.fillRect(0, 0, w, 6); g.fillRect(0, h - 6, w, 6);
+      sternMalen(g, w * .58, h / 2, 62, farbe);
+    }),
+    banner: leinwand(512, 96, (g, w, h) => {
+      g.fillStyle = farbe; g.fillRect(0, 0, w, h);
+      for (const x0 of [0, w - 64]) for (let i = 0; i < 8; i++) for (let k = 0; k < 3; k++) { g.fillStyle = (i + k) % 2 ? "#fff" : "#16181c"; g.fillRect(x0 + i * 8, k * 32, 8, 32); }
+      g.fillStyle = "#fff"; g.fillRect(0, 0, w, 5); g.fillRect(0, h - 5, w, 5);
+      g.font = "900 58px system-ui, Arial, sans-serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText("FRÖBEL CUP", w / 2, h / 2 + 3);
+    }),
+  });
+  let torMatSpeicher = null;
+  const torMat = (blau) => {
+    if (!torMatSpeicher) {
+      const bau = (b) => { const m = (map) => std({ map, roughness: .55, side: T.DoubleSide }); return { stange: std({ map: b.stange, roughness: .4 }), fahne: m(b.fahne), banner: m(b.banner) }; };
+      torMatSpeicher = { blau: bau(torBilder("#1e63d6", "#123f8f")), rot: bau(torBilder("#e53935", "#9a1d1a")) };
+    }
+    return blau ? torMatSpeicher.blau : torMatSpeicher.rot;
+  };
+  const torGeo = {
+    stange: new T.CylinderGeometry(.055, .065, 3, 10), knauf: new T.SphereGeometry(.13, 14, 10),
+    fahne: new T.PlaneGeometry(.8, .58).translate(.4, 0, 0), banner: new T.PlaneGeometry(1, .62),
+    huegel: new T.SphereGeometry(.3, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2),
+  };
   for (const k of Object.values(torGeo)) k.userData.geteilt = true;
   // Prunkschlitten mit Schwanenhals (Fröbelinchen rot und gold, Anja rosa und silbern); die Figur sitzt unter einer Karodecke
   const SCHLITTEN_FARBEN = [
@@ -633,14 +700,17 @@ export function flugWelt(T, W) {
     return { gruppe: g, propeller, sitz };
   }
   function tor(blau, breite) {
-    const g = new T.Group(), m = blau ? SM.blau : SM.rot, fahnen = [];
+    const g = new T.Group(), m = torMat(blau), fahnen = [];
     for (const sx of [-1, 1]) {
       const x = sx * breite / 2;
-      teil(torGeo.stange, m, g, x, .9, 0);
-      teil(torGeo.huegel, SM.schnee, g, x, -.08, 0).castShadow = false;
-      const f = gelenk(g, x, 1.45, 0); f.rotation.y = sx > 0 ? Math.PI : 0;   // Fahne zeigt ins Tor hinein
-      teil(torGeo.fahne, m, f); fahnen.push(f);
+      teil(torGeo.stange, m.stange, g, x, 1.5, 0);
+      teil(torGeo.knauf, blau ? SM.blau : SM.rot, g, x, 3.05, 0).castShadow = false;
+      const huegel = teil(torGeo.huegel, SM.schnee, g, x, -.06, 0); huegel.castShadow = false; huegel.scale.set(2.1, 1.5, 2.1);
+      const f = gelenk(g, x, 1.9, 0); f.rotation.y = sx > 0 ? Math.PI : 0;   // Fahne zeigt ins Tor hinein
+      teil(torGeo.fahne, m.fahne, f).castShadow = false; fahnen.push(f);
     }
+    // Banner über dem Tor, schwingt mit den Fahnen im Fahrtwind
+    const b = gelenk(g, 0, 2.95, 0); const stoff = teil(torGeo.banner, m.banner, b, 0, -.31, 0); stoff.scale.x = breite; stoff.castShadow = false; fahnen.push(b);
     g.userData.fahnen = fahnen;
     return g;
   }
@@ -658,5 +728,5 @@ export function flugWelt(T, W) {
     }
     return g;
   }
-  return { kielwasser, kufenspuren, insCockpit, ausCockpit, buckel, bergkette, schlitten, tor, boot, pylone, boje, wasserFlaeche, flieger, ring, heissluftballon, gewitter, voegel, insel, regenbogen, wolkenMeer, wolkenBild, wolkenBallen, strahlen };
+  return { bojenBlinken, kielwasser, kufenspuren, insCockpit, ausCockpit, buckel, bergkette, schlitten, tor, boot, pylone, boje, wasserFlaeche, flieger, ring, heissluftballon, gewitter, voegel, insel, regenbogen, wolkenMeer, wolkenBild, wolkenBallen, strahlen };
 }
