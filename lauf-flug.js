@@ -202,8 +202,9 @@ export function flugWelt(T, W) {
   // Im Flugzeug schauen nur Hals und Kopf aus dem Cockpit, der Rest der Figur wird solange ausgeblendet.
   // Die Größe richtet sich nach dem Kopf; nur lange Hälse wie bei der Giraffe zeigen den ganzen Hals, sonst schaut nur der Kopf über den Rand.
   const halsBox = new T.Box3(), halsMass = new T.Vector3(), halsPunkt = new T.Vector3(), kopfPunkt = new T.Vector3();
-  const COCKPIT_Y = .4, COCKPIT_Z = .26, KOPF_BREITE = .46, KOPF_MAX = 1.2, KOPF_UEBER_RAND = .27;
-  function insCockpit(f) {
+  const COCKPIT = { luft: [.4, .26], wasser: [.31, .05] }, KOPF_BREITE = .46, KOPF_MAX = 1.2, KOPF_UEBER_RAND = .27;
+  function insCockpit(f, ort = "luft") {
+    const [COCKPIT_Y, COCKPIT_Z] = COCKPIT[ort];
     const koerper = f.koerper || f.k, hals = f.hals || f.zopf.parent, g = f.gruppe, person = f.mensch || !f.hals, eltern = g.parent;
     // Bei Personen gehört das Gesicht zum Körpermodell: Es bleibt sichtbar, der Rumpf steckt im Flugzeug.
     koerper.position.set(0, 0, 0); koerper.rotation.set(0, 0, 0);
@@ -298,15 +299,136 @@ export function flugWelt(T, W) {
     const k = new T.Mesh(new T.PlaneGeometry(500, 500).rotateX(-Math.PI / 2), std({ map: wolkenBild, roughness: 1, color: "#ffffff" }));
     k.receiveShadow = true; return k;
   }
-  // Level 3: Boot (Fröbelinchen gelb mit rotem Rand, Anja rosa mit weißem Rand), „sitz“ wie beim Flugzeug
+  // Level 3: Rennboot (Fröbelinchen gelb mit roten Streifen, Anja rosa mit weißen), „sitz“ wie beim Flugzeug
+  const BOOT_FARBEN = [
+    { rumpf: "#ffc61a", unten: "#123a5e", streifen: "#e53935", linie: "#ffffff", holz: "#8a4a24", holzHell: "#a9642f", fuge: "rgba(250,240,220,.85)", polster: "#e53935", motor: "#e53935", stern: "#e53935" },
+    { rumpf: "#f48fb1", unten: "#7a2e55", streifen: "#ffffff", linie: "#ffffff", holz: "#efe4d6", holzHell: "#f8f1e7", fuge: "rgba(180,120,140,.7)", polster: "#ffffff", motor: "#f48fb1", stern: "#ec5f94" },
+  ];
+  const bootLackSpeicher = [null, null];
+  const bootLack = (nr) => bootLackSpeicher[nr] || (bootLackSpeicher[nr] = (() => {
+    const f = BOOT_FARBEN[nr];
+    // Rumpf: Bildmitte ist der Kiel, die Ränder sind die Bordwand oben; oben im Bild der Bug, unten das Heck
+    const rumpf = leinwand(1024, 512, (g, w, h) => {
+      g.fillStyle = f.rumpf; g.fillRect(0, 0, w, h);
+      g.fillStyle = f.unten; g.fillRect(w * .33, 0, w * .34, h);
+      g.fillStyle = f.linie; g.fillRect(w * .31, 0, w * .02, h); g.fillRect(w * .67, 0, w * .02, h);
+      for (const seite of [0, 1]) {                       // Rennstreifen: am Heck breit, zum Bug hin spitz
+        const x = (a) => seite ? w * (1 - a) : w * a;
+        g.fillStyle = f.streifen; g.beginPath(); g.moveTo(x(.05), h); g.lineTo(x(.24), h); g.lineTo(x(.12), h * .08); g.lineTo(x(.09), h * .08); g.closePath(); g.fill();
+        g.fillStyle = f.linie; g.beginPath(); g.moveTo(x(.24), h); g.lineTo(x(.27), h); g.lineTo(x(.135), h * .08); g.lineTo(x(.12), h * .08); g.closePath(); g.fill();
+      }
+      for (const x of [.17, .83]) { g.save(); g.translate(w * x, h * .3); g.scale(.62, 1); sternMalen(g, 0, 0, 46, f.stern); g.restore(); }
+    });
+    const deck = leinwand(512, 512, (g, w, h) => {
+      g.fillStyle = f.holz; g.fillRect(0, 0, w, h);
+      for (let i = 0; i < 16; i++) { g.fillStyle = i % 2 ? f.holzHell : f.holz; g.fillRect(i * w / 16, 0, w / 16, h); }
+      g.fillStyle = f.fuge; for (let i = 0; i <= 16; i++) g.fillRect(i * w / 16 - 1, 0, 2, h);
+      g.fillStyle = "rgba(60,30,10,.1)"; for (let i = 0; i < 90; i++) g.fillRect(Math.random() * w, Math.random() * h, 1.5, 30 + Math.random() * 70);
+    });
+    const glatt = (color, r = .32, m = .2) => std({ color, roughness: r, metalness: m });
+    return { rumpf: std({ map: rumpf, roughness: .28, metalness: .15 }), deck: std({ map: deck, roughness: .45 }), heck: glatt(f.rumpf), polster: glatt(f.polster, .7, 0), motor: glatt(f.motor, .25, .3), rand: glatt(f.streifen, .35, .2) };
+  })());
+  const B_M = {
+    chrom: std({ color: "#dfe5ea", roughness: .16, metalness: .95 }), motor: std({ color: "#1b1e23", roughness: .3, metalness: .4 }),
+    glas: std({ color: "#a9dcf5", roughness: .05, metalness: .3, transparent: true, opacity: .5, side: T.DoubleSide }),
+    fahne: std({ color: "#ffffff", side: T.DoubleSide, roughness: .8 }),
+  };
+  // Gischt rund um den Bug, einmal gemalt
+  const bootSchaum = () => leinwand(256, 512, (g, w, h) => {
+    for (let i = 0; i < 420; i++) {
+      const v = Math.random(), seite = Math.random() < .5 ? -1 : 1, x = w / 2 + seite * (w * .16 + v * w * .28 + Math.random() * 12), y = h * .12 + v * h * .85, r = 3 + Math.random() * 9;
+      g.fillStyle = `rgba(255,255,255,${(.5 * (1 - v)).toFixed(2)})`; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill();
+    }
+  });
+  let bootGeo = null, schaumBild = null;
+  function bootFormen() {
+    // Spanten vom Heck zum Bug: [z, halbe Breite, Kiel, Deckshöhe]
+    const SP = [[1.72, .72, -.24, .35], [1.1, .8, -.3, .36], [.3, .84, -.34, .37], [-.5, .8, -.33, .41], [-1.15, .62, -.24, .48], [-1.7, .36, -.08, .55], [-2.12, .12, .14, .6], [-2.3, .01, .33, .63]];
+    const kurveA = new T.CatmullRomCurve3(SP.map(([z, b, k]) => new T.Vector3(z, b, k))), kurveB = new T.CatmullRomCurve3(SP.map(([z, , , d]) => new T.Vector3(z, d, 0)));
+    const RINGE = 32, spant = (u) => { const a = kurveA.getPoint(u), z = a.x, b = Math.max(a.y, .004), k = a.z, d = kurveB.getPoint(u).y; return { z, b, k, d }; };
+    const form = [[0, 0], [.42, .1], [.78, .3], [.95, .62], [1, 1]];    // Schnitt vom Kiel zur Bordwand
+    const pos = [], uv = [], idx = [], rand = [];
+    for (let r = 0; r <= RINGE; r++) {
+      const { z, b, k, d } = spant(r / RINGE), H = d - k;
+      for (let c = -4; c <= 4; c++) {
+        const [fx, fy] = form[Math.abs(c)];
+        pos.push(Math.sign(c) * b * fx, k + H * fy, z); uv.push((c + 4) / 8, r / RINGE);
+      }
+    }
+    for (let r = 0; r < RINGE; r++) for (let c = 0; c < 8; c++) { const a = r * 9 + c, n = a + 9; idx.push(a, n, a + 1, a + 1, n, n + 1); }
+    const rumpf = new T.BufferGeometry();
+    rumpf.setAttribute("position", new T.Float32BufferAttribute(pos, 3)); rumpf.setAttribute("uv", new T.Float32BufferAttribute(uv, 2)); rumpf.setIndex(idx); rumpf.computeVertexNormals();
+    // Deck mit leichter Wölbung
+    const dPos = [], dUv = [], dIdx = [];
+    for (let r = 0; r <= RINGE; r++) {
+      const { z, b, d } = spant(r / RINGE);
+      for (let c = -3; c <= 3; c++) { const q = c / 3; dPos.push(q * b, d + (1 - q * q) * .06, z); dUv.push((q * b + .9) / 1.8, r / RINGE * 2.2); }
+    }
+    for (let r = 0; r < RINGE; r++) for (let c = 0; c < 6; c++) { const a = r * 7 + c, n = a + 7; dIdx.push(a, a + 1, n, a + 1, n + 1, n); }
+    const deck = new T.BufferGeometry();
+    deck.setAttribute("position", new T.Float32BufferAttribute(dPos, 3)); deck.setAttribute("uv", new T.Float32BufferAttribute(dUv, 2)); deck.setIndex(dIdx); deck.computeVertexNormals();
+    // Scheuerleiste entlang der Bordwand
+    for (let r = 0; r <= RINGE; r++) { const { z, b, d } = spant(r / RINGE); rand.push(new T.Vector3(-b - .012, d, z)); }
+    for (let r = RINGE - 1; r >= 0; r--) { const { z, b, d } = spant(r / RINGE); rand.push(new T.Vector3(b + .012, d, z)); }
+    const leiste = new T.TubeGeometry(new T.CatmullRomCurve3(rand, false, "catmullrom", .1), 90, .04, 7, false);
+    // Heckspiegel
+    const s0 = spant(0), hs = new T.Shape(); hs.moveTo(-s0.b, s0.d);
+    for (let c = -3; c <= 3; c++) { const [fx, fy] = form[Math.abs(c)]; hs.lineTo(Math.sign(c) * s0.b * fx, s0.k + (s0.d - s0.k) * fy); }
+    hs.lineTo(s0.b, s0.d); hs.closePath();
+    // Reling am Vorschiff
+    const relingP = (s) => { const { z, b, d } = spant(s); return new T.Vector3(b * .78, d + .25, z); };
+    const relingPunkte = []; for (let i = 0; i <= 8; i++) relingPunkte.push(relingP(.55 + i * .051));
+    const spiegel = relingPunkte.slice().reverse().map(v => new T.Vector3(-v.x, v.y, v.z));
+    const reling = new T.TubeGeometry(new T.CatmullRomCurve3([...spiegel, ...relingPunkte.slice(1)], false, "catmullrom", .1), 60, .018, 6, false);
+    const pfosten = [.58, .7, .82].map(relingP);
+    // Windschutzscheibe: nach hinten geneigter Bogen
+    const scheibe = new T.CylinderGeometry(.66, .74, .36, 28, 1, true, Math.PI - 1.15, 2.3);
+    const schaum = new T.PlaneGeometry(2.8, 5.4).rotateX(-Math.PI / 2);
+    return {
+      rumpf, deck, leiste, heck: new T.ShapeGeometry(hs), reling, pfosten, scheibe, schaum,
+      pfosten1: new T.CylinderGeometry(.014, .014, .25, 6),
+      scheibeRand: new T.TorusGeometry(.67, .02, 6, 26, 2.3).rotateX(Math.PI / 2).rotateY(Math.PI / 2 + 1.15),
+      rand: new T.TorusGeometry(.5, .055, 8, 30).rotateX(Math.PI / 2),
+      boden: new T.CircleGeometry(.5, 26).rotateX(-Math.PI / 2),
+      polster: new T.CapsuleGeometry(.09, .62, 6, 12).rotateZ(Math.PI / 2),
+      luke: new T.BoxGeometry(.55, .05, .45), hutze: new T.SphereGeometry(.09, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2),
+      haube: new T.SphereGeometry(.3, 22, 16), schaft: new T.BoxGeometry(.12, .55, .16), finne: new T.BoxGeometry(.03, .05, .34), blatt: new T.BoxGeometry(.11, .36, .025),
+      stange: new T.CylinderGeometry(.012, .018, .7, 6), fahne: new T.PlaneGeometry(.42, .24).translate(.21, 0, 0), lampe: new T.SphereGeometry(.045, 10, 8),
+    };
+  }
   function boot(anja) {
-    const g = new T.Group();
-    const r = teil(new T.CapsuleGeometry(.75, 2, 8, 20), anja ? M.rumpfAnja : M.bootGelb, g, 0, .05, 0); r.rotation.x = Math.PI / 2; r.scale.set(1, 1, .5);
-    const deck = teil(new T.CapsuleGeometry(.8, 2.05, 6, 20), anja ? M.fluegelAnja : M.rumpf, g, 0, .26, 0); deck.rotation.x = Math.PI / 2; deck.scale.set(1, 1, .08);
-    teil(new T.BoxGeometry(.8, .45, .45), M.dunkel, g, 0, .45, 1.5);                     // Außenbordmotor
-    const propeller = gelenk(g, 0, .02, 1.78);
-    for (let i = 0; i < 3; i++) { const b = teil(new T.BoxGeometry(.07, .42, .04), M.dunkel, propeller); b.rotation.z = i * Math.PI * 2 / 3; }
-    const scheibe = teil(new T.SphereGeometry(.45, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), M.glas, g, 0, .3, -1.05); scheibe.scale.set(1.3, .7, .5);
+    const g = new T.Group(), L = bootLack(anja ? 1 : 0), G = bootGeo || (bootGeo = bootFormen());
+    for (const k in G) if (G[k].isBufferGeometry) G[k].userData.geteilt = true;
+    const klein = (geom, m, x, y, z) => { const k = teil(geom, m, g, x, y, z); k.castShadow = false; return k; };
+    teil(G.rumpf, L.rumpf, g); teil(G.deck, L.deck, g);
+    klein(G.leiste, L.rand, 0, 0, 0); klein(G.heck, L.heck, 0, 0, 1.72);
+    // Cockpit mit Sitzbank, Windschutzscheibe mit Chromrahmen
+    klein(G.boden, F_M.innen, 0, .445, .2).scale.z = 1.3;
+    klein(G.rand, L.rand, 0, .44, .2).scale.z = 1.3;
+    klein(G.polster, L.polster, 0, .52, .84);
+    const sch = klein(G.scheibe, B_M.glas, 0, .62, .12); sch.rotation.x = .2;
+    const oben = klein(G.scheibeRand, B_M.chrom, 0, .795, .156); oben.rotation.x = .2;
+    // Vorschiff: Luke, Lüftungshutzen, Reling, Positionslichter
+    const luke = klein(G.luke, B_M.motor, 0, .55, -1); luke.rotation.x = .1;
+    for (const s of [-1, 1]) {
+      klein(G.hutze, B_M.chrom, s * .42, .44, -.72).scale.set(1, .8, 1.5);
+      for (const p of G.pfosten) klein(G.pfosten1, B_M.chrom, s * p.x, p.y - .125, p.z);
+    }
+    klein(G.reling, B_M.chrom, 0, 0, 0);
+    klein(G.lampe, F_M.rot, -.16, .64, -1.95); klein(G.lampe, F_M.gruen, .16, .64, -1.95);
+    // Motor am Heck, Propeller dreht unter der Haube
+    const haube = teil(G.haube, L.motor, g, 0, .5, 1.9); haube.scale.set(.72, .85, .85);
+    const deckel = klein(G.haube, B_M.motor, 0, .66, 1.9); deckel.scale.set(.56, .24, .66);
+    klein(G.schaft, B_M.motor, 0, .08, 1.93);
+    const finne = klein(G.finne, B_M.motor, 0, -.2, 1.96); finne.scale.y = 2;
+    const propeller = gelenk(g, 0, -.14, 2.1);
+    for (let i = 0; i < 3; i++) { const b = teil(G.blatt, B_M.chrom, propeller); b.rotation.z = i * Math.PI * 2 / 3; b.castShadow = false; }
+    // Fähnchen am Heck
+    klein(G.stange, B_M.chrom, .62, .68, 1.58);
+    const fahne = klein(G.fahne, anja ? L.polster : L.rand, .62, .92, 1.58); fahne.rotation.y = .35;
+    // Gischt am Bug, liegt knapp über dem Wasser
+    if (!schaumBild) schaumBild = new T.MeshBasicMaterial({ map: bootSchaum(), transparent: true, depthWrite: false });
+    klein(G.schaum, schaumBild, 0, -.17, -.6);
     const sitz = gelenk(g, 0, .2, .15);
     return { gruppe: g, propeller, sitz };
   }
