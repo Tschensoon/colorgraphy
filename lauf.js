@@ -31,7 +31,7 @@ if (rahmen) {
   function laden() {
     if (!bereit) {
       const text = losKnopf.textContent; losKnopf.disabled = true; losKnopf.textContent = "Lädt die 3D-Welt …";
-      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=45"), import("./lauf-ton.js?v=9"), import("./lauf-flug.js?v=10"), import("./lauf-effekte.js?v=3"), import("./lauf-buero.js?v=1"), import("./detektiv-figuren.js?v=4")])
+      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=45"), import("./lauf-ton.js?v=9"), import("./lauf-flug.js?v=11"), import("./lauf-effekte.js?v=3"), import("./lauf-buero.js?v=1"), import("./detektiv-figuren.js?v=4")])
         .then(([m, w, t, f, e, bm, fm]) => { THREE = m; T = t.ton(); aufbauen(w, f, e, bm, fm); losKnopf.disabled = false; losKnopf.textContent = text; });
     }
     return bereit;
@@ -1326,7 +1326,7 @@ if (rahmen) {
     dazu(W.toertchen()); dazu(FW.pylone()); dazu(FW.boje()); for (const f of FIGUR_LISTE) if (f.id !== figur) dazu(W.figurBauen(f.id).gruppe);
     dazu(W.rekordFahne(1));
     { const f = W.frauBauen(); f.gruppe.add(W.sprechblase(["Ich suche meine", "Autoschlüssel!"])); dazu(f.gruppe); }
-    [FW.ring(), FW.heissluftballon(), FW.gewitter(), FW.voegel(), FW.insel(), FW.regenbogen(), FW.wolkenBallen(), W.froebelBanner(2, .5)].forEach(dazu);
+    [FW.ring(), FW.heissluftballon(), FW.gewitter(), FW.voegel(), FW.insel(), FW.insel(true), FW.regenbogen(), FW.wolkenBallen(), W.froebelBanner(2, .5)].forEach(dazu);
     for (const art of ["staub", "funke", "dampf"]) { const k = teilchenHolen(art); dazu(k); }
     [FW.tor(true, 4), FW.tor(false, 4), W.tanne(), W.schneemann()].forEach(dazu);
     const versteckt = [...alleSpuren.map(sp => sp.mesh), buehne, meer, flieger.gruppe, anjaFlieger.gruppe, strahlen, boot.gruppe, anjaBoot.gruppe, wasser, schlitten.gruppe, anjaSchlitten.gruppe, bBuehne, anja.gruppe, blase, schattenA, ...sternchen];   // auch was gerade unsichtbar ist
@@ -2153,7 +2153,7 @@ if (rahmen) {
       flugObjekt("booster", m, rx(), Y + .2, z - 9, { art: typ });
     }
     for (const seite of [-1, 1]) {
-      if (Math.random() < .4) flugObjekt("deko", FW.insel(), seite * zufall(14, 34), -.12, z + zufall(-8, 8));
+      if (Math.random() < .4) flugObjekt("deko", FW.insel(true), seite * zufall(14, 34), -.12, z + zufall(-8, 8));
       if (Math.random() < .5) flugObjekt("deko", FW.boje(), seite * zufall(FX + 2.5, FX + 8), 0, z + zufall(-8, 8), { boje: true });
     }
     if (-z > FL.regenbogen) { FL.regenbogen += 1600; flugObjekt("deko", FW.regenbogen(), 0, -2, z - 60); }
@@ -2388,7 +2388,7 @@ if (rahmen) {
     // Wolkenmeer bzw. Wasser und Himmel wandern mit, das Muster bleibt am Ort
     if (ski) { W.bodenFolgen(FL.x, FL.z); berge.position.set(FL.x * .6, -34, FL.z - 215); }
     else if (FL.art === "wasser") { wasser.position.set(FL.x, 0, FL.z); wasser.userData.wellen.offset.set(FL.x * 80 / 600 + t * .02, -FL.z * 80 / 600 + t * .013); wasser.userData.farben.offset.set(FL.x * 5 / 600, -FL.z * 5 / 600); wasser.userData.funkel.offset.set(FL.x * 16 / 600 - t * .012, -FL.z * 16 / 600 + t * .017); }
-    else { meer.position.set(FL.x, -1.5, FL.z); FW.wolkenBild.offset.set(FL.x * 12 / 500, -FL.z * 12 / 500); }
+    else { FW.luftSchritt(t); meer.position.set(FL.x, -1.5, FL.z); FW.wolkenBild.offset.set(FL.x * 12 / 500, -FL.z * 12 / 500); }
     schattenNachfuehren(FL.x, FL.z);
 
     // Kamera hinter dem Flugzeug, etwas erhöht; beim Fangen langsam herum

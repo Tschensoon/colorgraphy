@@ -26,9 +26,22 @@ export function flugWelt(T, W) {
     gewitter: std({ color: "#8a93a3", roughness: 1 }), blitz: new T.MeshBasicMaterial({ color: "#fff6a8" }),
     fels: std({ color: "#8a7a66", roughness: 1 }), gras: std({ color: "#7cc04f", roughness: 1 }), vogel: new T.MeshBasicMaterial({ color: "#2d3340", side: T.DoubleSide }),
   };
-  const ballonBild = (farben) => leinwand(256, 128, (g, w, h) => { farben.forEach((c, i) => { g.fillStyle = c; g.fillRect(i * w / farben.length, 0, w / farben.length + 1, h); }); });
-  const BALLON = [["#e53935", "#fdd835", "#e53935", "#fdd835", "#e53935", "#fdd835"], ["#1e88e5", "#ffffff", "#1e88e5", "#ffffff", "#1e88e5", "#ffffff"],
-    ["#8e24aa", "#ff8a3d", "#43a047", "#8e24aa", "#ff8a3d", "#43a047"]].map(f => std({ map: ballonBild(f), roughness: .5 }));
+  // Ballonhülle: farbige Bahnen, ein Zierband mit Sternen und feine Nähte
+  const ballonBild = (farben, band) => leinwand(512, 256, (g, w, h) => {
+    const n = farben.length * (farben.length === 3 ? 4 : 6), b = w / n;
+    for (let i = 0; i < n; i++) { g.fillStyle = farben[i % farben.length]; g.fillRect(i * b, 0, b + 1, h); }
+    g.fillStyle = band; g.fillRect(0, h * .42, w, h * .16);
+    g.fillStyle = "rgba(255,255,255,.9)"; g.fillRect(0, h * .4, w, 4); g.fillRect(0, h * .58, w, 4);
+    for (let i = 0; i < n; i += 3) {
+      const x = (i + 1) * b, y = h * .5, r = h * .065; g.beginPath();
+      for (let k = 0; k < 10; k++) { const a = -Math.PI / 2 + k * Math.PI / 5, q = k % 2 ? r * .42 : r; g.lineTo(x + Math.cos(a) * q, y + Math.sin(a) * q); }
+      g.closePath(); g.fill();
+    }
+    g.fillStyle = "rgba(0,0,0,.16)"; for (let i = 0; i < n; i++) g.fillRect(i * b - 1, 0, 2, h);
+    g.fillStyle = "rgba(0,0,0,.22)"; g.fillRect(0, 0, w, h * .05);
+  });
+  const BALLON = [[["#e53935", "#fdd835"], "#1e63d6"], [["#1e88e5", "#ffffff"], "#e53935"], [["#8e24aa", "#ff8a3d", "#43a047"], "#fdd835"], [["#00acc1", "#ffeb3b"], "#e91e63"], [["#f06292", "#ffffff", "#ba68c8"], "#3949ab"], [["#fb8c00", "#d84315"], "#fff3c4"]]
+    .map(([f, b]) => std({ map: ballonBild(f, b), roughness: .55 }));
   const wolkenBild = leinwand(512, 512, (g, w, h) => {
     g.fillStyle = "#c7d9ec"; g.fillRect(0, 0, w, h);
     // jede Quellwolke mit einem bläulichen Schatten darunter, so wirkt das Wolkenmeer bauschig
@@ -228,13 +241,52 @@ export function flugWelt(T, W) {
   function ring() {
     const g = new T.Group(); teil(ringGeo, M.ring, g); return g;
   }
-  function heissluftballon() {
-    const g = new T.Group();
-    const h = teil(kugel, wahl(BALLON), g, 0, 1.2, 0); h.scale.set(1.9, 2.2, 1.9);
-    teil(new T.BoxGeometry(.8, .6, .8), M.korb, g, 0, -1.6, 0);
-    for (const [x, z] of [[-.35, -.35], [.35, -.35], [-.35, .35], [.35, .35]]) {
-      g.add(new T.Line(new T.BufferGeometry().setFromPoints([new T.Vector3(x, -1.3, z), new T.Vector3(x * 3, -.4, z * 3)]), M.seil));
+  // Zerklüftete Formen: Punkte werden je nach Lage verschoben, die Flächen einzeln eingefärbt
+  const zackig = (geom, staerke, phase, nurAussen = false) => {
+    const p = geom.attributes.position, v = new T.Vector3();
+    for (let i = 0; i < p.count; i++) {
+      v.fromBufferAttribute(p, i);
+      const n = Math.sin(v.x * 7.3 + v.y * 3.1 + phase) + Math.sin(v.z * 8.7 - v.y * 5.3 + phase * 2) + Math.sin((v.x + v.z) * 13 + v.y * 7 + phase * 3) * .6;
+      const f = 1 + n * staerke; p.setXYZ(i, v.x * f, nurAussen ? v.y : v.y + n * staerke * .35, v.z * f);
     }
+    return geom;
+  };
+  const facetten = (geom, farbe) => {
+    const g = geom.toNonIndexed(), p = g.attributes.position, c = new Float32Array(p.count * 3), a = new T.Vector3(), b = new T.Vector3(), d = new T.Vector3(), mitte = new T.Vector3(), n = new T.Vector3(), col = new T.Color();
+    for (let i = 0; i < p.count; i += 3) {
+      a.fromBufferAttribute(p, i); b.fromBufferAttribute(p, i + 1); d.fromBufferAttribute(p, i + 2);
+      mitte.copy(a).add(b).add(d).divideScalar(3); n.copy(b).sub(a).cross(d.clone().sub(a)).normalize();
+      farbe(mitte, n, col);
+      for (let k = 0; k < 3; k++) { c[(i + k) * 3] = col.r; c[(i + k) * 3 + 1] = col.g; c[(i + k) * 3 + 2] = col.b; }
+    }
+    g.setAttribute("color", new T.BufferAttribute(c, 3)); g.computeVertexNormals(); g.userData.geteilt = true;
+    return g;
+  };
+  let ballonGeo = null;
+  const ballonM = {
+    flamme: std({ color: "#ffd27a", emissive: "#ff8a1f", emissiveIntensity: 2.4, transparent: true, opacity: .92 }), metall: std({ color: "#8b929a", roughness: .35, metalness: .75 }),
+    leder: std({ color: "#6b3f1d", roughness: .75 }), sand: std({ color: "#c8a877", roughness: 1 }), rand: std({ color: "#2b2d33", roughness: .7, side: T.DoubleSide }),
+    korb: std({ roughness: .95, map: leinwand(128, 128, (g, w, h) => {
+      g.fillStyle = "#8a5a2c"; g.fillRect(0, 0, w, h);
+      for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) { g.fillStyle = (x + y) % 2 ? "#b78347" : "#a06f39"; g.fillRect(x * 16 + 1, y * 16 + 1, 14, 14); g.fillStyle = "rgba(40,20,0,.35)"; g.fillRect(x * 16, y * 16 + 13, 16, 2); }
+    }) }),
+  };
+  function ballonFormen() {
+    const huelle = new T.LatheGeometry(new T.SplineCurve([[.32, -1.05], [.72, -.6], [1.36, .2], [1.82, 1.1], [1.92, 1.9], [1.7, 2.7], [1.1, 3.25], [.42, 3.45], [.03, 3.48]].map(([r, y]) => new T.Vector2(r, y))).getPoints(30), 26);
+    const seile = new T.BufferGeometry().setFromPoints([[-1, -1], [1, -1], [-1, 1], [1, 1]].flatMap(([x, z]) => [new T.Vector3(x * .38, -1.3, z * .38), new T.Vector3(x * .52, -.62, z * .52)]));
+    const G = { huelle, seile, rock: new T.CylinderGeometry(.33, .4, .36, 16, 1, true), korb: new T.BoxGeometry(.8, .6, .8), kante: new T.BoxGeometry(.92, .09, .92), brenner: new T.CylinderGeometry(.14, .17, .18, 12), flamme: new T.ConeGeometry(.11, .44, 10), sack: new T.SphereGeometry(.13, 10, 8) };
+    for (const k in G) G[k].userData.geteilt = true;
+    return G;
+  }
+  function heissluftballon() {
+    const g = new T.Group(), G = ballonGeo || (ballonGeo = ballonFormen());
+    const klein = (geom, m, x, y, z) => { const k = teil(geom, m, g, x, y, z); k.castShadow = false; return k; };
+    teil(G.huelle, wahl(BALLON), g);
+    klein(G.rock, ballonM.rand, 0, -1.2, 0);
+    teil(G.korb, ballonM.korb, g, 0, -1.72, 0); klein(G.kante, ballonM.leder, 0, -1.4, 0);
+    klein(G.brenner, ballonM.metall, 0, -1.2, 0); klein(G.flamme, ballonM.flamme, 0, -.96, 0);
+    for (const [x, z] of [[-.5, .15], [.5, -.15], [.15, .5]]) klein(G.sack, ballonM.sand, x, -1.72, z).scale.y = 1.3;
+    g.add(new T.LineSegments(G.seile, M.seil));
     return g;
   }
   function gewitter() {
@@ -252,12 +304,65 @@ export function flugWelt(T, W) {
     }
     return g;
   }
-  function insel() {
-    const g = new T.Group(), r = zufall(3, 6);
-    const fels = teil(new T.ConeGeometry(r, r * 1.6, 9), M.fels, g, 0, -r * .8, 0); fels.rotation.x = Math.PI;
-    teil(new T.CylinderGeometry(r, r * .95, .5, 9), M.gras, g, 0, .15, 0);
+  // Inseln: zerklüfteter Fels, Rasen mit Strand; schwebend mit Wasserfall, im Meer mit Steg und manchmal einem Leuchtturm
+  const felsFarbe = (m, n, c) => {
+    const licht = 1.25 + .5 * Math.max(0, n.y * .6 + n.x * -.4 + n.z * .55), schicht = Math.sin(m.y * 15) * .12;
+    c.set(m.y > -.12 ? "#8fae5e" : (m.y > -.55 ? "#c4a988" : "#a58e74")).multiplyScalar(licht + schicht);
+  };
+  const inselDeckelBild = (strand) => leinwand(256, 256, (g, w, h) => {
+    g.fillStyle = "#6fb544"; g.fillRect(0, 0, w, h);
+    for (let i = 0; i < 90; i++) { g.fillStyle = wahl(["rgba(150,205,90,.5)", "rgba(70,140,50,.5)", "rgba(190,225,120,.35)"]); g.beginPath(); g.arc(Math.random() * w, Math.random() * h, 5 + Math.random() * 16, 0, 7); g.fill(); }
+    if (!strand) return;
+    const v = g.createRadialGradient(w / 2, h / 2, w * .34, w / 2, h / 2, w * .5); v.addColorStop(0, "rgba(240,220,160,0)"); v.addColorStop(.28, "#ecd9a0"); v.addColorStop(1, "#f5e6b8");
+    g.fillStyle = v; g.fillRect(0, 0, w, h);
+  });
+  const wasserfallBild = leinwand(64, 256, (g, w, h) => {
+    const v = g.createLinearGradient(0, 0, w, 0); v.addColorStop(0, "rgba(255,255,255,0)"); v.addColorStop(.2, "rgba(190,230,255,.9)"); v.addColorStop(.8, "rgba(190,230,255,.9)"); v.addColorStop(1, "rgba(255,255,255,0)");
+    g.fillStyle = v; g.fillRect(0, 0, w, h);
+    g.fillStyle = "rgba(255,255,255,.75)"; for (let i = 0; i < 60; i++) g.fillRect(6 + Math.random() * (w - 12), Math.random() * h, 2, 18 + Math.random() * 40);
+  }, true);
+  const leuchtBild = leinwand(64, 256, (g, w, h) => { for (let i = 0; i < 6; i++) { g.fillStyle = i % 2 ? "#ffffff" : "#d8262b"; g.fillRect(0, i * h / 6, w, h / 6 + 1); } });
+  const stegBild = leinwand(128, 256, (g, w, h) => { g.fillStyle = "#a8743f"; g.fillRect(0, 0, w, h); g.fillStyle = "rgba(60,30,10,.55)"; for (let y = 0; y < h; y += 21) g.fillRect(0, y, w, 3); });
+  const inselM = {
+    fels: std({ vertexColors: true, roughness: 1, flatShading: true }), seite: std({ color: "#7b5a36", roughness: 1 }), unten: std({ color: "#5f4a35", roughness: 1 }),
+    gras: std({ map: inselDeckelBild(false), roughness: 1 }), strand: std({ map: inselDeckelBild(true), roughness: 1 }),
+    wasserfall: new T.MeshBasicMaterial({ map: wasserfallBild, transparent: true, depthWrite: false, side: T.DoubleSide }), bach: std({ color: "#6fc7ee", roughness: .15, metalness: .2 }),
+    stein: std({ color: "#9b9488", roughness: 1, flatShading: true }), turm: std({ map: leuchtBild, roughness: .45 }), steg: std({ map: stegBild, roughness: .85 }), pfahl: std({ color: "#5a3a1e", roughness: .9 }),
+    lampe: std({ color: "#fff2bf", emissive: "#ffd36b", emissiveIntensity: 2.4 }), dunkel: std({ color: "#2b2d33", roughness: .5, metalness: .4 }),
+  };
+  let inselGeo = null;
+  function inselFormen() {
+    const fels = [0, 1, 2].map(i => facetten(zackig(new T.ConeGeometry(1, 1.7, 13, 7, true).rotateX(Math.PI).translate(0, -.85, 0), .07, i * 2.1), felsFarbe));
+    const G = {
+      deckel: zackig(new T.CylinderGeometry(1, .97, .3, 28, 1), .035, 1.3, true),
+      wasserfall: new T.PlaneGeometry(1, 1).translate(0, -.5, 0), bach: new T.PlaneGeometry(1, 1).rotateX(-Math.PI / 2).translate(0, 0, .5),
+      stein: new T.IcosahedronGeometry(1, 0), turm: new T.CylinderGeometry(.26, .42, 2.6, 16), galerie: new T.CylinderGeometry(.42, .42, .06, 16), lampe: new T.SphereGeometry(.2, 14, 10), dach: new T.ConeGeometry(.34, .34, 16),
+      steg: new T.BoxGeometry(.95, .07, 2.6), pfahl: new T.CylinderGeometry(.055, .06, .7, 8),
+    };
+    G.deckel.computeVertexNormals();
+    for (const k in G) G[k].userData.geteilt = true;
+    return { ...G, fels };
+  }
+  function insel(imMeer = false) {
+    const g = new T.Group(), r = zufall(3, 6), G = inselGeo || (inselGeo = inselFormen());
+    const klein = (geom, m, x, y, z) => { const k = teil(geom, m, g, x, y, z); k.castShadow = false; return k; };
+    const fels = teil(wahl(G.fels), inselM.fels, g, 0, .14, 0); fels.scale.setScalar(r * .95); fels.rotation.y = zufall(0, 6);
+    const platte = teil(G.deckel, [inselM.seite, imMeer ? inselM.strand : inselM.gras, inselM.unten], g, 0, .15, 0); platte.scale.set(r, 1, r); platte.rotation.y = zufall(0, 6);
     for (let i = 0; i < 2 + Math.floor(Math.random() * 3); i++) {
-      const t = W.dekoFuer(0); t.position.set(zufall(-r * .5, r * .5), .4, zufall(-r * .5, r * .5)); t.scale.setScalar(.6); g.add(t);
+      const t = W.dekoFuer(0); t.position.set(zufall(-r * .5, r * .5), .3, zufall(-r * .5, r * .5)); t.scale.setScalar(.6); g.add(t);
+    }
+    for (let i = 0; i < 3; i++) { const a = zufall(0, 6), q = r * zufall(.62, .86); const st = klein(G.stein, inselM.stein, Math.cos(a) * q, .36, Math.sin(a) * q); st.scale.set(zufall(.16, .34), zufall(.12, .24), zufall(.16, .34)); st.rotation.set(zufall(0, 3), zufall(0, 3), 0); }
+    if (imMeer) {
+      klein(G.steg, inselM.steg, 0, .2, r + 1).castShadow = true;
+      for (const sx of [-.42, .42]) for (const z of [r + .2, r + 2.1]) klein(G.pfahl, inselM.pfahl, sx, -.05, z);
+      if (Math.random() < .3) {
+        const x = r * .35, z = -r * .25;
+        teil(G.turm, inselM.turm, g, x, 1.6, z); klein(G.galerie, inselM.dunkel, x, 2.93, z); klein(G.lampe, inselM.lampe, x, 3.14, z); klein(G.dach, inselM.dunkel, x, 3.46, z);
+      }
+    } else if (Math.random() < .7) {
+      const b = r * .16;
+      const lauf = klein(G.bach, inselM.bach, 0, .31, r * .1); lauf.scale.set(b, 1, r * .88);
+      const fall = klein(G.wasserfall, inselM.wasserfall, 0, .31, r * .985); fall.scale.set(b * 1.2, r * 1.5, 1); fall.rotation.x = -.42;
     }
     return g;
   }
@@ -719,14 +824,22 @@ export function flugWelt(T, W) {
     const k = new T.Mesh(torGeo.huegel, SM.buckel); k.scale.set(zufall(2, 4.5), zufall(.6, 1.1), zufall(2, 4)); k.receiveShadow = true; return k;
   }
   function bergkette() {
-    const g = new T.Group(), fels = new T.MeshBasicMaterial({ color: "#a9bccf", fog: false }), fern = new T.MeshBasicMaterial({ color: "#c7d5e3", fog: false }),
-      kappe = new T.MeshBasicMaterial({ color: "#f7fafd", fog: false });
+    const g = new T.Group(), hell = new T.Color("#d3deea");
+    const bau = (phase, nah) => facetten(zackig(new T.ConeGeometry(1, 1, 16, 9, true).translate(0, .5, 0), .055, phase), (m, n, c) => {
+      const licht = .66 + .4 * Math.max(0, n.x * -.55 + n.y * .35 + n.z * .75);
+      const schnee = m.y > .52 + Math.sin(m.x * 19 + phase) * .07 + Math.sin(m.z * 17) * .05;
+      c.set(schnee ? "#f7fafd" : (m.y > .3 ? "#94a8bf" : "#7f96b0")).multiplyScalar(licht);
+      if (!nah) c.lerp(hell, .55);
+    });
+    const vorn = [0, 1, 2].map(i => bau(i * 1.7 + .4, true)), hinten = [0, 1, 2].map(i => bau(i * 2.3 + 3, false));
+    const mat = new T.MeshBasicMaterial({ vertexColors: true, fog: false });
     for (let i = 0; i < 14; i++) {
-      const hinten = i % 2 === 1, r = zufall(28, 55) * (hinten ? 1.3 : 1), h = zufall(45, 85) * (hinten ? 1.25 : 1), x = -260 + i * 40 + zufall(-12, 12), z = hinten ? -25 : 0;
-      teil(new T.ConeGeometry(r, h, 7), hinten ? fern : fels, g, x, h / 2, z).castShadow = false;
-      teil(new T.ConeGeometry(r * .36, h * .36, 7), kappe, g, x, h * .82 + .5, z).castShadow = false;
+      const istHinten = i % 2 === 1, r = zufall(28, 55) * (istHinten ? 1.3 : 1), h = zufall(45, 85) * (istHinten ? 1.25 : 1), x = -260 + i * 40 + zufall(-12, 12), z = istHinten ? -25 : 0;
+      const k = teil(wahl(istHinten ? hinten : vorn), mat, g, x, 0, z); k.castShadow = false; k.scale.set(r, h, r); k.rotation.y = zufall(0, 6);
     }
     return g;
   }
-  return { bojenBlinken, kielwasser, kufenspuren, insCockpit, ausCockpit, buckel, bergkette, schlitten, tor, boot, pylone, boje, wasserFlaeche, flieger, ring, heissluftballon, gewitter, voegel, insel, regenbogen, wolkenMeer, wolkenBild, wolkenBallen, strahlen };
+  // läuft in der Luftwelt: Wasserfälle fließen, Brennerflammen flackern
+  const luftSchritt = (t) => { wasserfallBild.offset.y = t * .9; ballonM.flamme.emissiveIntensity = 2 + Math.sin(t * 17) * .5 + Math.sin(t * 41) * .4; };
+  return { luftSchritt, bojenBlinken, kielwasser, kufenspuren, insCockpit, ausCockpit, buckel, bergkette, schlitten, tor, boot, pylone, boje, wasserFlaeche, flieger, ring, heissluftballon, gewitter, voegel, insel, regenbogen, wolkenMeer, wolkenBild, wolkenBallen, strahlen };
 }
