@@ -170,13 +170,18 @@ export function welt(T, handy) {
     f.forEach((c, i) => { g.fillStyle = c; g.fillRect(i * w / 6, 0, w / 6 + 1, h); });
     g.fillStyle = "#ffffff"; g.fillRect(0, 0, w, 10); g.fillRect(0, h - 10, w, 10);
   }, false);
-  const wolke = leinwand(256, 128, (g, w, h) => {
-    for (let i = 0; i < 14; i++) {
-      const x = zufall(50, 206), y = zufall(50, 90), r = zufall(22, 42);
-      const v = g.createRadialGradient(x, y, 0, x, y, r);
-      v.addColorStop(0, "rgba(255,255,255,.95)"); v.addColorStop(1, "rgba(255,255,255,0)");
-      g.fillStyle = v; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill();
-    }
+  // Wolke: alle Bällchen bleiben sicher innerhalb des Bildes, sonst entstehen harte Kanten
+  const wolke = leinwand(512, 256, (g, w, h) => {
+    const ball = (x, y, r, farbe) => { const v = g.createRadialGradient(x, y, 0, x, y, r); v.addColorStop(0, `rgba(${farbe},.95)`); v.addColorStop(.6, `rgba(${farbe},.55)`); v.addColorStop(1, `rgba(${farbe},0)`); g.fillStyle = v; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); };
+    const teile = [];
+    for (let i = 0; i < 20; i++) { const q = Math.random(), r = zufall(34, 70) * (1 - Math.abs(q - .5) * .9); teile.push([86 + q * 340, zufall(112, 150) - r * .25, r]); }
+    for (const [x, y, r] of teile) ball(x, y + r * .22, r * 1.02, "178,198,224");   // bläuliche Unterseite
+    for (const [x, y, r] of teile) ball(x, y, r, "255,255,255");
+    // zur Sicherheit läuft der Rand immer ganz aus
+    g.globalCompositeOperation = "destination-in";
+    const maske = g.createRadialGradient(w / 2, h / 2, h * .34, w / 2, h / 2, w / 2 * .98); maske.addColorStop(0, "#000"); maske.addColorStop(1, "rgba(0,0,0,0)");
+    g.save(); g.translate(0, h / 2); g.scale(1, h / w * 1.25); g.translate(0, -h / 2); g.fillStyle = maske; g.fillRect(-w, -h * 3, w * 3, h * 7); g.restore();
+    g.globalCompositeOperation = "source-over";
   }, false);
 
   // ---------- Materialien ----------

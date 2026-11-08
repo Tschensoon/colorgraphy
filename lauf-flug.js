@@ -435,24 +435,99 @@ export function flugWelt(T, W) {
   // Pylone auf einem schwimmenden Sockel
   const pylonGeo = { sockel: new T.CylinderGeometry(.55, .6, .18, 16), kegel: new T.ConeGeometry(.36, 1.15, 20), band: new T.CylinderGeometry(.215, .27, .2, 20) };
   for (const k of Object.values(pylonGeo)) k.userData.geteilt = true;
+  // weißer Schaumkranz, wo Pylonen und Bojen im Wasser stehen
+  const ringBild = leinwand(128, 128, (g, w, h) => {
+    for (let i = 0; i < 170; i++) { const a = Math.random() * 7, q = 34 + Math.random() * 22, r = 1.5 + Math.random() * 4; g.fillStyle = `rgba(255,255,255,${(.2 + Math.random() * .5).toFixed(2)})`; g.beginPath(); g.arc(64 + Math.cos(a) * q, 64 + Math.sin(a) * q, r, 0, 7); g.fill(); }
+  });
+  const ringGeoSchaum = new T.PlaneGeometry(2.2, 2.2).rotateX(-Math.PI / 2); ringGeoSchaum.userData.geteilt = true;
+  const ringMat = new T.MeshBasicMaterial({ map: ringBild, transparent: true, depthWrite: false });
+  const schaumRing = (g, s) => { const k = new T.Mesh(ringGeoSchaum, ringMat); k.position.y = .04; k.scale.setScalar(s); g.add(k); };
   function pylone() {
     const g = new T.Group();
-    teil(pylonGeo.sockel, M.dunkel, g, 0, .05, 0); teil(pylonGeo.kegel, M.pylone, g, 0, .7, 0); teil(pylonGeo.band, M.weiss, g, 0, .62, 0);
+    schaumRing(g, 1.25); teil(pylonGeo.sockel, M.dunkel, g, 0, .05, 0); teil(pylonGeo.kegel, M.pylone, g, 0, .7, 0); teil(pylonGeo.band, M.weiss, g, 0, .62, 0);
     return g;
   }
   function boje() {
     const g = new T.Group();
-    teil(kugel, M.bojeRot, g, 0, .25, 0).scale.set(.45, .4, .45);
+    schaumRing(g, 1); teil(kugel, M.bojeRot, g, 0, .25, 0).scale.set(.45, .4, .45);
     teil(new T.CylinderGeometry(.04, .04, 1, 6), M.weiss, g, 0, .9, 0);
     teil(kugel, M.weiss, g, 0, 1.42, 0).scale.setScalar(.09);
     return g;
   }
+  // Durchgehende Spur hinter Boot und Schlitten: ein Band aus Wegpunkten, das hinten ausläuft
+  function spurBauen({ punkte = 64, abstand = .8, y, breite, alpha, material }) {
+    const P = new Float32Array(punkte * 6), F = new Float32Array(punkte * 8).fill(1), U = new Float32Array(punkte * 4), idx = [];
+    for (let i = 0; i < punkte - 1; i++) { const a = i * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
+    const geo = new T.BufferGeometry();
+    const pa = new T.BufferAttribute(P, 3).setUsage(T.DynamicDrawUsage), fa = new T.BufferAttribute(F, 4).setUsage(T.DynamicDrawUsage), ua = new T.BufferAttribute(U, 2).setUsage(T.DynamicDrawUsage);
+    geo.setAttribute("position", pa); geo.setAttribute("color", fa); geo.setAttribute("uv", ua); geo.setIndex(idx);
+    const mesh = new T.Mesh(geo, material); mesh.frustumCulled = false; mesh.visible = false;
+    const ring = []; let s = 0, lx = null, lz = 0, nx = 1, nz = 0;
+    const kopf = { x: 0, z: 0, nx: 1, nz: 0, s: 0 };
+    function leeren() { for (let i = 3; i < F.length; i += 4) F[i] = 0; fa.needsUpdate = true; }
+    function reset() { ring.length = 0; s = 0; lx = null; leeren(); }
+    function schritt(q) {
+      const x = q.x, z = q.z;
+      if (lx === null) { lx = x; lz = z; }
+      let d = Math.hypot(x - lx, z - lz);
+      if (d >= abstand) {
+        nx = (z - lz) / d; nz = -(x - lx) / d; s += d;
+        const p = ring.length >= punkte - 1 ? ring.pop() : {};
+        p.x = x; p.z = z; p.nx = nx; p.nz = nz; p.s = s; ring.unshift(p);
+        lx = x; lz = z; d = 0;
+      }
+      kopf.x = x; kopf.z = z; kopf.nx = nx; kopf.nz = nz; kopf.s = s + d;
+      for (let i = 0; i < punkte; i++) {
+        const p = i === 0 ? kopf : ring[i - 1], v = i * 2;
+        if (!p) { F[v * 4 + 3] = F[v * 4 + 7] = 0; continue; }
+        const a = kopf.s - p.s, b = breite(a), al = i === ring.length ? 0 : alpha(a) * Math.min(1, a / 1.2 + .15);
+        P[v * 3] = p.x - p.nx * b; P[v * 3 + 1] = y; P[v * 3 + 2] = p.z - p.nz * b;
+        P[v * 3 + 3] = p.x + p.nx * b; P[v * 3 + 4] = y; P[v * 3 + 5] = p.z + p.nz * b;
+        U[v * 2] = 0; U[v * 2 + 1] = p.s * .09; U[v * 2 + 2] = 1; U[v * 2 + 3] = p.s * .09;
+        F[v * 4 + 3] = F[v * 4 + 7] = al;
+      }
+      pa.needsUpdate = fa.needsUpdate = ua.needsUpdate = true;
+    }
+    return { mesh, schritt, reset };
+  }
+  function kielwasser() {
+    const bild = leinwand(256, 512, (g, w, h) => {
+      for (let i = 0; i < 900; i++) {
+        const z = Math.random(), x = z < .62 ? (Math.random() < .5 ? .05 + Math.random() * .13 : .82 + Math.random() * .13) : .34 + Math.random() * .32, r = 2 + Math.random() * 8, y = Math.random() * h;
+        for (const dy of [-h, 0, h]) { g.fillStyle = `rgba(255,255,255,${(.25 + Math.random() * .4).toFixed(2)})`; g.beginPath(); g.arc(x * w, y + dy, r, 0, 7); g.fill(); }
+      }
+    }, true);
+    bild.wrapS = T.ClampToEdgeWrapping;
+    return spurBauen({ punkte: 64, abstand: .9, y: .05, breite: (a) => .5 + Math.min(a * .15, 6.5), alpha: (a) => Math.pow(Math.max(0, 1 - a / 54), 1.3) * .9,
+      material: new T.MeshBasicMaterial({ map: bild, transparent: true, depthWrite: false, vertexColors: true, side: T.DoubleSide }) });
+  }
+  function kufenspuren() {
+    const material = new T.MeshBasicMaterial({ color: "#8aa2bb", transparent: true, depthWrite: false, vertexColors: true, side: T.DoubleSide });
+    return [0, 1].map(() => spurBauen({ punkte: 60, abstand: .9, y: .02, breite: () => .06, alpha: (a) => Math.max(0, 1 - a / 50) * .62, material }));
+  }
   // Wasserfläche mit wandernden Wellen (Normalenkarte aus der Welt, hier fein wiederholt)
   function wasserFlaeche(wellen) {
     const t = wellen.clone(); t.wrapS = t.wrapT = T.RepeatWrapping; t.repeat.set(80, 80); t.needsUpdate = true;
+    // große helle und dunkle Flächen, damit das Muster der Wellen nicht auffällt
+    const farben = leinwand(512, 512, (g, w, h) => {
+      g.fillStyle = "#e8f4ff"; g.fillRect(0, 0, w, h);
+      for (let i = 0; i < 46; i++) {
+        const x = Math.random() * w, y = Math.random() * h, r = 40 + Math.random() * 110, c = wahl(["95,215,225", "70,120,205", "255,255,255", "45,95,180"]);
+        for (const dx of [-w, 0, w]) for (const dy of [-h, 0, h]) { const v = g.createRadialGradient(x + dx, y + dy, 0, x + dx, y + dy, r); v.addColorStop(0, `rgba(${c},.42)`); v.addColorStop(1, `rgba(${c},0)`); g.fillStyle = v; g.fillRect(x + dx - r, y + dy - r, r * 2, r * 2); }
+      }
+    }, true);
+    farben.repeat.set(5, 5);
+    // Sonnenglitzer und kleine Schaumkronen
+    const funkel = leinwand(512, 512, (g, w, h) => {
+      g.fillStyle = "#000"; g.fillRect(0, 0, w, h);
+      g.fillStyle = "#fff"; for (let i = 0; i < 420; i++) { g.globalAlpha = .35 + Math.random() * .65; g.fillRect(Math.random() * w, Math.random() * h, 1 + Math.random() * 2, 1); }
+      g.globalAlpha = .3; g.strokeStyle = "#fff"; g.lineCap = "round";
+      for (let i = 0; i < 34; i++) { g.lineWidth = 1 + Math.random() * 2; const x = Math.random() * w, y = Math.random() * h, r = 6 + Math.random() * 13; g.beginPath(); g.arc(x, y + r, r, -2.2, -.9); g.stroke(); }
+    }, true);
+    funkel.colorSpace = T.NoColorSpace; funkel.repeat.set(16, 16);
     const k = new T.Mesh(new T.PlaneGeometry(600, 600).rotateX(-Math.PI / 2),
-      std({ color: "#2b8bcc", roughness: .12, metalness: .25, normalMap: t, normalScale: new T.Vector2(.7, .7), envMapIntensity: 1.3 }));
-    k.receiveShadow = true; k.userData.wellen = t;
+      std({ map: farben, emissive: "#ffffff", emissiveMap: funkel, emissiveIntensity: .8, color: "#2b8bcc", roughness: .12, metalness: .25, normalMap: t, normalScale: new T.Vector2(.95, .95), envMapIntensity: 1.3 }));
+    k.receiveShadow = true; k.userData.wellen = t; k.userData.farben = farben; k.userData.funkel = funkel;
     return k;
   }
   // Schlittenfahrt im Winterland: Holzschlitten mit Metallkufen und Slalomtore mit Fahnen
@@ -583,5 +658,5 @@ export function flugWelt(T, W) {
     }
     return g;
   }
-  return { insCockpit, ausCockpit, buckel, bergkette, schlitten, tor, boot, pylone, boje, wasserFlaeche, flieger, ring, heissluftballon, gewitter, voegel, insel, regenbogen, wolkenMeer, wolkenBild, wolkenBallen, strahlen };
+  return { kielwasser, kufenspuren, insCockpit, ausCockpit, buckel, bergkette, schlitten, tor, boot, pylone, boje, wasserFlaeche, flieger, ring, heissluftballon, gewitter, voegel, insel, regenbogen, wolkenMeer, wolkenBild, wolkenBallen, strahlen };
 }

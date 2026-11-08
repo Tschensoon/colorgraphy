@@ -31,7 +31,7 @@ if (rahmen) {
   function laden() {
     if (!bereit) {
       const text = losKnopf.textContent; losKnopf.disabled = true; losKnopf.textContent = "Lädt die 3D-Welt …";
-      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=44"), import("./lauf-ton.js?v=9"), import("./lauf-flug.js?v=8"), import("./lauf-effekte.js?v=3"), import("./lauf-buero.js?v=1"), import("./detektiv-figuren.js?v=4")])
+      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=45"), import("./lauf-ton.js?v=9"), import("./lauf-flug.js?v=9"), import("./lauf-effekte.js?v=3"), import("./lauf-buero.js?v=1"), import("./detektiv-figuren.js?v=4")])
         .then(([m, w, t, f, e, bm, fm]) => { THREE = m; T = t.ton(); aufbauen(w, f, e, bm, fm); losKnopf.disabled = false; losKnopf.textContent = text; });
     }
     return bereit;
@@ -1329,7 +1329,7 @@ if (rahmen) {
     [FW.ring(), FW.heissluftballon(), FW.gewitter(), FW.voegel(), FW.insel(), FW.regenbogen(), FW.wolkenBallen(), W.froebelBanner(2, .5)].forEach(dazu);
     for (const art of ["staub", "funke", "dampf"]) { const k = teilchenHolen(art); dazu(k); }
     [FW.tor(true, 4), FW.tor(false, 4), W.tanne(), W.schneemann()].forEach(dazu);
-    const versteckt = [buehne, meer, flieger.gruppe, anjaFlieger.gruppe, strahlen, boot.gruppe, anjaBoot.gruppe, wasser, schlitten.gruppe, anjaSchlitten.gruppe, bBuehne, anja.gruppe, blase, schattenA, ...sternchen];   // auch was gerade unsichtbar ist
+    const versteckt = [...alleSpuren.map(sp => sp.mesh), buehne, meer, flieger.gruppe, anjaFlieger.gruppe, strahlen, boot.gruppe, anjaBoot.gruppe, wasser, schlitten.gruppe, anjaSchlitten.gruppe, bBuehne, anja.gruppe, blase, schattenA, ...sternchen];   // auch was gerade unsichtbar ist
     const sichtbar = versteckt.map(o => o.visible);
     for (const o of versteckt) o.visible = true;
     szene.add(g);
@@ -2019,6 +2019,7 @@ if (rahmen) {
   const SCHLITTEN_Y = 0, SCHLITTEN_ERSTE = 40, SCHLITTEN_WEITERE = 30, SCHLITTEN_GRUND = 19, SCHLITTEN_MIN = 14, SCHLITTEN_MAX = 32;   // Tempo in m/s                              // Höhe des Boots über dem Wasser (Wasser bei y = 0)
   const FL = { art: "folie", naechsteArt: "folie", phaseNr: 0, an: false, abflug: 0, x: 0, y: 7, z: 0, zx: 0, zy: 7, v: 18, neig: 0, nick: 0, naechst: 0, strecke: 0, trudeln: 0,
     regenbogen: 0, objekte: [], tasten: { x: 0, y: 0 }, ax: 0, ay: 7, ab: 3000, zeit: 0, landung: 0, rueck: 0, gewarnt: false };
+  let bootSpur, schlittenSpuren = [], alleSpuren = [], spurPunkt = null;
   let FW, flieger, anjaFlieger, meer, flugGruppe, blende, strahlen, boot, anjaBoot, wasser, schlitten, anjaSchlitten, berge;
   const fahrzeug = () => FL.art === "wasser" ? boot : FL.art === "schlitten" ? schlitten : flieger;
   const anjaFahrzeug = () => FL.art === "wasser" ? anjaBoot : FL.art === "schlitten" ? anjaSchlitten : anjaFlieger;
@@ -2032,6 +2033,8 @@ if (rahmen) {
     anjaFlieger.gruppe.scale.setScalar(.8);
     meer.position.y = -1.5;
     strahlen = FW.strahlen(); strahlen.visible = false; szene.add(strahlen);
+    bootSpur = FW.kielwasser(); schlittenSpuren = FW.kufenspuren(); alleSpuren = [bootSpur, ...schlittenSpuren]; spurPunkt = new THREE.Vector3();
+    for (const sp of alleSpuren) szene.add(sp.mesh);
     boot = FW.boot(false); anjaBoot = FW.boot(true); anjaBoot.gruppe.scale.setScalar(.85); wasser = FW.wasserFlaeche(W.wasserNormal);
     schlitten = FW.schlitten(false); anjaSchlitten = FW.schlitten(true); anjaSchlitten.gruppe.scale.setScalar(.9); berge = FW.bergkette();
     for (const o of [flieger.gruppe, anjaFlieger.gruppe, meer, flugGruppe, boot.gruppe, anjaBoot.gruppe, wasser, schlitten.gruppe, anjaSchlitten.gruppe, berge]) { o.visible = false; szene.add(o); }
@@ -2048,6 +2051,7 @@ if (rahmen) {
     for (const ab of abschnitte) ab.gruppe.visible = false;
     for (const o of ski ? [ferneGruppe] : [boden, ferneGruppe, W.luft]) o.visible = false;   // auf dem Schlitten bleiben Schneeboden und Schneefall
     for (const o of [fahrzeug().gruppe, anjaFahrzeug().gruppe, flugGruppe, ...(ski ? [berge] : [nass ? wasser : meer])]) o.visible = true;
+    for (const sp of alleSpuren) { sp.reset(); sp.mesh.visible = sp === bootSpur ? nass : ski; }
     const y0 = ski ? SCHLITTEN_Y : nass ? WASSER_Y : 7;
     Object.assign(FL, { torX: 0, torZ: null, torSeite: 1, torNr: 0, serie: 0 });
     Object.assign(FL, { x: 0, y: y0, z: 0, zx: 0, zy: y0, v: ski ? Math.max(SCHLITTEN_GRUND, tempo) : nass ? Math.max(16, tempo) : Math.max(18, tempo), neig: 0, nick: 0, naechst: -45, strecke: 0, trudeln: 0, regenbogen: 250, ax: 0, ay: y0, zeit: 0, landung: 0, gewarnt: false });
@@ -2087,6 +2091,7 @@ if (rahmen) {
     }
     for (const o of FL.objekte) { flugGruppe.remove(o.mesh); W.entsorgen(o.mesh); }
     for (const o of [flieger.gruppe, anjaFlieger.gruppe, meer, flugGruppe, strahlen, boot.gruppe, anjaBoot.gruppe, wasser, schlitten.gruppe, anjaSchlitten.gruppe, berge]) o.visible = false;
+    for (const sp of alleSpuren) sp.mesh.visible = false;
     FL.objekte = []; FL.an = false; FL.abflug = 0; FL.landung = 0; blende.style.opacity = 0;
   }
   // Nach einer Minute: weiß überblenden und in der Laufwelt auf einem neuen Wegstück weiterrennen
@@ -2382,7 +2387,7 @@ if (rahmen) {
     }
     // Wolkenmeer bzw. Wasser und Himmel wandern mit, das Muster bleibt am Ort
     if (ski) { W.bodenFolgen(FL.x, FL.z); berge.position.set(FL.x * .6, -34, FL.z - 215); }
-    else if (FL.art === "wasser") { wasser.position.set(FL.x, 0, FL.z); wasser.userData.wellen.offset.set(FL.x * 80 / 600 + t * .02, -FL.z * 80 / 600 + t * .013); }
+    else if (FL.art === "wasser") { wasser.position.set(FL.x, 0, FL.z); wasser.userData.wellen.offset.set(FL.x * 80 / 600 + t * .02, -FL.z * 80 / 600 + t * .013); wasser.userData.farben.offset.set(FL.x * 5 / 600, -FL.z * 5 / 600); wasser.userData.funkel.offset.set(FL.x * 16 / 600 - t * .012, -FL.z * 16 / 600 + t * .017); }
     else { meer.position.set(FL.x, -1.5, FL.z); FW.wolkenBild.offset.set(FL.x * 12 / 500, -FL.z * 12 / 500); }
     schattenNachfuehren(FL.x, FL.z);
 
@@ -2401,14 +2406,16 @@ if (rahmen) {
     else { sonnenBild.position.set(kamera.position.x - 55, 26, kamera.position.z - 150); strahlen.position.copy(sonnenBild.position); }   // tief stehende Abendsonne vorn
     // Kondensstreifen an den Flügelspitzen
     if ((FL.dampfTakt = (FL.dampfTakt || 0) - dt) <= 0 && zustand === "laeuft" && qualitaet < 3) {
-      FL.dampfTakt = nass ? .05 : .035;
+      FL.dampfTakt = nass ? .07 : .035;
       for (const sx of nass ? [-.55, .55] : [-2.5, 2.5]) {       // in der Luft Kondensstreifen, auf dem Wasser Gischt hinter dem Boot
         const d = teilchenHolen("dampf"); d.position.copy(fg.localToWorld(new THREE.Vector3(sx, nass ? 0 : -.15, nass ? 1.6 : .4)));
         if (nass) d.position.y = .12;
         d.scale.setScalar(.3); szene.add(d);
-        teilchen.push({ k: d, v: new THREE.Vector3(nass ? sx * 1.2 : 0, 0, 0), t: 0, dauer: nass ? .9 : .7, wachsen: nass ? 1.1 : .9, alpha: nass ? .45 : .55 });
+        teilchen.push({ k: d, v: new THREE.Vector3(nass ? sx * 1.2 : 0, 0, 0), t: 0, dauer: nass ? .32 : .7, wachsen: nass ? .9 : .9, alpha: nass ? .4 : .55 });
       }
     }
+    if (FL.art === "wasser") bootSpur.schritt(fg.localToWorld(spurPunkt.set(0, 0, 1.75)));
+    else if (ski) schlittenSpuren.forEach((sp, i) => sp.schritt(fg.localToWorld(spurPunkt.set(i ? .46 : -.46, 0, 1.3))));
     if (ski) W.wetterSchritt(dt, kamera.position, t);
     gesicht(dt, .4);
     W.animieren(t); lichtSchritt(dt);
