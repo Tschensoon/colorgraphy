@@ -56,6 +56,18 @@ export function ton() {
     welt() { const t = jetzt(); [79, 83, 86, 91].forEach((m, i) => note(hz(m), t + i * .09, .5, { typ: "sine", laut: .09 })); },
     ende() { const t = jetzt(); [72, 67, 64, 60].forEach((m, i) => note(hz(m), t + i * .14, .3, { typ: "triangle", laut: .14 })); },
     rekord() { const t = jetzt(); [72, 76, 79, 84, 79, 84, 88].forEach((m, i) => note(hz(m), t + i * .1, .25, { typ: "square", laut: .06 })); },
+    kichern(pan = 0) {                   // Fröbelinchen kichert im Versteck: hihihi, von links oder rechts
+      if (!ctx) return;
+      const t = jetzt(); let ziel = effektBus;
+      if (ctx.createStereoPanner) { const p = ctx.createStereoPanner(); p.pan.value = Math.max(-1, Math.min(1, pan)); p.connect(effektBus); ziel = p; }
+      [0, .12, .24, .37].forEach((d, i) => {
+        const f = hz(86 - i * 2 + (i % 2) * 3), o = ctx.createOscillator(), g = ctx.createGain();
+        o.type = "triangle"; o.frequency.setValueAtTime(f * 1.06, t + d); o.frequency.exponentialRampToValueAtTime(f * .9, t + d + .09);
+        g.gain.setValueAtTime(0, t + d); g.gain.linearRampToValueAtTime(.1, t + d + .012); g.gain.exponentialRampToValueAtTime(.001, t + d + .1);
+        o.connect(g); g.connect(ziel); o.start(t + d); o.stop(t + d + .12);
+      });
+    },
+    tuer() { const t = jetzt(); note(170, t, .32, { typ: "sawtooth", laut: .025, gleit: 1.5 }); rauschen(t, .16, { laut: .07, filter: 1100 }); },
     knall() { const t = jetzt(); rauschen(t, .3, { laut: .3, filter: 400, typ: "lowpass" }); note(90, t, .3, { typ: "sine", laut: .4, gleit: .4 }); },
   };
 
@@ -112,6 +124,10 @@ export function ton() {
       akk: { A: "i VII VI VII", B: "i iv VII III" },
       mel: { A: "1 . 3 5 . 3 1 . | 7, . 2 4 . 2 7, . | 6, . 1 3 . 1 6, . | 7, - 2 - 4 - 5 .",
         B: "5 . 5 3' . 1' 5 . | 4 . 6 1' . 6 4 . | 2 . 4 5 . 4 2 . | 3 - 5 - 7 - 5 -" } },
+    { name: "Ankes Büro", bpm: 108, ton: 57, moll: true, swing: .12, melodie: "zupf", melOkt: 1, begleit: "offbeat", arpKlang: "keys", bass: "R...R...F...R...", bassKlang: "bassWeich", trommel: "besen",
+      akk: { A: "i iv i v", B: "VI VII i v" },
+      mel: { A: "1 . 3 . 5 . 3 . | 4 . 6 . 4 . . . | 5 . 3 . 1 . 3 5 | 5 . 7, . 2 . . .",
+        B: "6, . 1 . 3 . 1 . | 7, . 2 . 4 . 2 . | 1 . 3 . 5 . 1' . | 7 . 5 . 2 . . ." } },
   ];
   function melodieLesen(text) {
     const z = text.replace(/\|/g, " ").trim().split(/\s+/), ev = {};

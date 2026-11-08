@@ -420,3 +420,7 @@ body.spiel-offen { overflow: hidden; }
 .chat-hinweis { margin: 0; font-size: .75rem; color: #7a8a85; text-align: center; }
 .lauf-chat-knopf.neu { background: #ffe9a8 !important; }
 .lauf-overlay .lauf-knoepfe .lauf-chat-knopf { grid-column: 1 / -1; }
+
+/* Ankes Büro: Zeitanzeige wird rot, wenn Anke gleich zurück ist */
+.folie.buero.eilig .fo-zeit { color: #e53935; animation: bu-puls .5s ease-in-out infinite alternate; }
+@keyframes bu-puls { from { transform: scale(1); } to { transform: scale(1.15); } }

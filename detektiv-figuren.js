@@ -3,6 +3,7 @@
 export function figurenWerkstatt(T, handy) {
   const FARBE = {
     anja: { kopfBreite: 1.07, haut: "#f0bf9e", hautDunkel: "#c88a6a", shirt: "#2a3247", shirtHell: "#4b5774", shirtDunkel: "#141926", hose: "#232a3c", hoseHell: "#46506a", hoseDunkel: "#10141f", haar: "#d2a55c", haarHell: "#f2d79a", haarDunkel: "#8f6a35", schuh: "#23252c", iris: "#6f8fa6", lippe: "#c9625f", lang: true, vorhang: true, blazer: true, laecheln: true, naegel: "#6d1524" },
+    anke: { kopfBreite: 1.07, nase: .72, scheitel: .045, ansatz: .45, brauen: 8, haut: "#f4c8ab", hautDunkel: "#c98d6c", shirt: "#1d2438", shirtHell: "#3a4566", shirtDunkel: "#0f1320", hose: "#1f2536", hoseHell: "#3f475f", hoseDunkel: "#0e111b", haar: "#c39a5e", haarHell: "#efd6a0", haarDunkel: "#4e3420", schuh: "#23252c", iris: "#6b5a3e", lippe: "#c9706a", lang: true, vorhang: true, kurz: true, rund: .38, blazer: true, laecheln: true },   // Anke: Haare nur bis zu den Schultern
     aylin: { haut: "#d9a27a", hautDunkel: "#a66b48", shirt: "#2d9b86", shirtHell: "#62c9b0", shirtDunkel: "#14594d", hose: "#39394a", hoseHell: "#66667c", hoseDunkel: "#1b1b26", haar: "#27191a", haarHell: "#6b4a3d", haarDunkel: "#0d0809", schuh: "#3a2a22", iris: "#5a3a1e", lippe: "#a84a4a", lang: true },
   };
 
@@ -64,7 +65,7 @@ export function figurenWerkstatt(T, handy) {
       }
       g.restore();
       // Augenbraue
-      g.strokeStyle = P.haarDunkel; g.globalAlpha = .8; g.lineCap = "round"; g.lineWidth = 6 * s; g.beginPath(); g.moveTo(gx(si * .048), gy(.432)); g.quadraticCurveTo(gx(si * .08), gy(.408), gx(si * .118), gy(.43)); g.stroke(); g.globalAlpha = 1;
+      g.strokeStyle = P.haarDunkel; g.globalAlpha = P.brauen ? .95 : .8; g.lineCap = "round"; g.lineWidth = (P.brauen || 6) * s; g.beginPath(); g.moveTo(gx(si * .048), gy(.432)); g.quadraticCurveTo(gx(si * .08), gy(.408), gx(si * .118), gy(.43)); g.stroke(); g.globalAlpha = 1;
     }
     weich(mx, gy(.64), 24 * s, "#e0705f", .22);
     weich(mx, gy(.68), 15 * s, P.hautDunkel, .18);                         // unter der Nase
@@ -90,6 +91,7 @@ export function figurenWerkstatt(T, handy) {
     // Haare: viele senkrechte Strähnen in drei Tönen
     [x, y, b, h] = feld("haar");
     verlauf(x, y, b, h, P.haarHell, P.haar, P.haarDunkel);
+    if (P.ansatz) { const v = g.createLinearGradient(0, y, 0, y + h * P.ansatz); v.addColorStop(0, P.haarDunkel); v.addColorStop(.55, P.haarDunkel + "b0"); v.addColorStop(1, P.haarDunkel + "00"); g.fillStyle = v; g.fillRect(x, y, b, h * P.ansatz); }   // dunkler Ansatz, blonde Längen
     g.save(); g.beginPath(); g.rect(x, y, b, h); g.clip(); g.lineCap = "round";
     for (let i = 0; i < 520; i++) {
       const sx = x + z() * b, sy = y + z() * h * .75, l = h * (.15 + z() * .45);
@@ -102,7 +104,7 @@ export function figurenWerkstatt(T, handy) {
     { const v = g.createLinearGradient(0, y + h * .3, 0, y + h * .56); v.addColorStop(0, "rgba(255,255,255,0)"); v.addColorStop(.5, "rgba(255,255,255,.2)"); v.addColorStop(1, "rgba(255,255,255,0)"); g.fillStyle = v; g.fillRect(x, y + h * .3, b, h * .26); }
     if (P.vorhang) {                                     // Mittelscheitel: Die Vorderseite des Haars liegt bei u = 0,75
       g.save(); g.beginPath(); g.rect(x, y, b, h); g.clip();
-      const sx = x + b * .75, v = g.createLinearGradient(sx - 16 * s, 0, sx + 16 * s, 0);
+      const sx = x + b * (.75 + (P.scheitel || 0)), v = g.createLinearGradient(sx - 16 * s, 0, sx + 16 * s, 0);
       v.addColorStop(0, "rgba(0,0,0,0)"); v.addColorStop(.5, P.haarDunkel); v.addColorStop(1, "rgba(0,0,0,0)");
       g.fillStyle = v; g.fillRect(sx - 16 * s, y, 32 * s, h * .3); g.restore();
     }
@@ -267,16 +269,17 @@ export function figurenWerkstatt(T, handy) {
     });
     const h = J.huefte, br = J.brust, ha = J.hals, ko = J.kopf;
 
-    // Hüfte und Rumpf
+    // Hüfte und Rumpf (mit „rund“ wird die Taille voller, für eine rundere Figur)
+    const rund = (y) => 1 + (P.rund || 0) * Math.exp(-(((y - 1.12) / .13) ** 2));
     const vorn = Math.PI / 2;
     roehre(n, [
-      senk(0, 1.1, 0, .128, .094, 0, [[br, .5], [h, .5]], vorn), senk(0, 1.05, 0, .146, .104, .16, [[h, 1]], vorn), senk(0, 1.0, .004, .166, .116, .34, [[h, 1]], vorn), senk(0, .93, .006, .178, .124, .58, [[h, 1]], vorn),
-      senk(0, .86, .006, .152, .092, .8, [[h, .7], [J.beinLO, .15], [J.beinRO, .15]], vorn), senk(0, .8, .004, .05, .05, 1, [[h, .4], [J.beinLO, .3], [J.beinRO, .3]], vorn),
+      senk(0, 1.1, 0, .128 * rund(1.1), .094 * rund(1.1), 0, [[br, .5], [h, .5]], vorn), senk(0, 1.05, 0, .146 * rund(1.05), .104 * rund(1.05), .16, [[h, 1]], vorn), senk(0, 1.0, .004, .166 * rund(1.0), .116 * rund(1.0), .34, [[h, 1]], vorn), senk(0, .93, .006, .178 * rund(.93), .124 * rund(.93), .58, [[h, 1]], vorn),
+      senk(0, .86, .006, .152 * rund(.86), .092 * rund(.86), .8, [[h, .7], [J.beinLO, .15], [J.beinRO, .15]], vorn), senk(0, .8, .004, .05 * rund(.8), .05 * rund(.8), 1, [[h, .4], [J.beinLO, .3], [J.beinRO, .3]], vorn),
     ], "guertel", 16);
     roehre(n, [
-      senk(0, 1.5, -.003, .052, .052, 0, [[ha, 1]], vorn), senk(0, 1.485, -.003, .082, .066, .04, [[br, .35], [ha, .65]], vorn), senk(0, 1.465, -.002, .135, .083, .09, [[br, 1]], vorn),
-      senk(0, 1.435, 0, .172, .098, .17, [[br, 1]], vorn), senk(0, 1.39, -.006, .183, .116, .3, [[br, 1]], vorn), senk(0, 1.33, -.012, .172, .126, .45, [[br, 1]], vorn), senk(0, 1.26, -.009, .152, .116, .62, [[br, .85], [h, .15]], vorn),
-      senk(0, 1.18, -.002, .134, .098, .78, [[br, .55], [h, .45]], vorn), senk(0, 1.11, 0, .13, .096, .9, [[br, .3], [h, .7]], vorn), senk(0, 1.045, 0, .15, .106, 1, [[h, 1]], vorn),
+      senk(0, 1.5, -.003, .052 * rund(1.5), .052 * rund(1.5), 0, [[ha, 1]], vorn), senk(0, 1.485, -.003, .082 * rund(1.485), .066 * rund(1.485), .04, [[br, .35], [ha, .65]], vorn), senk(0, 1.465, -.002, .135 * rund(1.465), .083 * rund(1.465), .09, [[br, 1]], vorn),
+      senk(0, 1.435, 0, .172 * rund(1.435), .098 * rund(1.435), .17, [[br, 1]], vorn), senk(0, 1.39, -.006, .183 * rund(1.39), .116 * rund(1.39), .3, [[br, 1]], vorn), senk(0, 1.33, -.012, .172 * rund(1.33), .126 * rund(1.33), .45, [[br, 1]], vorn), senk(0, 1.26, -.009, .152 * rund(1.26), .116 * rund(1.26), .62, [[br, .85], [h, .15]], vorn),
+      senk(0, 1.18, -.002, .134 * rund(1.18), .098 * rund(1.18), .78, [[br, .55], [h, .45]], vorn), senk(0, 1.11, 0, .13 * rund(1.11), .096 * rund(1.11), .9, [[br, .3], [h, .7]], vorn), senk(0, 1.045, 0, .15 * rund(1.045), .106 * rund(1.045), 1, [[h, 1]], vorn),
     ], "shirt", 18);
     // Hals
     roehre(n, [
@@ -297,9 +300,9 @@ export function figurenWerkstatt(T, handy) {
         d += .0055 * glocke(du - si * .082, .034) * glocke(t - .462, .011);       // Oberlid
         d += .0055 * glocke(du - si * .092, .052) * glocke(t - .425, .02);        // Brauenbogen
         d += (P.laecheln ? .0105 : .0065) * glocke(du - si * .118, .05) * glocke(t - .62, .055);   // Wange
-        d += .0075 * glocke(du - si * .024, .013) * glocke(t - .655, .018);         // Nasenflügel
+        d += .0075 * (P.nase || 1) * glocke(du - si * .024, .013 * (P.nase || 1)) * glocke(t - .655, .018);         // Nasenflügel
       }
-      const nasenTiefe = .033 * stufe(.44, .625, t) * (1 - stufe(.63, .71, t));
+      const nasenTiefe = .033 * (P.nase || 1) * stufe(.44 + (1 - (P.nase || 1)) * .1, .625, t) * (1 - stufe(.63, .71, t));   // nase < 1: kleinere, kürzere Nase
       d += nasenTiefe * glocke(du, .011 + .009 * stufe(.54, .64, t));
       d += .0055 * glocke(du, P.laecheln ? .07 : .05) * glocke(t - .733, .016);    // Oberlippe
       d += .007 * glocke(du, P.laecheln ? .062 : .045) * glocke(t - .785, .018);   // Unterlippe
@@ -352,7 +355,7 @@ export function figurenWerkstatt(T, handy) {
       // Ein durchgehender Haarmantel: vom Scheitel um das Gesicht, über die Schultern und vorn wie hinten bis auf die Brust.
       // Jede Lage ist vorn offen und hat eine Innenseite, damit man nirgends hindurchschaut.
       const lage = (y, rx, rz, rzHinten, cz, offen, dicke, t, j, spitzen = 0) => ({
-        t, j, form: (u) => {
+        y, t, j, form: (u) => {
           const aussen = u <= .5, v = aussen ? u * 2 : (1 - u) * 2, w = offen + (Math.PI * 2 - offen * 2) * v, si = Math.sin(w), co = Math.cos(w);
           const rand = Math.min(1, Math.min(v, 1 - v) * 14), d = aussen ? 1 : 1 - dicke * rand, tiefe = co > 0 ? rz : rzHinten;
           const nx = si / rx, nz = -co / tiefe, l = Math.hypot(nx, nz), au = aussen ? 1 : -1;
@@ -362,12 +365,13 @@ export function figurenWerkstatt(T, handy) {
         },
       });
       const a = .0174533;
-      glaetten(n, roehre(n, [
+      const lagen = [
         lage(.325, .012, .014, .016, .012, .4 * a, .1, .22, [[ko, 1]]), lage(.318, .058, .066, .08, .012, .4 * a, .12, .24, [[ko, 1]]), lage(.302, .094, .11, .128, .012, .5 * a, .13, .27, [[ko, 1]]), lage(.28, .118, .134, .16, .01, 2.5 * a, .15, .3, [[ko, 1]]), lage(.26, .13, .146, .176, .004, 14 * a, .18, .33, [[ko, 1]]), lage(.24, .134, .152, .184, -.002, 34 * a, .2, .36, [[ko, 1]]), lage(.215, .137, .154, .188, -.002, 46 * a, .22, .41, [[ko, 1]]), lage(.19, .142, .152, .19, .002, 52 * a, .24, .46, [[ko, 1]]),
         lage(.13, .147, .143, .188, .012, 55 * a, .28, .54, [[ko, 1]]), lage(.06, .152, .128, .184, .017, 59 * a, .3, .62, [[ko, 1]]), lage(-.02, .165, .126, .182, .012, 55 * a, .32, .7, [[ko, .85], [br, .15]]),
         lage(-.1, .205, .15, .188, .002, 42 * a, .28, .77, [[ko, .45], [br, .55]]), lage(-.17, .24, .178, .195, -.012, 37 * a, .24, .83, [[ko, .15], [br, .85]]), lage(-.245, .242, .184, .197, -.018, 35 * a, .2, .89, [[br, 1]]),
         lage(-.31, .225, .18, .19, -.018, 38 * a, .15, .95, [[br, 1]], .008), lage(-.37, .185, .165, .165, -.015, 48 * a, .06, 1, [[br, 1]], .024),
-      ], "haar", handy ? 44 : 64, .05, .95), false);
+      ];
+      glaetten(n, roehre(n, P.kurz ? lagen.filter(l => l.y > -.13) : lagen, "haar", handy ? 44 : 64, .05, .95), false);
     } else if (P.lang) {
       // Zwei Strähnen rahmen das Gesicht
       for (const si of [-1, 1]) roehre(n, [

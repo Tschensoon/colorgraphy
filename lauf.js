@@ -31,8 +31,8 @@ if (rahmen) {
   function laden() {
     if (!bereit) {
       const text = losKnopf.textContent; losKnopf.disabled = true; losKnopf.textContent = "Lädt die 3D-Welt …";
-      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=43"), import("./lauf-ton.js?v=8"), import("./lauf-flug.js?v=4"), import("./lauf-effekte.js?v=3")])
-        .then(([m, w, t, f, e]) => { THREE = m; T = t.ton(); aufbauen(w, f, e); losKnopf.disabled = false; losKnopf.textContent = text; });
+      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=43"), import("./lauf-ton.js?v=9"), import("./lauf-flug.js?v=4"), import("./lauf-effekte.js?v=3"), import("./lauf-buero.js?v=1"), import("./detektiv-figuren.js?v=4")])
+        .then(([m, w, t, f, e, bm, fm]) => { THREE = m; T = t.ton(); aufbauen(w, f, e, bm, fm); losKnopf.disabled = false; losKnopf.textContent = text; });
     }
     return bereit;
   }
@@ -111,7 +111,7 @@ if (rahmen) {
   let W, sonne, himmelKugel, wolkenGruppe, ferneGruppe, sonnenBild, laterneLicht, aktZone = 0;
   let teilchen = [], staubTakt = 0;               // kleine Partikel (Funken, Staub)
   let NB = null, himmelLicht, schattenF, schattenA, tempoLinien;
-  function aufbauen(weltModul, flugModul, fxModul) {
+  function aufbauen(weltModul, flugModul, fxModul, bueroModul, figurModul) {
     renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
@@ -155,6 +155,7 @@ if (rahmen) {
     tempoLinien = document.createElement("div"); tempoLinien.className = "lauf-tempo"; blende.after(tempoLinien);
     duellAufbauen();
     folieAufbauen();
+    bueroAufbauen(bueroModul, figurModul);
     qualitaetSetzen(qualitaet);
     neu();
     groesse(); new ResizeObserver(groesse).observe(huelle);
@@ -347,7 +348,7 @@ if (rahmen) {
   }
 
   function neu() {
-    duellAus(); folieAus(); flugAus();
+    duellAus(); folieAus(); bueroAus(); flugAus();
     for (const ab of abschnitte) { szene.remove(ab.gruppe); W.entsorgen(ab.gruppe); }
     for (const p of teilchen) { szene.remove(p.k); teilchenLager[p.k.userData.art].push(p.k); }
     teilchen = [];
@@ -369,6 +370,7 @@ if (rahmen) {
 
   // ---------- Steuerung ----------
   function eingabe(art) {
+    if (BU.an) { bueroTaste(art); return; }
     if (FO.an) {                      // Einpacken: Pfeiltasten im Wechsel zählen wie ein Wisch
       if (zustand === "laeuft" && (art === "links" || art === "rechts")) folieWisch((art === "links" ? -1 : 1) * Math.max(40, huelle.clientWidth * .08));
       return;
@@ -392,6 +394,7 @@ if (rahmen) {
   addEventListener("keydown", (e) => {
     if ((e.code === "KeyP" || e.code === "Escape") && (zustand === "laeuft" || zustand === "pause")) { e.preventDefault(); pauseUm(); return; }
     if (DU.an && (e.code === "KeyA" || e.code === "KeyB")) { e.preventDefault(); if (!e.repeat) duellTaste(e.code === "KeyA" ? "A" : "B"); return; }
+    if (BU.an && zustand === "laeuft" && (e.code === "Enter" || e.code === "NumpadEnter")) { e.preventDefault(); bueroTaste("hoch"); return; }
     const art = TASTEN[e.code];
     if (!art || zustand !== "laeuft") return;
     e.preventDefault(); gedrueckt.add(art); flugTasten();
@@ -426,7 +429,7 @@ if (rahmen) {
   huelle.addEventListener("touchend", () => { wisch = null; });
   // Einpacken geht auch mit gedrückter Maustaste
   let mausX = null;
-  huelle.addEventListener("pointerdown", (e) => { if (e.pointerType === "mouse") mausX = e.clientX; });
+  huelle.addEventListener("pointerdown", (e) => { if (e.pointerType === "mouse") mausX = e.clientX; if (BU.an && renderer && e.target === renderer.domElement) bueroTippen(e); });
   addEventListener("pointermove", (e) => { if (mausX !== null && e.pointerType === "mouse" && FO.an) { folieWisch(e.clientX - mausX); mausX = e.clientX; } });
   addEventListener("pointerup", () => { mausX = null; });
 
@@ -494,7 +497,7 @@ if (rahmen) {
     ergebnis.querySelector(".le-punkte b").textContent = p;
     ergebnis.querySelector(".le-sterne").textContent = sternZahl;
     ergebnis.querySelector(".le-meter").textContent = Math.round(strecke);
-    ergebnis.querySelector(".le-welt").textContent = FO.an ? "Einpacken" : DU.an ? "Kissenschlacht" : FL.an ? ({ wasser: "Wasserwelt", schlitten: "Schlittenfahrt" }[FL.art] || "Luftwelt") : W.zonen[Math.min(R.welt, W.zonen.length - 1)].name;
+    ergebnis.querySelector(".le-welt").textContent = BU.an ? "Ankes Büro" : FO.an ? "Einpacken" : DU.an ? "Kissenschlacht" : FL.an ? ({ wasser: "Wasserwelt", schlitten: "Schlittenfahrt" }[FL.art] || "Luftwelt") : W.zonen[Math.min(R.welt, W.zonen.length - 1)].name;
     ergebnis.querySelector(".le-rekord").hidden = !neuerRekord;
     if (neuerRekord) T.rekord(); else T.ende();
     if (!tutorialFertig) { tutorialFertig = true; schreib("froebelinchen-rennt-tutorial", true); }
@@ -931,6 +934,7 @@ if (rahmen) {
   function schritt(dt) {
     if (DU.an) { duellSchritt(dt); return; }
     if (FO.an) { folieSchritt(dt); return; }
+    if (BU.an) { bueroSchritt(dt); return; }
     if (FL.an) { flugSchritt(dt); return; }
     // die Tempokurve zählt nur die Zeit zu Fuß: nach Flug, Boot oder Kissenschlacht geht es im alten Tempo weiter
     const tempoZiel = START_TEMPO + (MAX_TEMPO - START_TEMPO) * (1 - Math.exp(-R.laufZeit / 130));
@@ -950,10 +954,10 @@ if (rahmen) {
       if (FL.ab - punkte > 500) { FL.abflug = .001; FL.sonder = "schlitten"; T.abflug(); meldung("Schlittenfahrt!", `${NAME()} springt auf den Schlitten …`); }
     }
     // 3000 Punkte: weiß überblenden, dann geht es im Flugzeug weiter (Level 2)
-    if (!FL.abflug && punkte >= FL.ab) { FL.abflug = .001; T.abflug(); meldung(`${FL.ab} Punkte!`, FL.naechsteArt === "folie" ? "Rolle bereit: Fröbelinchen wird eingepackt!" : FL.naechsteArt === "duell" ? `${JAGD()} fordert ${NAME()} zur Kissenschlacht heraus!` : FL.naechsteArt === "wasser" ? `${NAME()} springt ins Boot …` : `${NAME()} steigt ins Flugzeug …`); }
+    if (!FL.abflug && punkte >= FL.ab) { FL.abflug = .001; T.abflug(); meldung(`${FL.ab} Punkte!`, FL.naechsteArt === "folie" ? "Rolle bereit: Fröbelinchen wird eingepackt!" : FL.naechsteArt === "buero" ? "Wo ist Fröbelinchen? Anke weiß es …" : FL.naechsteArt === "duell" ? `${JAGD()} fordert ${NAME()} zur Kissenschlacht heraus!` : FL.naechsteArt === "wasser" ? `${NAME()} springt ins Boot …` : `${NAME()} steigt ins Flugzeug …`); }
     if (FL.abflug) {
       FL.abflug += dt; blende.style.opacity = Math.min(1, FL.abflug / .9);
-      if (FL.abflug >= .9) { if (FL.sonder) { FL.sonder = null; flugStart("schlitten"); } else if (FL.naechsteArt === "folie") folieStart(); else if (FL.naechsteArt === "duell") duellStart(); else flugStart(); return; }
+      if (FL.abflug >= .9) { if (FL.sonder) { FL.sonder = null; flugStart("schlitten"); } else if (FL.naechsteArt === "folie") folieStart(); else if (FL.naechsteArt === "buero") bueroStart(); else if (FL.naechsteArt === "duell") duellStart(); else flugStart(); return; }
     }
     if (FL.rueck) { FL.rueck += dt; blende.style.opacity = Math.max(0, 1 - FL.rueck / .8); if (FL.rueck > .8) FL.rueck = 0; }
 
@@ -1091,6 +1095,7 @@ if (rahmen) {
     else if (zustand === "fang") schlussSchritt(dt);
     if (DU.an) { duellBild(dt); return; }
     if (FO.an) { folieBild(dt); return; }
+    if (BU.an) { bueroBild(dt); return; }
     if (FL.an) { flugBild(dt); return; }
     const ab = abschnitte.find(a => a.nr === S.idx);
     const [px, pz] = punkt(ab, S.s, S.x), yaw = -ab.h * Math.PI / 2;
@@ -1296,7 +1301,7 @@ if (rahmen) {
     [FW.ring(), FW.heissluftballon(), FW.gewitter(), FW.voegel(), FW.insel(), FW.regenbogen(), FW.wolkenBallen(), W.froebelBanner(2, .5)].forEach(dazu);
     for (const art of ["staub", "funke", "dampf"]) { const k = teilchenHolen(art); dazu(k); }
     [FW.tor(true, 4), FW.tor(false, 4), W.tanne(), W.schneemann()].forEach(dazu);
-    const versteckt = [buehne, meer, flieger.gruppe, anjaFlieger.gruppe, strahlen, boot.gruppe, anjaBoot.gruppe, wasser, schlitten.gruppe, anjaSchlitten.gruppe, anja.gruppe, blase, schattenA, ...sternchen];   // auch was gerade unsichtbar ist
+    const versteckt = [buehne, meer, flieger.gruppe, anjaFlieger.gruppe, strahlen, boot.gruppe, anjaBoot.gruppe, wasser, schlitten.gruppe, anjaSchlitten.gruppe, bBuehne, anja.gruppe, blase, schattenA, ...sternchen];   // auch was gerade unsichtbar ist
     const sichtbar = versteckt.map(o => o.visible);
     for (const o of versteckt) o.visible = true;
     szene.add(g);
@@ -1319,7 +1324,7 @@ if (rahmen) {
   const LUFT_STIMMUNG = { farbe: "#fff1e4", saett: 1.2, kontrast: 1.05, glanz: .8, licht: 2.7, himmel: .9 };
   const lichtZiel = { sonne: 2.8, himmel: .85, laterne: 0, scheibe: null };
   function stimmungSetzen(sofort) {
-    const st = FL.an ? (FL.art === "wasser" ? W.zonen[2].stimmung : FL.art === "schlitten" ? W.zonen[WINTER()].stimmung : LUFT_STIMMUNG) : W.zonen[aktZone].stimmung;
+    const st = BU.an ? BUERO_STIMMUNG : FL.an ? (FL.art === "wasser" ? W.zonen[2].stimmung : FL.art === "schlitten" ? W.zonen[WINTER()].stimmung : LUFT_STIMMUNG) : W.zonen[aktZone].stimmung;
     lichtZiel.sonne = st.licht; lichtZiel.himmel = st.himmel; lichtZiel.laterne = st.laterne || 0; (lichtZiel.scheibe = lichtZiel.scheibe || new THREE.Color()).set(st.scheibe || "#ffffff");
     if (NB) { NB.stimmung(st); if (sofort) NB.schritt(0, true); }
     if (sofort) { sonne.intensity = st.licht; himmelLicht.intensity = st.himmel; laterneLicht.intensity = lichtZiel.laterne; sonnenBild.material.color.copy(lichtZiel.scheibe); }
@@ -1754,6 +1759,227 @@ if (rahmen) {
     zeichnen();
   }
 
+  // ---------- Sonderphase: Ankes Büro ----------
+  // Anke hat Fröbelinchen in einem Schrankfach versteckt und holt sich kurz einen Kaffee. Man öffnet Türen per Tippen
+  // (oder mit ← → wählen und ↑ bzw. Enter öffnen). Hinweise: Kichern von links oder rechts, ein wackelndes Fach und später
+  // eine Ohrenspitze im Türspalt. Kommt Anke zurück, bevor man sie gefunden hat, ist die Phase vorbei (die Runde läuft weiter).
+  const BUERO_RUNDEN = [
+    { schraenke: [["akten", 2], ["holz", 2]], zeit: 22 },
+    { schraenke: [["weiss", 2], ["akten", 2], ["holz", 2]], zeit: 20 },
+    { schraenke: [["holz", 3], ["akten", 3], ["weiss", 2]], zeit: 18 },
+  ];
+  const BUERO_STIMMUNG = { farbe: "#fff6ea", saett: 1.1, kontrast: 1.04, glanz: .45, licht: 2.6, himmel: 1.0 };
+  const BU = { an: false, runde: 0, zeit: 0, dauer: 20, intro: 0, ende: 0, ausblenden: 0, zwischen: 0, falsch: 0, wahl: 0, kichern: 0, wackeln: 0, schritt: 0,
+    erwischt: false, tasten: false, tuer: 0, pop: 0, versteck: null, gefunden: null, breite: 2, kamX: 0, blitz: 0, sieg: false };
+  let BW = null, werkstatt = null, bBuehne = null, bRaum, bMoebel, bGiraffe, bOhr, bueroUI, anke = null, verstecke = [], bStrahl = null;
+  function bueroAufbauen(bm, fm) {
+    BW = bm.bueroWelt(THREE, W); werkstatt = fm.figurenWerkstatt(THREE, handy);
+    bBuehne = new THREE.Group(); bBuehne.visible = false; szene.add(bBuehne);
+    bRaum = BW.raum(); bBuehne.add(bRaum.gruppe);
+    bMoebel = new THREE.Group(); bBuehne.add(bMoebel);
+    bGiraffe = W.figurBauen("giraffe"); bGiraffe.gruppe.visible = false;
+    bOhr = BW.ohr(); bOhr.visible = false;
+    bueroUI = document.createElement("div"); bueroUI.className = "folie buero"; bueroUI.hidden = true;
+    bueroUI.innerHTML = `<div class="fo-kopf"><div class="fo-balken"><i></i><span></span></div><div class="fo-zeit">20</div></div><p class="fo-tipp" aria-hidden="true"><span>${handy ? "Tipp auf die Türen" : "Tür anklicken oder mit ← → wählen und ↑ öffnen"}</span></p>`;
+    tempoLinien.after(bueroUI);
+  }
+  const versteckX = (v) => v.schrank.position.x, versteckY = (v) => v.y0 + v.hoehe / 2;
+  function bueroRunde(nr) {
+    for (const k of [...bMoebel.children]) { bMoebel.remove(k); W.entsorgen(k); }
+    if (bGiraffe.gruppe.parent) bGiraffe.gruppe.parent.remove(bGiraffe.gruppe);
+    if (bOhr.parent) bOhr.parent.remove(bOhr);
+    const plan = BUERO_RUNDEN[nr], abst = .12;
+    const teile = plan.schraenke.map(([art, f]) => BW.schrank(art, f));
+    const breite = teile.reduce((n, t) => n + t.gruppe.userData.breite, 0) + abst * (teile.length - 1);
+    let x = -breite / 2;
+    verstecke = [];
+    for (const t of teile) { const b = t.gruppe.userData.breite; t.gruppe.position.set(x + b / 2, 0, -.96); bMoebel.add(t.gruppe); verstecke.push(...t.verstecke); x += b + abst; }
+    verstecke.sort((a, b) => versteckX(a) - versteckX(b) || versteckY(b) - versteckY(a));   // links nach rechts, oben nach unten (für die Tasten)
+    const ziel = wahl(verstecke);
+    for (const v of verstecke) { v.auf = 0; v.offen = 0; v.wackel = 0; if (v !== ziel) v.text = BW.fuellen(v); }
+    // Fröbelinchen sitzt klein im Fach und schaut zur Tür
+    const g = bGiraffe.gruppe, sk = Math.min(.21, ziel.hoehe * .82 / 2.75);
+    g.visible = true; g.scale.setScalar(sk); g.position.set(0, 0, .04); g.rotation.set(0, Math.PI, 0); ziel.inhalt.add(g);
+    BU.sk = sk;
+    // Ohrenspitze im Türspalt an der freien Kante (erst später sichtbar)
+    bOhr.position.set((ziel.links ? 1 : -1) * (ziel.breite / 2 - .03), ziel.y0 + ziel.hoehe * .82, ziel.tiefe / 2 + .035); bOhr.rotation.z = (ziel.links ? -1 : 1) * .5;
+    bOhr.visible = false; ziel.schrank.add(bOhr);
+    Object.assign(BU, { versteck: ziel, gefunden: null, falsch: 0, zeit: 0, dauer: plan.zeit, kichern: 1.6, wackeln: 3.2, schritt: 0, pop: 0, breite, wahl: 0, tuer: 0 });
+    bueroMarkieren(); bueroAnzeige();
+  }
+  function bueroStart() {
+    BU.an = true; FL.art = "buero";
+    for (const ab of abschnitte) ab.gruppe.visible = false;
+    for (const o of [boden, ferneGruppe, W.luft]) o.visible = false;
+    schattenF.visible = schattenA.visible = false; anja.gruppe.visible = false; sternchen.forEach(st => { st.visible = false; });
+    spieler.gruppe.visible = false; blase.visible = false;
+    bBuehne.visible = true;
+    if (!anke) {
+      try { anke = werkstatt.bauen("anke"); } catch (e) { anke = W.frauBauen(); }
+      anke.gruppe.scale.set(1.14, .91, 1.14);           // Anke ist kleiner und kräftiger als Anja
+      anke.gruppe.traverse(o => { if (o.isMesh) o.castShadow = true; }); bBuehne.add(anke.gruppe);
+    }
+    anke.gruppe.position.set(5.0, 0, -.35); anke.gruppe.rotation.set(0, Math.PI + .45, 0);   // steht im Raum vor der Tür und schaut zur Schrankwand anke.gruppe.visible = true;
+    Object.assign(BU, { runde: 0, intro: 3, ende: 0, ausblenden: 0, zwischen: 0, erwischt: false, tasten: false, kamX: 0, blitz: 0, sieg: false });
+    bueroRunde(0); BU.tuer = 1;
+    bueroUI.hidden = false; bueroUI.classList.remove("fertig", "eilig"); bueroAnzeige();
+    szene.fog.near = 30; szene.fog.far = 90; szene.fog.color.set("#f2efe8"); himmelKugel.material.color.set("#ffffff"); sonne.color.set("#fff4e4");
+    stimmungSetzen(); kamPos = null; wackeln = 0;
+    T.welt(); T.musik(9);
+    meldung("Anke hat Fröbelinchen versteckt!", "„Ich hol mir nur schnell einen Kaffee …“ Finde sie, bevor Anke zurück ist!");
+  }
+  function bueroAus() {
+    if (!bBuehne) return;
+    if (BU.an || bBuehne.visible) {
+      spieler.gruppe.visible = true;
+      for (const o of [boden, ferneGruppe]) o.visible = true;
+      W.luft.visible = qualitaet < 3; for (const ab of abschnitte) ab.gruppe.visible = true;
+      szene.fog.near = 45; szene.fog.far = 120;
+    }
+    BU.an = false; bBuehne.visible = false; bueroUI.hidden = true;
+  }
+  function bueroAnzeige() {
+    const rest = Math.max(0, BU.dauer - BU.zeit);
+    bueroUI.querySelector(".fo-zeit").textContent = Math.ceil(rest);
+    bueroUI.querySelector(".fo-balken i").style.transform = `scaleX(${rest / BU.dauer})`;
+    bueroUI.querySelector(".fo-balken span").textContent = `Versteck ${BU.runde + 1} von 3` + (BU.falsch ? ` · ${BU.falsch}× daneben` : "");
+    bueroUI.classList.toggle("eilig", rest < 6 && !BU.gefunden && !BU.erwischt);
+  }
+  function bueroMarkieren() {
+    verstecke.forEach((v, i) => { v.mat.emissive.set(BU.tasten && i === BU.wahl && !v.auf ? "#ffc93d" : "#000000"); v.mat.emissiveIntensity = .4; });
+  }
+  function bueroTaste(art) {
+    if (zustand !== "laeuft" || !verstecke.length || BU.intro > 0 || BU.ende || BU.zwischen) return;
+    if (!BU.tasten) { BU.tasten = true; bueroMarkieren(); if (art === "links" || art === "rechts") return; }
+    if (art === "links" || art === "rechts") {
+      const d = art === "links" ? -1 : 1, n = verstecke.length;
+      let i = BU.wahl;
+      for (let k = 0; k < n; k++) { i = (i + d + n) % n; if (!verstecke[i].auf) break; }
+      BU.wahl = i; bueroMarkieren(); T.spur();
+    } else bueroOeffnen(verstecke[BU.wahl]);
+  }
+  function bueroTippen(e) {
+    if (zustand !== "laeuft") return;
+    if (!bStrahl) bStrahl = { r: new THREE.Raycaster(), v: new THREE.Vector2() };
+    const rect = renderer.domElement.getBoundingClientRect();
+    bStrahl.v.set(((e.clientX - rect.left) / rect.width) * 2 - 1, -((e.clientY - rect.top) / rect.height) * 2 + 1);
+    bStrahl.r.setFromCamera(bStrahl.v, kamera);
+    const t = bStrahl.r.intersectObjects(verstecke.map(v => v.tuer), true)[0];
+    if (!t) return;
+    let o = t.object; while (o && !o.userData.versteck) o = o.parent;
+    if (o) bueroOeffnen(o.userData.versteck);
+  }
+  function bueroOeffnen(v) {
+    if (!v || v.auf || BU.gefunden || BU.erwischt || BU.intro > 0 || BU.ende || BU.zwischen) return;
+    v.auf = 1; T.tuer();
+    if (v === BU.versteck) { bueroGefunden(); return; }
+    BU.falsch++;
+    const d = Math.hypot(versteckX(v) - versteckX(BU.versteck), versteckY(v) - versteckY(BU.versteck));
+    meldung(v.text, d < 1 ? "Ganz heiß! 🔥" : d < 1.9 ? "Schon warm …" : "Kalt! ❄️");
+    BU.wahl = verstecke.indexOf(v); bueroMarkieren(); bueroAnzeige();
+  }
+  function bueroGefunden() {
+    const rest = Math.max(0, BU.dauer - BU.zeit), p = Math.max(100, 300 + 30 * Math.ceil(rest) - 60 * BU.falsch);
+    BU.gefunden = BU.versteck; BU.pop = .001; BU.zwischen = 2.4; bOhr.visible = false; bueroMarkieren();
+    punkte += p; sternZahl += 5; T.booster(); GE.freude = .5;
+    meldung(BU.falsch ? "Gefunden!" : "Gefunden, gleich beim ersten Mal!", `+${p} Punkte · +5 ★`);
+    const wo = new THREE.Vector3(versteckX(BU.versteck), versteckY(BU.versteck), -.6);
+    for (const farbe of ["#ffd54a", "#3baa35", "#ff7aa2"]) funkeln(wo, farbe, 8);
+    bueroAnzeige(); hudZeigen();
+  }
+  function bueroErwischt() {
+    BU.erwischt = true; BU.ende = 3.2; BU.tuer = 1;
+    BU.versteck.auf = 1;                                // zeigen, wo sie war
+    anke.gruppe.visible = true; T.stolpern(); wackeln = .3;
+    bueroUI.classList.add("fertig");
+    meldung("Erwischt! Anke ist zurück", `Fröbelinchen war ${BU.versteck.y0 > 1 ? "oben" : "unten"} im Schrank · weiter geht's`);
+  }
+  function bueroSchritt(dt) {
+    R.zeit += dt;
+    if (FL.abflug) { FL.abflug += dt; blende.style.opacity = Math.max(0, 1 - (FL.abflug - .9) / .8); if (FL.abflug > 1.7) FL.abflug = 0; }
+    if (BU.blitz) { BU.blitz = Math.max(0, BU.blitz - dt); blende.style.opacity = Math.min(1, BU.blitz / .35); }
+    if (BU.ausblenden) {
+      BU.ausblenden += dt; blende.style.opacity = Math.min(1, BU.ausblenden / .9);
+      if (BU.ausblenden >= .9) { BU.ausblenden = 0; flugLanden(); }
+      return;
+    }
+    if (BU.ende) { BU.ende -= dt; if (BU.ende <= 0) { BU.ende = 0; BU.ausblenden = .001; T.abflug(); } return; }
+    if (BU.intro > 0) {
+      BU.intro -= dt;
+      if (BU.intro <= 0) { BU.tuer = 0; T.tuer(); }
+      return;
+    }
+    if (BU.zwischen) {
+      BU.zwischen -= dt;
+      if (BU.zwischen <= 0) {
+        BU.zwischen = 0;
+        if (BU.runde < BUERO_RUNDEN.length - 1) {
+          BU.runde++; bueroRunde(BU.runde); BU.blitz = .35;
+          meldung(`Versteck ${BU.runde + 1} von 3`, "Anke hat sie schon wieder versteckt!");
+        } else {
+          BU.sieg = true; BU.ende = 2.6; punkte += 1000; sternZahl += 25; T.rekord(); bueroUI.classList.add("fertig");
+          meldung("Alle drei Verstecke gefunden!", "Anke staunt · +1.000 Punkte · +25 ★");
+        }
+      }
+      return;
+    }
+    if (BU.gefunden) return;
+    BU.zeit += dt;
+    const rest = BU.dauer - BU.zeit, zx = versteckX(BU.versteck);
+    // Hinweise: Kichern aus der Richtung des Verstecks, ab und zu wackelt die Tür, in der zweiten Hälfte guckt ein Ohr heraus
+    BU.kichern -= dt;
+    if (BU.kichern <= 0) { BU.kichern = zufall(3.2, 4.8); T.kichern(zx / Math.max(1, BU.breite / 2)); }
+    BU.wackeln -= dt;
+    if (BU.wackeln <= 0) { BU.wackeln = zufall(3.5, 5.5) - BU.zeit / BU.dauer * 1.5; BU.versteck.wackel = .7; }
+    bOhr.visible = BU.zeit > BU.dauer * .5;
+    // Ankes Schritte auf dem Flur werden lauter, kurz vorher geht die Tür einen Spalt auf
+    if (rest < 6.5) { BU.schritt -= dt; if (BU.schritt <= 0) { BU.schritt = .3 + rest * .07; T.schritt(.35 + (1 - rest / 6.5) * 1.3); } }
+    BU.tuer = rest < 1.4 ? .25 : 0;
+    if (rest <= 0) { bueroErwischt(); return; }
+    bueroAnzeige();
+    hudZeigen();
+  }
+  function bueroBild(dt) {
+    const t = performance.now() / 1000;
+    for (const v of verstecke) {
+      v.offen += (v.auf - v.offen) * Math.min(1, dt * 7);
+      v.wackel = Math.max(0, v.wackel - dt);
+      const w = v.offen * 1.95 + (v.wackel > 0 ? Math.abs(Math.sin(t * 38)) * .05 * v.wackel : 0);
+      v.angel.rotation.y = v.links ? -w : w;
+    }
+    // Fröbelinchen hüpft aus dem Fach und freut sich
+    const g = bGiraffe.gruppe;
+    if (BU.pop) {
+      BU.pop = Math.min(1, BU.pop + dt * 1.6); const k = BU.pop, e = 1 - Math.pow(1 - k, 3);
+      g.scale.setScalar(BU.sk + (.36 - BU.sk) * e); g.position.set(0, Math.sin(k * Math.PI) * .35, .04 + e * .75);
+      bGiraffe.hals.rotation.x = Math.sin(t * 12) * .12;
+    } else bGiraffe.hals.rotation.x = Math.sin(t * 1.8) * .06;
+    // Raumtür und Anke
+    const tz = BU.tuer;
+    bRaum.tuerAngel.rotation.y += ((-tz * 1.45) - bRaum.tuerAngel.rotation.y) * Math.min(1, dt * 5);
+    anke.gruppe.visible = BU.intro > 0 || BU.erwischt;
+    if (anke.gruppe.visible && anke.arme) {
+      const [l, r] = anke.arme, winkt = BU.intro > 0;
+      l.oben.rotation.set(0, 0, winkt ? 2.5 + Math.sin(t * 8) * .25 : .45); l.unten.rotation.set(0, 0, winkt ? .3 : -1.7);   // winkt bzw. Hand in die Hüfte
+      r.oben.rotation.set(0, 0, winkt ? -.07 : -.45); r.unten.rotation.set(0, 0, winkt ? 0 : 1.7);
+      if (anke.kopf) anke.kopf.rotation.y = winkt ? Math.sin(t * 2) * .15 : -.25;
+    }
+    // Kamera: alle Schränke passen ins Bild; erwischt man sich, schwenkt sie zur Tür, durch die Anke kommt
+    const hoch = kamera.aspect < .8, fov = hoch ? 58 : 42, halb = Math.tan(fov * Math.PI / 360);
+    const zielX = BU.erwischt || BU.intro > 0 ? 2.3 : 0, breite = (BU.erwischt || BU.intro > 0 ? 5.8 : BU.breite) + .5;
+    BU.kamX += (zielX - BU.kamX) * Math.min(1, dt * 2.5);
+    const abstand = Math.max(1.55 / halb, (breite / 2) / (halb * kamera.aspect));
+    kamera.position.set(BU.kamX + Math.sin(t * .3) * .08, 1.25, -.96 + abstand);
+    if (wackeln > 0) { wackeln = Math.max(0, wackeln - dt); kamera.position.x += (Math.random() - .5) * wackeln * .4; }
+    kamera.lookAt(BU.kamX, 1.12, -.96);
+    kamera.fov += (fov - kamera.fov) * Math.min(1, dt * 6); kamera.updateProjectionMatrix();
+    himmelKugel.position.copy(kamera.position); sonnenBild.position.set(kamera.position.x - 85, 95, kamera.position.z + 50);
+    schattenNachfuehren(0, 0);
+    W.animieren(t); lichtSchritt(dt);
+    teilchenSchritt(dt);
+    zeichnen();
+  }
+
   // ---------- Level 2: Luftwelt ----------
   // Ab 3000 Punkten fliegt Fröbelinchen eine Minute lang in ihrem Spielzeug-Flugzeug nach Norden (-z). Finger ziehen bzw. Pfeiltasten lenken
   // frei nach links, rechts, oben und unten. Durch Ringe fliegen gibt Punkte; Ballons, Gewitterwolken und Vögel bringen sie
@@ -1835,7 +2061,7 @@ if (rahmen) {
   }
   // Nach einer Minute: weiß überblenden und in der Laufwelt auf einem neuen Wegstück weiterrennen
   function flugLanden() {
-    duellAus(); folieAus(); flugAus();
+    duellAus(); folieAus(); bueroAus(); flugAus();
     for (const ab of abschnitte) { szene.remove(ab.gruppe); W.entsorgen(ab.gruppe); }
     abschnitte = []; hindernisse = []; sterne = []; booster = [];
     startNr = S.idx + 1;
@@ -1848,13 +2074,13 @@ if (rahmen) {
     if (!warSki) FL.phaseNr++;
     const bisNaechste = warSki ? Math.max(500, Math.round(FL.rest)) : PHASEN_ABSTAND[FL.phaseNr] ?? FLUG_AB;
     FL.ab = Math.floor(punkte) + bisNaechste;      // gezählt werden die zu Fuß gesammelten Punkte
-    const FOLGE = ["folie", "luft", "wasser", "duell"], warNass = FL.art === "wasser", warDuell = FL.art === "duell" || FL.art === "folie";
+    const FOLGE = ["folie", "luft", "wasser", "duell", "buero"], warNass = FL.art === "wasser", warDuell = FL.art === "duell" || FL.art === "folie" || FL.art === "buero";
     if (!warSki) FL.naechsteArt = FOLGE[(FOLGE.indexOf(FL.art) + 1) % FOLGE.length];
     FL.schlittenBei = 0;
     FL.rueck = .001; blende.style.opacity = 1;
     T.welt(); T.musik(zoneMusik());
     meldung(warSki ? "Unten angekommen!" : warDuell ? "Weiter geht's!" : warNass ? "Wieder an Land!" : "Gelandet!",
-      `${W.zonen[aktZone].name} · ${{ luft: "nächster Flug", wasser: "Bootsfahrt", duell: "Kissenschlacht", folie: "Einpacken" }[FL.naechsteArt]} in ${bisNaechste.toLocaleString("de-DE")} Punkten`);
+      `${W.zonen[aktZone].name} · ${{ luft: "nächster Flug", wasser: "Bootsfahrt", duell: "Kissenschlacht", folie: "Einpacken", buero: "Ankes Büro" }[FL.naechsteArt]} in ${bisNaechste.toLocaleString("de-DE")} Punkten`);
   }
 
   // Eine „Reihe“ im Himmel: Ring mit Sternenspur, Sternenbogen oder Hindernisse; dazu Inseln und Wolken am Rand
