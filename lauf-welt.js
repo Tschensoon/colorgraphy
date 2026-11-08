@@ -2233,7 +2233,7 @@ export function welt(T, handy) {
       deko: [laternenPfahl, laternenPfahl, laternenBeet, nachtHaus, martinsfeuer, baum], wetter: "funken" },
     { name: "Winterland", unter: "Brrr, es schneit!", huegel: "#e6edf3", kronen: "#cfdbe3", boden: schnee, nebel: "#e9eef4", himmel: "#dfe8f2", sonne: "#f2f6ff",
       deko: [tanne, tanne, tanne, schneemann], wetter: "schnee", hecke: "schnee" },
-    { name: "Dschungel", unter: "Affen, Lianen und Bananen", huegel: "#3f7a3a", kronen: "#2e6b2a", boden: dschungelBoden, nebel: "#d4ead0", himmel: "#eef8e8", sonne: "#fff1c2",
+    { name: "Dschungel", unter: "Duck dich unter den Lianen durch", huegel: "#3f7a3a", kronen: "#2e6b2a", boden: dschungelBoden, nebel: "#d4ead0", himmel: "#eef8e8", sonne: "#fff1c2",
       deko: [palme, palme, urwaldbaum, urwaldbaum, farn, farn, blueten, affeImBaum], wetter: "falter", musik: 8, weg: "erde", rand: "dschungel", dicht: true },
   ];
   const STIMMUNG = [

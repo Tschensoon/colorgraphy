@@ -31,7 +31,7 @@ if (rahmen) {
   function laden() {
     if (!bereit) {
       const text = losKnopf.textContent; losKnopf.disabled = true; losKnopf.textContent = "Lädt die 3D-Welt …";
-      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=47"), import("./lauf-ton.js?v=10"), import("./lauf-flug.js?v=11"), import("./lauf-effekte.js?v=4"), import("./lauf-buero.js?v=1"), import("./detektiv-figuren.js?v=4")])
+      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=48"), import("./lauf-ton.js?v=10"), import("./lauf-flug.js?v=11"), import("./lauf-effekte.js?v=4"), import("./lauf-buero.js?v=1"), import("./detektiv-figuren.js?v=4")])
         .then(([m, w, t, f, e, bm, fm]) => { THREE = m; T = t.ton(); aufbauen(w, f, e, bm, fm); losKnopf.disabled = false; losKnopf.textContent = text; });
     }
     return bereit;
@@ -292,7 +292,7 @@ if (rahmen) {
   const ART = { kloetze: "block", heuballen: "block", ball: "niedrig", balken: "niedrig", pfuetze: "niedrig", laub: "niedrig",
     huhn: "niedrig", enten: "niedrig", schneeball: "niedrig", stange: "hoch", eis: "eis", laternen: "hoch", gans: "niedrig", liane: "hoch", affe: "niedrig" };
   const HOEHE = { ball: .75, balken: .45, pfuetze: .15, laub: .5, huhn: .55, enten: .45, schneeball: .8, gans: .75, affe: .35 };
-  const WELT_HINDERNISSE = [[], ["heuballen", "huhn"], ["enten"], ["laub"], ["laternen", "gans"], ["schneeball", "eis"], ["liane", "affe"]];   // eigene je Welt
+  const WELT_HINDERNISSE = [[], ["heuballen", "huhn"], ["enten"], ["laub"], ["laternen", "gans"], ["schneeball", "eis"], ["liane"]];   // eigene je Welt
   function hindernisNeu(ab, s, setze, schwer, vorher) {
     const extra = WELT_HINDERNISSE[ab.zone] || [];
     let typ;
@@ -1367,7 +1367,7 @@ if (rahmen) {
       renderer.initTexture(z.boden);
     });
     ["kloetze", "ball", "balken", "pfuetze", "stange"].forEach(t => dazu(W.hindernis(t, 4)));
-    ["heuballen", "huhn", "enten", "laub", "schneeball", "eis", "laternen", "gans", "liane", "affe"].forEach(t => dazu(W.weltHindernis(t, 4)));
+    ["heuballen", "huhn", "enten", "laub", "schneeball", "eis", "laternen", "gans", "liane"].forEach(t => dazu(W.weltHindernis(t, 4)));
     ["schild", "schubs", "magnet", "doppelt"].forEach(t => dazu(W.booster(t)));
     ["logo", "ohren", "kitas"].forEach(t => { dazu(W.froebelHeckenTafel(t)); dazu(W.froebelTafel(t)); });
     ["ohren", "kitas"].forEach(t => dazu(W.froebelSchild(t)));
