@@ -203,46 +203,53 @@ export function flugWelt(T, W) {
     return { g, beine, hals };
   }
   function schlittenFliegt(anja) {
-    // Der Schlitten hängt in einem eigenen Gelenk (pendelt und wippt), das Gespann zieht in Kurven voraus und die Zügel hängen locker durch
-    const s = schlitten(anja), koerper = new T.Group(), team = new T.Group();
+    // Das Gespann ist der Steuerpunkt (Ursprung der Gruppe): man lenkt die Rentiere, der Schlitten hängt wie ein Anhänger dahinter,
+    // folgt verzögert, zeigt mit der Nase zu den Rentieren und pendelt nach. Die Zügel hängen locker durch.
+    const s = schlitten(anja), g = new T.Group(), koerper = new T.Group(), team = new T.Group(), heck = new T.Object3D();
     for (const k of [...s.gruppe.children]) koerper.add(k);
-    s.gruppe.add(koerper, team);
+    koerper.add(heck); heck.position.set(0, .05, 1.35);
+    g.add(koerper, team);
+    const BASIS = new T.Vector3(0, -1.3, 4.1);                     // Platz des Schlittens hinter dem Gespann
+    koerper.position.copy(BASIS);
     const tiere = [];
-    for (const [x, y, z, nase, reihe] of [[-.45, .95, -2.8, false, 1], [.45, .95, -2.8, false, 1], [-.45, 1.35, -4.1, false, 2], [.45, 1.35, -4.1, false, 2], [0, 1.8, -5.4, true, 3]]) {
+    for (const [x, y, z, nase, reihe] of [[-.45, -.35, 1.3, false, 1], [.45, -.35, 1.3, false, 1], [-.45, .05, 0, false, 2], [.45, .05, 0, false, 2], [0, .5, -1.3, true, 3]]) {
       const r = rentierFliegt(nase); r.g.position.set(x, y, z); r.g.rotation.x = .12; r.g.scale.setScalar(1.15); team.add(r.g);
       Object.assign(r, { bx: x, by: y, bz: z, reihe, x, y, vx: 0, vy: 0 }); tiere.push(r);
     }
-    // goldene Zügel: je Rentier zwei Stücke über einen durchhängenden Mittelpunkt
     const zuegel = new Float32Array(tiere.length * 4 * 3), zGeo = new T.BufferGeometry();
     zGeo.setAttribute("position", new T.BufferAttribute(zuegel, 3).setUsage(T.DynamicDrawUsage));
     const leinen = new T.LineSegments(zGeo, new T.LineBasicMaterial({ color: "#e8b830" })); leinen.frustumCulled = false; team.add(leinen);
-    let quer = 0, hoch = 0, pendel = 0, pendelV = 0;
+    let quer = 0, hoch = 0, pendel = 0, pendelV = 0, schlittenW = null;
+    const anker = new T.Vector3(), lokal = new T.Vector3();
     const animiere = (t, dt = .016, neig = 0, nick = 0) => {
       dt = Math.min(dt, .05);
       const k = Math.min(1, dt * 4); quer += (neig - quer) * k; hoch += (nick - hoch) * k;
-      // Schlitten hängt wie an einem Seil: schwingt in der Kurve nach außen und pendelt nach
-      pendelV += ((-quer * .55) - pendel) * 18 * dt - pendelV * 2.2 * dt; pendel += pendelV * dt;
-      koerper.rotation.z = pendel + Math.sin(t * 2.1) * .06;
-      koerper.rotation.x = Math.sin(t * 1.6 + 1) * .05 + hoch * .35;
-      koerper.rotation.y = quer * .15;
-      koerper.position.y = Math.sin(t * 3.2) * .09;
-      const kufeY = .78 + koerper.position.y;
+      // Anhänger: der Schlitten will an seinen Platz hinter dem Gespann, kommt aber verzögert nach
+      g.updateMatrixWorld(true);
+      anker.copy(BASIS); g.localToWorld(anker);
+      if (!schlittenW) schlittenW = anker.clone();
+      schlittenW.lerp(anker, Math.min(1, dt * 3));
+      lokal.copy(schlittenW); g.worldToLocal(lokal);
+      const dx = Math.max(-1.6, Math.min(1.6, lokal.x - BASIS.x)), dy = Math.max(-1, Math.min(1, lokal.y - BASIS.y));
+      pendelV += ((-quer * .5 - dx * .12) - pendel) * 16 * dt - pendelV * 2.4 * dt; pendel += pendelV * dt;
+      koerper.position.set(BASIS.x + dx, BASIS.y + dy + Math.sin(t * 3.2) * .08, BASIS.z);
+      koerper.rotation.set(Math.sin(t * 1.6 + 1) * .05 + hoch * .3 - dy * .1, Math.atan2(dx, BASIS.z), pendel + Math.sin(t * 2.1) * .05);
+      const sx = koerper.position.x, sy = koerper.position.y, sz = koerper.position.z;
       tiere.forEach((r, i) => {
-        // jedes Rentier hängt an einer Feder: zieht voraus, schießt etwas über das Ziel hinaus und schwingt zurück
-        const steif = 10 + r.reihe * 5, daempf = 3.2;
-        r.vx += ((r.bx - quer * r.reihe * 1.25) - r.x) * steif * dt - r.vx * daempf * dt; r.x += r.vx * dt;
-        r.vy += ((r.by + hoch * r.reihe * 1.8) - r.y) * steif * dt - r.vy * daempf * dt; r.y += r.vy * dt;
+        const steif = 12 + r.reihe * 4, daempf = 3.4;                       // die Rentiere federn nur leicht, das Leitrentier am meisten
+        r.vx += ((r.bx - quer * r.reihe * .45) - r.x) * steif * dt - r.vx * daempf * dt; r.x += r.vx * dt;
+        r.vy += ((r.by + hoch * r.reihe * .5) - r.y) * steif * dt - r.vy * daempf * dt; r.y += r.vy * dt;
         r.g.position.set(r.x, r.y + Math.sin(t * 7 + i) * .08, r.bz);
-        r.g.rotation.set(.12 - hoch * .6 - r.vy * .08, quer * .7 + r.vx * .05, quer * .9 - r.vx * .06);
-        r.hals.rotation.x = -.6 + Math.sin(t * 9 + i * .7) * .16;           // nickt im Galopp
+        r.g.rotation.set(.12 - hoch * .5 - r.vy * .08, quer * .5 + r.vx * .05, quer * .6 - r.vx * .06);
+        r.hals.rotation.x = -.6 + Math.sin(t * 9 + i * .7) * .16;
         for (const l of r.beine) l.b.rotation.x = (l.vorn ? -.7 : .7) + Math.sin(t * 9 + i + l.ph + (l.vorn ? 0 : Math.PI)) * .55;
-        const ax = r.bx * .4, ay = kufeY, az = -1.45, ex = r.x, ey = r.g.position.y + .05, ez = r.bz + .4;
+        const ax = sx + r.bx * .4, ay = sy + .78, az = sz - 1.45, ex = r.x, ey = r.g.position.y + .05, ez = r.bz + .4;
         const mx = (ax + ex) / 2, my = (ay + ey) / 2 - .28 + Math.sin(t * 5 + i) * .05, mz = (az + ez) / 2, o = i * 12;
         zuegel.set([ax, ay, az, mx, my, mz, mx, my, mz, ex, ey, ez], o);
       });
       zGeo.attributes.position.needsUpdate = true;
     };
-    return { gruppe: s.gruppe, propeller: s.propeller, sitz: s.sitz, animiere, schlitten: true };
+    return { gruppe: g, propeller: s.propeller, sitz: s.sitz, animiere, schlitten: true, heck };
   }
   function flieger(anja) {
     if (W.weihnachten) return schlittenFliegt(anja);

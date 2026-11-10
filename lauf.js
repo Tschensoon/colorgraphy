@@ -41,7 +41,7 @@ if (rahmen) {
   function laden() {
     if (!bereit) {
       const text = losKnopf.textContent; losKnopf.disabled = true; losKnopf.textContent = "Lädt die 3D-Welt …";
-      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=54"), import("./lauf-ton.js?v=12"), import("./lauf-flug.js?v=15"), import("./lauf-effekte.js?v=4"), import("./lauf-buero.js?v=1"), import("./detektiv-figuren.js?v=4")])
+      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=54"), import("./lauf-ton.js?v=12"), import("./lauf-flug.js?v=16"), import("./lauf-effekte.js?v=4"), import("./lauf-buero.js?v=1"), import("./detektiv-figuren.js?v=4")])
         .then(([m, w, t, f, e, bm, fm]) => { THREE = m; T = t.ton(); aufbauen(w, f, e, bm, fm); T.weihnachten(W.weihnachten); losKnopf.disabled = false; losKnopf.textContent = text; });
     }
     return bereit;
@@ -2429,7 +2429,7 @@ if (rahmen) {
       fg.rotation.set(Math.sin(t * 2.1) * .04 - .03, 0, FL.neig * .45 + Math.sin(t * 1.7) * .03 + wackel);
     } else {
       fg.position.set(FL.x, FL.y + Math.sin(t * 2) * .08, FL.z);
-      fg.rotation.set(FL.nick, fzg.schlitten ? FL.neig * .45 : 0, FL.neig + wackel);
+      fg.rotation.set(FL.nick, fzg.schlitten ? FL.neig * .3 : 0, FL.neig + wackel);
     }
     fzg.propeller.rotation.z += dt * 38; if (fzg.animiere) fzg.animiere(t, dt, FL.neig, FL.nick);
     spieler.hals.rotation.x = Math.sin(t * 1.6) * .07;
@@ -2439,8 +2439,8 @@ if (rahmen) {
     FL.ax += ((fang ? FL.x + 3 : FL.x + (FL.x > 2 ? -4.2 : 4.2)) - FL.ax) * Math.min(1, dt * 1.5);
     FL.ay += ((fang || nass ? FL.y : FL.y - 1.3) - FL.ay) * Math.min(1, dt * 1.5);
     const ag = afz.gruppe;
-    const hinten = (nass ? 3 : afz.schlitten ? 7.5 : 1.8) + A.abstand * .45;   // Rentierschlitten: Anjas Gespann ist lang, sie bleibt weiter hinten   // gestaucht, damit ihr Fahrzeug nie direkt vor der Kamera hängt
-    ag.visible = hinten < (afz.schlitten ? 14 : 8.5);
+    const hinten = (nass ? 3 : afz.schlitten ? 9.5 : 1.8) + A.abstand * .45;   // Rentierschlitten: Anjas Gespann ist lang, sie bleibt weiter hinten   // gestaucht, damit ihr Fahrzeug nie direkt vor der Kamera hängt
+    ag.visible = hinten < (afz.schlitten ? 16 : 8.5);
     ag.position.set(FL.ax, FL.ay + Math.sin(t * 2.3) * .1, FL.z + hinten);
     ag.rotation.set(0, 0, (FL.x - FL.ax) * -.08);
     afz.propeller.rotation.z += dt * 40; if (afz.animiere) afz.animiere(t + 1.3, dt, 0, 0);
@@ -2473,7 +2473,8 @@ if (rahmen) {
     if (fang) kamYaw += dt * .9; else kamYaw = 0;
     const sin = Math.sin(kamYaw), cos = Math.cos(kamYaw), hoch = kamera.aspect < .8;
     const rad = fang ? 13 : 10;
-    const ziel = new THREE.Vector3(FL.x * .75 + sin * rad, FL.y + (hoch ? 3.8 : 2.9) + (ski ? 1.1 : nass ? .6 : 0), FL.z + cos * (hoch ? rad + 2 : rad + .5));
+    const anh = fzg.schlitten && FL.art === "luft" ? 4 : 0;   // Rentierschlitten: die Kamera bleibt hinter dem Schlitten, der hinter dem Gespann hängt
+    const ziel = new THREE.Vector3(FL.x * .75 + sin * (rad + anh), FL.y + (hoch ? 3.8 : 2.9) + (ski ? 1.1 : nass ? .6 : 0) + anh * .15, FL.z + cos * (hoch ? rad + 2 + anh : rad + .5 + anh));
     if (!kamPos) kamPos = ziel.clone(); else kamPos.lerp(ziel, Math.min(1, dt * 6));
     kamera.position.copy(kamPos);
     if (wackeln > 0) { wackeln = Math.max(0, wackeln - dt); kamera.position.x += (Math.random() - .5) * wackeln * .6; kamera.position.y += (Math.random() - .5) * wackeln * .4; }
@@ -2488,7 +2489,7 @@ if (rahmen) {
       FL.dampfTakt = nass ? .07 : .035;
       for (const sx of nass || fzg.schlitten ? [-.55, .55] : [-2.5, 2.5]) {       // in der Luft Kondensstreifen (beim Rentierschlitten hinter den Kufen), auf dem Wasser Gischt hinter dem Boot
         if (fzg.schlitten && !nass) {                    // Rentierschlitten: goldener Sternenstaub hinter den Kufen
-          const f = teilchenHolen("funke", Math.random() < .7 ? "#ffd86b" : "#ffffff"); f.position.copy(fg.localToWorld(new THREE.Vector3(sx, .05, 1.35)));
+          const f = teilchenHolen("funke", Math.random() < .7 ? "#ffd86b" : "#ffffff"); f.position.copy(fzg.heck.localToWorld(new THREE.Vector3(sx, 0, 0)));
           f.scale.setScalar(zufall(.12, .22)); szene.add(f);
           teilchen.push({ k: f, v: new THREE.Vector3(zufall(-.4, .4), zufall(-.6, -.1), zufall(0, .6)), t: 0, dauer: zufall(.6, 1.1), schwer: 0 });
           continue;
