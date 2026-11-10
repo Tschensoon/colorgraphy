@@ -307,12 +307,27 @@ export function ton() {
         for (const art in tr) { const c = tr[art][pos]; if (c && c !== "." && !(wirbel && art === "s")) schlag(art, t, c === "X" ? 1 : .6); }
         if (wirbel) schlag("s", t, .4 + (pos - 12) * .15);
       }
+      if (schellenAn && pos % 4 === 0) schellen(t, pos === 0 ? .03 : .02, musikBus);
       naechste += d; schrittNr++;
     }
   }
+  // Weihnachtszeit: zwei gemeinfreie Weihnachtslieder, eigens arrangiert (Flug und Boot: Deck the Halls, sonst Jingle Bells)
+  const WEIHNACHT_STUECKE = [
+    { name: "Jingle Bells", bpm: 132, ton: 55, melodie: "glocke", begleit: "boomchick", arpKlang: "keys", bass: "R...F...R...F...", trommel: "schlitten", form: "VWABAC",
+      akk: { V: "I I I vi", W: "ii V V I", A: "I I I I", B: "IV I ii V", C: "IV I V I" },
+      mel: { V: "5, - 3 - 2 - 1 - | 5, - - - - - 5, 5, | 5, - 3 - 2 - 1 - | 6, - - - - - - -",
+        W: "6, - 4 - 3 - 2 - | 7, - - - - - - - | 5 - 5 - 4 - 2 - | 3 - - - - - - -",
+        A: "3 - 3 - 3 - - - | 3 - 3 - 3 - - - | 3 - 5 - 1 - - 2 | 3 - - - - - - -",
+        B: "4 - 4 - 4 - - 4 | 4 - 3 - 3 - 3 3 | 3 - 2 - 2 - 3 - | 2 - - - 5 - - -",
+        C: "4 - 4 - 4 - - 4 | 4 - 3 - 3 - 3 3 | 5 - 5 - 4 - 2 - | 1 - - - - - - -" } },
+    { name: "Deck the Halls", bpm: 116, ton: 60, melodie: "floete", begleit: "arp", arpKlang: "zupf", pad: true, bass: "R.......F.......", bassKlang: "bassWeich", trommel: "leicht",
+      akk: { A: "I I V I", B: "V I I V" },
+      mel: { A: "5 - - 4 3 - 2 - | 1 - 2 - 3 - 1 - | 2 3 4 2 3 - - 2 | 1 - 7, - 1 - - -",
+        B: "2 - - 3 4 - 2 - | 3 - - 4 5 - 2 - | 3 4 5 - 6 7 1' - | 7 - 6 - 5 - - -" } },
+  ];
   function musik(welt) {
     if (!ctx) return;
-    stueck = vorbereiten(STUECKE[welt % STUECKE.length]); schrittNr = 0; naechste = ctx.currentTime + .1;
+    stueck = vorbereiten(schellenAn ? WEIHNACHT_STUECKE[welt === 6 || welt === 2 ? 1 : 0] : STUECKE[welt % STUECKE.length]); schrittNr = 0; naechste = ctx.currentTime + .1;
     musikBus.gain.setTargetAtTime(.55 * (stueck.pegel || 1), ctx.currentTime, .05);
     if (!takt) takt = setInterval(planen, 50);
   }
@@ -366,9 +381,10 @@ export function ton() {
     o.connect(f); f.connect(g); g.connect(ziel); o.start();
     return { quelle: o, filter: f, gain: g };
   }
-  function schellen(start, laut) {
-    for (const [f, v] of [[2637, 1], [3520, .7], [4699, .4]]) note(f + Math.random() * 40, start, .13, { typ: "sine", laut: laut * v, attack: .002 });
+  function schellen(start, laut, bus = effektBus) {
+    for (const [f, v] of [[2637, 1], [3520, .7], [4699, .4]]) note(f + Math.random() * 40, start, .13, { typ: "sine", laut: laut * v, attack: .002, bus });
   }
+  let schellenAn = false;                 // Weihnachten: leise Schellen auf jedem Schlag der Musik
   function fahrtBauen(art) {
     const bus = ctx.createGain(); bus.gain.value = 0; bus.connect(effektBus);
     bus.gain.setTargetAtTime(1, ctx.currentTime, .3);
@@ -420,5 +436,5 @@ export function ton() {
     setTimeout(() => p.disconnect(), 2600);
   }
 
-  return { fahrt, fahrtJetzt: () => (fahrtAktiv ? fahrtAktiv.art : null), glocke, start, umschalten, istAn: () => an, musik, musikStop, aufnehmen, verloren, verlorenStop, ...sfx };
+  return { weihnachten: (an) => { schellenAn = !!an; }, fahrt, fahrtJetzt: () => (fahrtAktiv ? fahrtAktiv.art : null), glocke, start, umschalten, istAn: () => an, musik, musikStop, aufnehmen, verloren, verlorenStop, ...sfx };
 }

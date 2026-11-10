@@ -148,6 +148,16 @@ body.spiel-offen { overflow: hidden; }
 .lauf-pause { position: absolute; inset: 0; z-index: 5; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .8rem;
   background: rgba(255, 255, 255, .6); backdrop-filter: blur(3px); }
 .lauf-pause[hidden] { display: none; }
+/* Weihnachtszeit: Schneefall über der Seite (nicht im Vollbild-Spiel) und Gruß im Startmenü */
+.seiten-schnee { position: fixed; inset: 0; z-index: 3; pointer-events: none; opacity: .55;
+  background-image: radial-gradient(2.5px 2.5px at 20px 30px, #fff 60%, transparent 70%), radial-gradient(2px 2px at 120px 80px, #fff 60%, transparent 70%),
+    radial-gradient(3px 3px at 190px 150px, #fff 60%, transparent 70%), radial-gradient(2px 2px at 60px 170px, #fff 60%, transparent 70%),
+    radial-gradient(2.5px 2.5px at 160px 20px, #fff 60%, transparent 70%);
+  background-size: 220px 220px; animation: seiten-schnee 14s linear infinite; }
+@keyframes seiten-schnee { from { background-position: 0 0; } to { background-position: 60px 220px; } }
+@media (prefers-reduced-motion: reduce) { .seiten-schnee { animation: none; } }
+body.spiel-offen .seiten-schnee { display: none; }
+.weihnachtsgruss { margin: 0 0 .4rem; text-align: center; font-weight: 800; color: #c81e2a; letter-spacing: .02em; }
 /* Weiterspielen für Sterne */
 .lauf-rettung { position: absolute; inset: 0; z-index: 7; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .55rem; padding: 1rem; text-align: center; background: rgba(3, 40, 33, .78); color: #fff; }
 .lauf-rettung[hidden] { display: none; }

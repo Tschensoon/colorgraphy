@@ -1079,7 +1079,8 @@ export function welt(T, handy) {
     marlena: { shirt: [.30, .12, .55], shirtMat: std({ color: "#8e5bd0", roughness: .9 }), haar: mat.haar, lang: true },   // blond, schulterlang: verfolgt Anja, wenn man selbst Anja ist
     frau: { shirt: [.02, .32, .30], shirtMat: std({ color: "#1f9a8a", roughness: .9 }), haar: std({ color: "#17120f", roughness: .45 }), lang: true },
   };
-  const anjaBauen = () => personBauen("anja"), frauBauen = () => personBauen("frau"), marlenaBauen = () => personBauen("marlena");
+  const mitMuetze = (p) => { if (weihnachten) weihnachtsmuetze(p.zopf.parent); return p; };
+  const anjaBauen = () => mitMuetze(personBauen("anja")), frauBauen = () => personBauen("frau"), marlenaBauen = () => mitMuetze(personBauen("marlena"));
   // Anja als spielbare Figur (ab Stufe 150): dieselbe Person, dazu ein Hals-Gelenk und die Felder, die das Spiel von jeder Figur erwartet
   function anjaFigur() {
     const p = personBauen("anja"), kopf = p.zopf.parent;
@@ -1207,7 +1208,21 @@ export function welt(T, handy) {
   // ---------- Hindernisse ----------
   function hindernis(typ, breite) {
     const g = new T.Group();
-    if (typ === "kloetze") {
+    if (typ === "kloetze" && weihnachten) {               // Weihnachten: Stapel aus Geschenken
+      const X = xm();
+      for (let i = 0; i < 3; i++) {
+        const p = new T.Group(); p.position.set(zufall(-.05, .05), i * .5, zufall(-.05, .05)); p.rotation.y = zufall(-.35, .35); g.add(p);
+        const sch = wahl(X.schleife);
+        teil(X.geo.paket, wahl(X.paket), p, 0, .25, 0).scale.set(.5, .5, .5);
+        teil(X.geo.band, sch, p, 0, .25, 0).scale.set(.51, .51, .08); teil(X.geo.band, sch, p, 0, .25, 0).scale.set(.08, .51, .51);
+        if (i === 2) for (const s of [-1, 1]) { const l = teil(X.geo.schlaufe, sch, p, s * .08, .55, 0); l.rotation.y = Math.PI / 2; l.rotation.z = s * .5; }
+      }
+    } else if (typ === "ball" && weihnachten) {            // Weihnachten: riesige Christbaumkugel
+      const X = xm(), farbe = wahl(["#d62828", "#2a6fdb", "#f4c430", "#c2185b", "#2f9e44"]);
+      teil(X.geo.kugel, std({ color: farbe, roughness: .12, metalness: .6 }), g, 0, .45, 0).scale.setScalar(.45);
+      teil(zyl(.09, .09, .12, 12), std({ color: "#e8c25a", roughness: .25, metalness: .8 }), g, 0, .94, 0);
+      teil(new T.TorusGeometry(.06, .015, 6, 14), std({ color: "#e8c25a", roughness: .25, metalness: .8 }), g, 0, 1.04, 0);
+    } else if (typ === "kloetze") {
       for (let i = 0; i < 3; i++) {
         const k = teil(geo.klotz, wahl(mat.klotz), g, zufall(-.05, .05), .25 + i * .5, zufall(-.05, .05));
         k.rotation.y = zufall(-.35, .35);
@@ -1336,6 +1351,7 @@ export function welt(T, handy) {
     g.fillStyle = v; g.fillRect(0, 0, 64, 64);
   }, false), transparent: true, opacity: .9, depthWrite: false, blending: T.AdditiveBlending });
   function toertchen() {
+    if (weihnachten) return plaetzchen();
     const g = new T.Group(), k = new T.Mesh(toertchenGeo, toertchenMat); k.castShadow = true; g.add(k);
     const s = new T.Sprite(toertchenSchein); s.geometry.userData.geteilt = true; s.scale.setScalar(1.3); s.position.y = .05; g.add(s);
     return g;
@@ -1643,6 +1659,14 @@ export function welt(T, handy) {
       const x = -13 + i * 1.04, w = new T.Mesh(wimpel, farben[i % farben.length]);
       w.position.set(x, 5.6 - Math.sin((i / 25) * Math.PI) * .7, -4.85); g.add(w);
     }
+    if (weihnachten) {                                   // Weihnachten: Tannengirlande mit Lichtern, Bäume und Geschenke in der Halle
+      const pkt = []; for (let i = 0; i <= 24; i++) { const x = -12 + i; pkt.push(new T.Vector3(x, 3.15 - Math.abs(Math.sin(i * Math.PI / 4)) * .45, -4.8)); }
+      const girlande = new T.Mesh(new T.TubeGeometry(new T.CatmullRomCurve3(pkt), 120, .13, 8, false), M.tanne); g.add(girlande);
+      const lk = new T.InstancedMesh(xm().geo.kugel, xm().licht, 48), m = new T.Matrix4(), q = new T.Quaternion();
+      for (let i = 0; i < 48; i++) { const x = -12 + i * .5; m.compose(new T.Vector3(x, 3.15 - Math.abs(Math.sin(x * Math.PI / 4 + 3 * Math.PI)) * .45 - .05, -4.66), q, new T.Vector3(.06, .06, .06)); lk.setMatrixAt(i, m); lk.setColorAt(i, LICHT_FARBEN[i % LICHT_FARBEN.length]); }
+      g.add(lk);
+      for (const x of [-6.8, 6.8]) { const b = weihnachtsbaum(); b.position.set(x, 0, -3.6); g.add(b); const p = geschenke(); p.position.set(x + (x < 0 ? 1.4 : -1.4), 0, -3.4); g.add(p); }
+    }
     return g;
   }
   // Einpack-Phase: Kita-Stuhl, Rolle Frischhaltefolie und die Folie selbst
@@ -1665,6 +1689,21 @@ export function welt(T, handy) {
   });
   const folieStoff = new T.MeshStandardMaterial({ map: folieBild, color: "#ffffff", emissive: "#bfe6ff", emissiveIntensity: .32, roughness: .1, metalness: .05, transparent: true, opacity: .5, side: T.DoubleSide, depthWrite: false });
   const folieKante = new T.LineBasicMaterial({ color: "#ffffff", transparent: true, opacity: .75 });
+  function folieFestlich() {                             // Weihnachten: Fröbelinchen wird in Geschenkpapier eingepackt (wird weiter unten aufgerufen)
+    const papier = leinwand(256, 256, (g, w, h) => {
+      g.fillStyle = "#c81e2a"; g.fillRect(0, 0, w, h);
+      g.fillStyle = "rgba(255,255,255,.85)"; for (let i = 0; i < 40; i++) { g.beginPath(); g.arc(Math.random() * w, Math.random() * h, 2.5, 0, 7); g.fill(); }
+      g.fillStyle = "#f2c94c";
+      for (let y = 0; y < 4; y++) for (let x = 0; x < 4; x++) {
+        const cx = x * 64 + (y % 2 ? 32 : 0) + 16, cy = y * 64 + 32; g.beginPath();
+        for (let k = 0; k < 10; k++) { const a = -Math.PI / 2 + k * Math.PI / 5, r = k % 2 ? 6 : 14; g.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r); }
+        g.closePath(); g.fill();
+      }
+    }, true);
+    papier.repeat.set(2, 2);
+    Object.assign(folieStoff, { map: papier, emissive: new T.Color("#000000"), emissiveIntensity: 0, roughness: .55, metalness: 0, opacity: .96 });
+    folieKante.color.set("#f2c94c");
+  }
   function folienRolle() {
     const g = new T.Group();
     teil(zyl(.09, .09, .92, 18), std({ color: "#b98a5a", roughness: .9 }), g);
@@ -1885,6 +1924,14 @@ export function welt(T, handy) {
       for (const s of [-1, 1]) { const f = teil(fluegelForm, A_MAT.drache, g, s * .14, 1.62, -.02); f.scale.set(s * 1.9, 1.7, 1.7); f.rotation.y = s * -.45; f.rotation.x = -.15; }
       return g; } },
   };
+  // Weihnachtsmütze für jede Figur, solange keine andere Kopfbedeckung gewählt ist
+  function weihnachtsHut() {
+    const g = new T.Group(); g.userData.ausstattung = true;
+    teil(new T.TorusGeometry(.155, .045, 10, 24), A_MAT.weiss, g, 0, .14, .02).rotation.x = Math.PI / 2;
+    const spitze = new T.Group(); spitze.position.set(0, .15, .02); spitze.rotation.z = -.35; spitze.rotation.x = .15; g.add(spitze);
+    teil(kegel(.16, .36, 20), A_MAT.muetze, spitze, 0, .18, 0); teil(kugel, A_MAT.weiss, spitze, 0, .37, 0).scale.setScalar(.055);
+    return g;
+  }
   function ausstattungSetzen(sp, ids) {
     for (const ort of [sp.kopf, sp.hals, sp.halsAnker, sp.koerper]) if (ort) for (const k of [...ort.children]) if (k.userData.ausstattung) ort.remove(k);
     for (const id of ids) {
@@ -1899,6 +1946,7 @@ export function welt(T, handy) {
       else teilG.scale.setScalar((a.platz === "hals" ? sp.halsSkala : sp.kopfSkala) || 1);   // große Köpfe bekommen große Mützen
       (a.platz === "hals" ? (sp.halsAnker || sp.hals) : a.platz === "ruecken" ? sp.koerper : sp.kopf).add(teilG);
     }
+    if (weihnachten && !ids.some(id => AUSSTATTUNG[id] && AUSSTATTUNG[id].platz === "kopf")) { const h = weihnachtsHut(); h.scale.setScalar(sp.kopfSkala || 1); sp.kopf.add(h); }
   }
 
   // ================= Welten =================
@@ -2303,6 +2351,158 @@ export function welt(T, handy) {
     { name: "Dschungel", unter: "Duck dich unter den Lianen durch", huegel: "#3f7a3a", kronen: "#2e6b2a", boden: dschungelBoden, nebel: "#d4ead0", himmel: "#eef8e8", sonne: "#fff1c2",
       deko: [palme, palme, urwaldbaum, urwaldbaum, farn, farn, blueten, affeImBaum], wetter: "falter", musik: 8, weg: "erde", rand: "dschungel", dicht: true },
   ];
+  // ---------- Weihnachtslook: gilt bis einschließlich 31.12.2026 und schaltet sich danach von selbst ab ----------
+  // Zum Testen: ?weihnachten=1 (an) oder ?weihnachten=0 (aus) an die Adresse hängen.
+  const weihnachten = (() => {
+    try { const q = new URLSearchParams(location.search).get("weihnachten"); if (q === "1" || q === "0") return q === "1"; } catch (e) {}
+    return Date.now() < new Date(2027, 0, 1).getTime();
+  })();
+  if (weihnachten) for (const Z of ZONEN) { Z.wetter = "schnee"; Z.deko = [...Z.deko, weihnachtsbaum, geschenke]; }
+  if (weihnachten) folieFestlich();
+  let XM = null;
+  const xm = () => XM || (XM = {
+    kugel: std({ color: "#ffffff", roughness: .18, metalness: .55 }), licht: new T.MeshBasicMaterial({ color: "#ffffff" }),
+    stern: std({ color: "#ffd84a", emissive: "#ffb800", emissiveIntensity: 1.3, roughness: .3, metalness: .4 }),
+    teig: std({ color: "#d4934c", roughness: .8 }), glasur: std({ color: "#fffaf2", roughness: .5 }),
+    paket: ["#d62828", "#2a6fdb", "#2f9e44", "#f4c430", "#c2185b"].map(c => std({ color: c, roughness: .55 })),
+    schleife: ["#ffffff", "#f4c430", "#d62828"].map(c => std({ color: c, roughness: .4, metalness: .2 })),
+    muetze: std({ color: "#d1202a", roughness: .8 }), fell: std({ color: "#ffffff", roughness: 1 }),
+    geo: {
+      kugel: new T.SphereGeometry(1, 20, 14), stern: new T.ExtrudeGeometry(sternForm(.22, .1), { depth: .05, bevelEnabled: true, bevelThickness: .02, bevelSize: .02, bevelSegments: 2 }).translate(0, 0, -.025),
+      plaetzchen: new T.ExtrudeGeometry(sternForm(.2, .11), { depth: .05, bevelEnabled: true, bevelThickness: .025, bevelSize: .025, bevelSegments: 3 }).translate(0, 0, -.025),
+      glasur: new T.ExtrudeGeometry(sternForm(.15, .08), { depth: .012, bevelEnabled: false }),
+      paket: new T.BoxGeometry(1, 1, 1), band: new T.BoxGeometry(1, 1, 1), schlaufe: new T.TorusGeometry(.09, .025, 6, 14),
+      muetze: new T.ConeGeometry(.118, .27, 18), rand: new T.TorusGeometry(.112, .032, 8, 22).rotateX(Math.PI / 2),
+    },
+  });
+  function sternForm(aussen, innen) {
+    const s = new T.Shape();
+    for (let i = 0; i < 10; i++) { const a = Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? innen : aussen; i ? s.lineTo(Math.cos(a) * r, Math.sin(a) * r) : s.moveTo(Math.cos(a) * r, Math.sin(a) * r); }
+    s.closePath(); return s;
+  }
+  const BAUM_FARBEN = ["#d62828", "#f4c430", "#2a6fdb", "#e85d9e", "#f2f2f2"].map(c => new T.Color(c)), LICHT_FARBEN = ["#ffdd66", "#ff5a5a", "#5ab0ff", "#7dff8a", "#ffffff"].map(c => new T.Color(c));
+  // Geschmückte Tanne: Kugeln und Lichter sind je ein Objekt mit vielen Kopien, oben ein leuchtender Stern
+  function weihnachtsbaum() {
+    const g = new T.Group(), h = zufall(3, 4.2), X = xm();
+    teil(zyl(.15, .2, 1, 8), mat.rinde, g, 0, .5, 0);
+    const kugeln = [], lichter = [];
+    for (let i = 0; i < 3; i++) {
+      const r = (1.5 - i * .38) * h / 4, y = 1 + i * h * .22;
+      teil(kegel(r, h * .4, 12), M.tanne, g, 0, y + h * .2, 0);
+      for (let k = 0; k < 7; k++) { const w = k / 7 * Math.PI * 2 + i, q = r * .82; kugeln.push([Math.cos(w) * q, y + h * .06, Math.sin(w) * q]); }
+      for (let k = 0; k < 9; k++) { const w = k / 9 * Math.PI * 2 + i * .7, f = (k % 3) / 3, q = r * (.95 - f * .45); lichter.push([Math.cos(w) * q, y + h * (.04 + f * .22), Math.sin(w) * q]); }
+    }
+    const m = new T.Matrix4(), q = new T.Quaternion();
+    const viele = (liste, material, groesse, farben) => {
+      const k = new T.InstancedMesh(X.geo.kugel, material, liste.length);
+      liste.forEach(([x, y, z], i) => { m.compose(new T.Vector3(x, y, z), q, new T.Vector3(groesse, groesse, groesse)); k.setMatrixAt(i, m); k.setColorAt(i, farben[i % farben.length]); });
+      k.castShadow = false; g.add(k); return k;
+    };
+    viele(kugeln, X.kugel, .12, BAUM_FARBEN); viele(lichter, X.licht, .045, LICHT_FARBEN);
+    const stern = teil(X.geo.stern, X.stern, g, 0, 1 + 2 * h * .22 + h * .42, 0); stern.scale.setScalar(1.4); stern.castShadow = false;
+    return g;
+  }
+  // zwei bis drei Geschenkpakete mit Band und Schleife
+  function geschenke() {
+    const g = new T.Group(), X = xm(), n = 2 + Math.floor(Math.random() * 2);
+    for (let i = 0; i < n; i++) {
+      const b = zufall(.45, .8), h = zufall(.35, .7), x = (i - (n - 1) / 2) * .75 + zufall(-.1, .1), z = zufall(-.25, .25), dreh = zufall(0, 1.5);
+      const p = new T.Group(); p.position.set(x, 0, z); p.rotation.y = dreh; g.add(p);
+      const farbe = wahl(X.paket), schleife = wahl(X.schleife);
+      teil(X.geo.paket, farbe, p, 0, h / 2, 0).scale.set(b, h, b);
+      teil(X.geo.band, schleife, p, 0, h / 2, 0).scale.set(b + .012, h + .012, .09);
+      teil(X.geo.band, schleife, p, 0, h / 2, 0).scale.set(.09, h + .012, b + .012);
+      for (const s of [-1, 1]) { const l = teil(X.geo.schlaufe, schleife, p, s * .08, h + .07, 0); l.rotation.y = Math.PI / 2; l.rotation.z = s * .5; l.castShadow = false; }
+    }
+    return g;
+  }
+  // Lichterkette, die oben über Hecke oder Pflanzenwand hängt
+  function lichterkette(laenge, oben, dicke) {
+    const X = xm(), n = Math.max(3, Math.round(laenge * 2.4)), k = new T.InstancedMesh(X.geo.kugel, X.licht, n), m = new T.Matrix4(), q = new T.Quaternion(), s = new T.Vector3(.075, .095, .075);
+    for (let i = 0; i < n; i++) {
+      const z = -laenge / 2 + (i + .5) * laenge / n;
+      m.compose(new T.Vector3(Math.sin(i * 1.7) * dicke * .2, oben - Math.abs(Math.sin(i * .9)) * .04, z), q, s); k.setMatrixAt(i, m); k.setColorAt(i, LICHT_FARBEN[i % LICHT_FARBEN.length]);
+    }
+    k.castShadow = false; return k;
+  }
+  // Weihnachtsplätzchen statt Törtchen: Stern aus Teig mit weißem Zuckerguss
+  function plaetzchen() {
+    const g = new T.Group(), X = xm();
+    const k = teil(X.geo.plaetzchen, X.teig, g, 0, .05, 0); k.castShadow = true;
+    for (const s of [-1, 1]) { const gl = teil(X.geo.glasur, X.glasur, g, 0, .05, s * .05); if (s < 0) gl.rotation.y = Math.PI; gl.castShadow = false; }
+    const sc = new T.Sprite(toertchenSchein); sc.geometry.userData.geteilt = true; sc.scale.setScalar(1.3); sc.position.y = .05; g.add(sc);
+    return g;
+  }
+  // Weihnachtsmütze für Anja und Marlena
+  function weihnachtsmuetze(kopf) {
+    const X = xm(), g = new T.Group(); g.position.set(0, .085, .01); g.rotation.x = -.35; g.rotation.z = .12; kopf.add(g);
+    teil(X.geo.muetze, X.muetze, g, 0, .14, 0); teil(X.geo.rand, X.fell, g, 0, .01, 0); teil(X.geo.kugel, X.fell, g, 0, .29, 0).scale.setScalar(.045);
+    return g;
+  }
+
+  // --- noch mehr Weihnachten: Untertitel, Rentiere und Schneemänner, Zuckerstangen, Geschenke als Hindernisse, Weihnachtsmann am Himmel ---
+  if (weihnachten) {
+    const UNTER = ["Im Kita-Garten duftet es nach Plätzchen", "Auf dem Hof warten die Rentiere", "Der See glitzert im Schnee", "Tannenzapfen und Lichterketten",
+      "Laternen und Lichterglanz", "Brrr, bald kommt der Weihnachtsmann!", "Selbst im Dschungel schneit es heute"];
+    ZONEN.forEach((Z, i) => { Z.unter = UNTER[i] || Z.unter; Z.deko = [...Z.deko, rentier, schneemann]; });
+  }
+  const zuckerBild = leinwand(64, 256, (g, w, h) => {
+    g.fillStyle = "#fffaf4"; g.fillRect(0, 0, w, h); g.fillStyle = "#d8202c";
+    for (let y = -w; y < h + w; y += 64) { g.beginPath(); g.moveTo(0, y); g.lineTo(w, y + w); g.lineTo(w, y + w + 24); g.lineTo(0, y + 24); g.closePath(); g.fill(); }
+  }, true);
+  zuckerBild.repeat.set(1, 1);
+  let zuckerGeo = null, zuckerMat = null;
+  // Zuckerstangen am Wegrand, alle paar Meter an der Innenseite der Hecke
+  function zuckerstangen(laenge, x, dicht) {
+    if (!zuckerGeo) {
+      const kurve = new T.CatmullRomCurve3([[0, 0, 0], [0, .55, 0], [0, .8, 0], [.06, .95, 0], [.17, .98, 0], [.25, .9, 0], [.26, .8, 0]].map(p => new T.Vector3(...p)));
+      zuckerGeo = new T.TubeGeometry(kurve, 32, .045, 8, false); zuckerGeo.userData.geteilt = true;
+      const uv = zuckerGeo.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getY(i), uv.getX(i) * 5);
+      zuckerMat = std({ map: zuckerBild, roughness: .35 });
+    }
+    const n = Math.max(1, Math.floor(laenge / (dicht ? 2.4 : 3.2))), k = new T.InstancedMesh(zuckerGeo, zuckerMat, n), m = new T.Matrix4(), q = new T.Quaternion(), e = new T.Euler();
+    for (let i = 0; i < n; i++) { q.setFromEuler(e.set(0, i % 2 ? Math.PI : 0, 0)); m.compose(new T.Vector3(x, 0, -laenge / 2 + (i + .5) * laenge / n), q, new T.Vector3(1.1, 1.1, 1.1)); k.setMatrixAt(i, m); }
+    k.castShadow = false; return k;
+  }
+  // Rentier als Deko: brauner Körper, helle Brust, Geweih, rote Nase
+  let RM = null;
+  function rentier() {
+    if (!RM) RM = { fell: std({ color: "#8a5a34", roughness: .9 }), hell: std({ color: "#e8d3b2", roughness: .9 }), horn: std({ color: "#d9c08e", roughness: .7 }), nase: std({ color: "#ff2a2a", emissive: "#ff1010", emissiveIntensity: .9 }), dunkel: std({ color: "#2a1c12", roughness: .6 }) };
+    const g = new T.Group(), s = zufall(.85, 1.1);
+    const r = teil(kugel, RM.fell, g, 0, 1, 0); r.scale.set(.32, .3, .62);
+    teil(kugel, RM.hell, g, 0, .98, -.42).scale.set(.22, .24, .2);
+    for (const [x, z] of [[-.17, -.38], [.17, -.38], [-.17, .38], [.17, .38]]) { teil(zyl(.05, .04, .75, 6), RM.fell, g, x, .4, z); teil(zyl(.055, .06, .08, 6), RM.dunkel, g, x, .04, z); }
+    const hals = new T.Group(); hals.position.set(0, 1.15, -.5); hals.rotation.x = -.5; g.add(hals);
+    teil(zyl(.11, .14, .45, 8), RM.fell, hals, 0, .2, 0);
+    const kopf = teil(kugel, RM.fell, hals, 0, .45, -.1); kopf.scale.set(.15, .15, .24);
+    teil(kugel, RM.nase, hals, 0, .42, -.33).scale.setScalar(.055);
+    for (const sx of [-1, 1]) {
+      const h = new T.Group(); h.position.set(sx * .08, .58, -.05); h.rotation.z = sx * -.4; hals.add(h);
+      teil(zyl(.02, .025, .32, 5), RM.horn, h, 0, .16, 0);
+      for (const [y, w] of [[.12, .9], [.24, .7]]) { const z = teil(zyl(.015, .018, .14, 5), RM.horn, h, sx * .05, y, -.03); z.rotation.z = sx * -w; }
+    }
+    g.scale.setScalar(s); g.rotation.y = zufall(0, 6); return g;
+  }
+  // Weihnachtsmann im Rentierschlitten, fliegt ab und zu über den Himmel (statt der Vögel)
+  const weihnachtsmann = new T.Group();
+  if (weihnachten) {
+    const rot = std({ color: "#c81e28", roughness: .6 }), gold = std({ color: "#e8b830", roughness: .3, metalness: .6 }), weiss = std({ color: "#ffffff", roughness: .9 }),
+      haut = std({ color: "#f0c2a0", roughness: .8 }), braun = std({ color: "#7a4a26", roughness: .9 }), nase = std({ color: "#ff3030", emissive: "#ff2020", emissiveIntensity: 1.5 });
+    const schlitten = new T.Group(); weihnachtsmann.add(schlitten);
+    teil(kiste(1.1, .5, .7), rot, schlitten, 0, .45, 0); teil(kiste(1.2, .08, .1), gold, schlitten, 0, .05, .3); teil(kiste(1.2, .08, .1), gold, schlitten, 0, .05, -.3);
+    teil(kiste(.5, .45, .5), wahl(xm().paket), schlitten, .3, .85, 0);
+    teil(kugel, rot, schlitten, -.2, .95, 0).scale.set(.32, .38, .32); teil(kugel, haut, schlitten, -.2, 1.42, 0).scale.setScalar(.17);
+    teil(kugel, weiss, schlitten, -.31, 1.32, 0).scale.set(.1, .14, .15); teil(kegel(.17, .35, 10), rot, schlitten, -.2, 1.66, 0); teil(kugel, weiss, schlitten, -.2, 1.84, 0).scale.setScalar(.06);
+    for (let i = 0; i < 4; i++) {
+      const r = new T.Group(); r.position.set(-1.3 - i * .95, .45 + i * .08, (i % 2 ? .25 : -.25)); weihnachtsmann.add(r);
+      teil(kugel, braun, r, 0, .3, 0).scale.set(.38, .18, .14); teil(kugel, braun, r, -.4, .5, 0).scale.setScalar(.1);
+      for (const x of [-.22, .22]) teil(zyl(.03, .03, .35, 5), braun, r, x, .1, 0);
+      for (const z of [-.06, .06]) { const h = teil(zyl(.012, .015, .22, 4), gold, r, -.38, .66, z); h.rotation.x = z * 6; }
+      if (i === 3) teil(kugel, nase, r, -.5, .48, 0).scale.setScalar(.045);
+    }
+    weihnachtsmann.scale.setScalar(2.4); weihnachtsmann.visible = false;
+  }
+  let mannX = -160;
   const STIMMUNG = [
     { farbe: "#fff2e0", saett: 1.12, kontrast: 1.04, glanz: .55, licht: 2.9, himmel: .85 },   // warmer Morgen
     { farbe: "#fffaf0", saett: 1.16, kontrast: 1.06, glanz: .5, licht: 3.2, himmel: .9 },     // Mittagssonne
@@ -2387,7 +2587,10 @@ export function welt(T, handy) {
     return g;
   }
   function randFuer(laenge, z, hoehe, dicke, innen = 0) {
-    return ZONEN[z].rand === "dschungel" ? dschungelWand(laenge, hoehe, dicke, innen) : heckeFuer(laenge, z, hoehe, dicke);
+    const dschungel = ZONEN[z].rand === "dschungel", g = dschungel ? dschungelWand(laenge, hoehe, dicke, innen) : heckeFuer(laenge, z, hoehe, dicke);
+    if (weihnachten) g.add(lichterkette(laenge, dschungel ? (hoehe ?? 1.45) + .5 : (hoehe ?? 1.45) + (dicke ?? .8) * .56, dicke ?? .8));
+    if (weihnachten && innen) g.add(zuckerstangen(laenge, innen * ((dicke ?? .8) / 2 + .14), dschungel));
+    return g;
   }
 
   // Hecken je Welt: im Herbst bunt, im Winter mit Schnee auf der Krone
@@ -2395,7 +2598,7 @@ export function welt(T, handy) {
   function heckeFuer(laenge, z, hoehe, dicke) {
     const g = heckenStueck(laenge, hoehe, dicke), art = ZONEN[z].hecke;
     if (art === "herbst") g.children.forEach(k => { k.material = heckeHerbst; });
-    if (art === "schnee") g.children[1].material = M.schneeKappe;
+    if (art === "schnee" || weihnachten) g.children[1].material = M.schneeKappe;   // im Weihnachtslook liegt auf allen Hecken Schnee
     return g;
   }
   const windZeit = { value: 0 };
@@ -2478,6 +2681,13 @@ export function welt(T, handy) {
     }
   }, true);
   bodenFlecken.repeat.set(6, 6);
+  const schneeFlecken = leinwand(512, 512, (g, w, h) => {      // Weihnachten: Schnee liegt in Flecken auf den Wiesen
+    for (let i = 0; i < 70; i++) {
+      const x = Math.random() * w, y = Math.random() * h, r = 14 + Math.random() * 46;
+      for (const dx of [-w, 0, w]) for (const dy of [-h, 0, h]) { const v = g.createRadialGradient(x + dx, y + dy, r * .55, x + dx, y + dy, r); v.addColorStop(0, "rgba(250,252,255,.95)"); v.addColorStop(1, "rgba(250,252,255,0)"); g.fillStyle = v; g.fillRect(x + dx - r, y + dy - r, r * 2, r * 2); }
+    }
+  }, true);
+  schneeFlecken.repeat.set(14, 14);
   let bodenA, bodenB, blende = 1, verbunden = null, zielZone = 0;
   const zielFarben = { nebel: new T.Color(), himmel: new T.Color(), sonne: new T.Color(), huegel: new T.Color(), kronen: new T.Color() };
   function bodenFlaeche() {
@@ -2488,10 +2698,11 @@ export function welt(T, handy) {
     bodenA.position.y = -.12; bodenB.position.y = -.1;
     // große hellere und dunklere Flächen, damit der Boden in der Ferne nicht einfarbig wirkt
     const flecken = new T.Mesh(geom, new T.MeshBasicMaterial({ map: bodenFlecken, transparent: true, depthWrite: false })); flecken.position.z = .05; flecken.renderOrder = 1; bodenA.add(flecken);
+    if (weihnachten) { const schnee = new T.Mesh(geom, new T.MeshBasicMaterial({ map: schneeFlecken, transparent: true, depthWrite: false })); schnee.position.z = .07; schnee.renderOrder = 2; bodenA.add(schnee); }
     const g = new T.Group(); g.add(bodenA, bodenB); return g;
   }
   function bodenFolgen(px, pz) {
-    bodenFlecken.offset.set(px * 6 / 400, -pz * 6 / 400);
+    bodenFlecken.offset.set(px * 6 / 400, -pz * 6 / 400); schneeFlecken.offset.set(px * 14 / 400, -pz * 14 / 400);
     for (const b of [bodenA, bodenB]) { b.position.x = px; b.position.z = pz; b.material.map.offset.set(px / (400 / 90), -pz / (400 / 90)); }
   }
   function verbinden(o) { verbunden = o; }
@@ -2571,6 +2782,13 @@ export function welt(T, handy) {
   }
   voegel.visible = false;
   function voegelSchritt(dt, kamPos, yaw, t) {
+    if (weihnachten) {                                    // alle paar Sekunden zieht der Weihnachtsmann vorbei
+      mannX += dt * 9; if (mannX > 95) mannX = -160;
+      weihnachtsmann.visible = mannX > -95;
+      const s = Math.sin(yaw), c = Math.cos(yaw);
+      weihnachtsmann.position.set(kamPos.x - s * 50 + c * mannX, 24 + Math.sin(t * .7) * 1.5, kamPos.z - c * 50 - s * mannX);
+      weihnachtsmann.rotation.y = yaw + Math.PI;
+    }
     voegel.visible = voegelAn; if (!voegelAn) return;
     vogelX += dt * 7; if (vogelX > 70) vogelX = -70;
     const sin = Math.sin(yaw), cos = Math.cos(yaw);
@@ -2578,8 +2796,20 @@ export function welt(T, handy) {
     voegel.rotation.y = yaw - Math.PI / 2;
     voegel.children.forEach((v, i) => { const f = Math.sin(t * 9 + i) * .7; v.userData.l.rotation.z = f; v.userData.r.rotation.z = -f; });
   }
-  const luft = new T.Group(); luft.add(wetter, voegel);
+  const luft = new T.Group(); luft.add(wetter, voegel, weihnachtsmann);
 
-  return { blitz, wiesenBlumen, wegFuer, randFuer, tanne, schneemann, stuhl, STUHL_SITZ, folienRolle, folieStoff, folieKante, marlenaBauen, kissen, duellBuehne, wasserNormal: wellen, rekordFahne, figurBauen, FIGUREN, leoBauen, FIGUR_INFO, toertchen, frauBauen, sprechblase, froebelBanner, froebelHeckenTafel, froebelTafel, froebelSchild, kontaktSchatten, grasBueschel, dampf, weltHindernis, entsorgen, pfeilSchild, bodenPfeil, AUSSTATTUNG, ausstattungSetzen, zonen: ZONEN, zoneFuer, dekoFuer, heckeFuer, blumenFuer, bodenFlaeche, bodenFolgen, verbinden, zoneWechsel, zoneSchritt,
+  // Adventskranz mit vier brennenden Kerzen (für den Schreibtisch im Büro)
+  function adventskranz() {
+    const g = new T.Group(), X = xm();
+    const k = new T.Mesh(new T.TorusGeometry(.2, .065, 10, 28).rotateX(Math.PI / 2), M.tanne); k.position.y = .05; g.add(k);
+    for (let i = 0; i < 4; i++) {
+      const w = i / 4 * Math.PI * 2 + .4, x = Math.cos(w) * .2, z = Math.sin(w) * .2;
+      teil(zyl(.028, .028, .16, 10), X.muetze, g, x, .16, z);
+      const f = teil(kegel(.016, .05, 8), X.stern, g, x, .27, z); f.castShadow = false;
+    }
+    for (let i = 0; i < 8; i++) { const w = (i + .5) / 8 * Math.PI * 2; teil(X.geo.kugel, X.kugel, g, Math.cos(w) * .26, .07, Math.sin(w) * .26).scale.setScalar(.03); }
+    return g;
+  }
+  return { adventskranz, weihnachten, blitz, wiesenBlumen, wegFuer, randFuer, tanne, schneemann, stuhl, STUHL_SITZ, folienRolle, folieStoff, folieKante, marlenaBauen, kissen, duellBuehne, wasserNormal: wellen, rekordFahne, figurBauen, FIGUREN, leoBauen, FIGUR_INFO, toertchen, frauBauen, sprechblase, froebelBanner, froebelHeckenTafel, froebelTafel, froebelSchild, kontaktSchatten, grasBueschel, dampf, weltHindernis, entsorgen, pfeilSchild, bodenPfeil, AUSSTATTUNG, ausstattungSetzen, zonen: ZONEN, zoneFuer, dekoFuer, heckeFuer, blumenFuer, bodenFlaeche, bodenFolgen, verbinden, zoneWechsel, zoneSchritt,
     animieren, wetterSchritt, voegelSchritt, luft, mat, geo, giraffeBauen, anjaBauen, boden, heckenStueck, blumen, ferne, sonnenScheibe, funke, staub, kante, dekoNeu, hindernis, stern, panzer, booster, blase, himmel, wolken, gras };
 }

@@ -17,6 +17,16 @@ if (rahmen) {
   // und das geprüfte Eintragen über die Funktion „eintragen“ (Prüfung von Name und Punkten in der Datenbank).
   const DB = { url: "https://gnzasrjjmyrbufdiuatw.supabase.co", key: "sb_publishable_c3NCrNIU-JtHB-9LJEBGFw_vjYDPQ_c" };
   const handy = matchMedia("(pointer: coarse)").matches;
+  // Weihnachtszeit (bis einschließlich 31.12.2026): leiser Schneefall über der Seite und ein Gruß im Startmenü
+  const weihnachtszeit = (() => {
+    try { const q = new URLSearchParams(location.search).get("weihnachten"); if (q === "1" || q === "0") return q === "1"; } catch (e) {}
+    return Date.now() < new Date(2027, 0, 1).getTime();
+  })();
+  if (weihnachtszeit) {
+    const schnee = document.createElement("div"); schnee.className = "seiten-schnee"; schnee.setAttribute("aria-hidden", "true"); document.body.append(schnee);
+    const gruss = document.createElement("p"); gruss.className = "weihnachtsgruss"; gruss.textContent = "❄ Frohe Weihnachten! ❄";
+    const karte = document.querySelector(".lauf-info"); if (karte) karte.prepend(gruss);
+  }
   rahmen.classList.toggle("touch", handy);
   let THREE = null, bereit = null, T = null;
 
@@ -31,8 +41,8 @@ if (rahmen) {
   function laden() {
     if (!bereit) {
       const text = losKnopf.textContent; losKnopf.disabled = true; losKnopf.textContent = "Lädt die 3D-Welt …";
-      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=50"), import("./lauf-ton.js?v=10"), import("./lauf-flug.js?v=11"), import("./lauf-effekte.js?v=4"), import("./lauf-buero.js?v=1"), import("./detektiv-figuren.js?v=4")])
-        .then(([m, w, t, f, e, bm, fm]) => { THREE = m; T = t.ton(); aufbauen(w, f, e, bm, fm); losKnopf.disabled = false; losKnopf.textContent = text; });
+      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=53"), import("./lauf-ton.js?v=12"), import("./lauf-flug.js?v=12"), import("./lauf-effekte.js?v=4"), import("./lauf-buero.js?v=1"), import("./detektiv-figuren.js?v=4")])
+        .then(([m, w, t, f, e, bm, fm]) => { THREE = m; T = t.ton(); aufbauen(w, f, e, bm, fm); T.weihnachten(W.weihnachten); losKnopf.disabled = false; losKnopf.textContent = text; });
     }
     return bereit;
   }
@@ -1859,6 +1869,7 @@ if (rahmen) {
     BW = bm.bueroWelt(THREE, W); werkstatt = fm.figurenWerkstatt(THREE, handy);
     bBuehne = new THREE.Group(); bBuehne.visible = false; szene.add(bBuehne);
     bRaum = BW.raum(); bBuehne.add(bRaum.gruppe);
+    if (W.weihnachten) { const kranz = W.adventskranz(); kranz.position.set(-3.0, .76, -.5); bRaum.gruppe.add(kranz); }   // Adventskranz auf Ankes Schreibtisch
     bMoebel = new THREE.Group(); bBuehne.add(bMoebel);
     bGiraffe = W.figurBauen("giraffe"); bGiraffe.gruppe.visible = false;
     bOhr = BW.ohr(); bOhr.visible = false;
@@ -2104,7 +2115,7 @@ if (rahmen) {
     FL.dauer = ski ? (R.schlitten === 1 ? SCHLITTEN_ERSTE : SCHLITTEN_WEITERE)
       : (nass ? R.boote : R.fluege) === 1 ? FLUG_ERSTER : FLUG_WEITERE;   // die erste Phase jeder Art eine Minute, danach 30 s
     for (const ab of abschnitte) ab.gruppe.visible = false;
-    for (const o of ski ? [ferneGruppe] : [boden, ferneGruppe, W.luft]) o.visible = false;   // auf dem Schlitten bleiben Schneeboden und Schneefall
+    for (const o of ski ? [ferneGruppe] : W.weihnachten ? [boden, ferneGruppe] : [boden, ferneGruppe, W.luft]) o.visible = false;   // Weihnachten: auch beim Fliegen schneit es   // auf dem Schlitten bleiben Schneeboden und Schneefall
     for (const o of [fahrzeug().gruppe, anjaFahrzeug().gruppe, flugGruppe, ...(ski ? [berge] : [nass ? wasser : meer])]) o.visible = true;
     for (const sp of alleSpuren) { sp.reset(); sp.mesh.visible = sp === bootSpur ? nass : ski; }
     const y0 = ski ? SCHLITTEN_Y : nass ? WASSER_Y : 7;
@@ -2483,7 +2494,7 @@ if (rahmen) {
     if (FL.art === "wasser") FW.bojenBlinken(t);
     if (FL.art === "wasser") bootSpur.schritt(fg.localToWorld(spurPunkt.set(0, 0, 1.75)));
     else if (ski) schlittenSpuren.forEach((sp, i) => sp.schritt(fg.localToWorld(spurPunkt.set(i ? .46 : -.46, 0, 1.3))));
-    if (ski) W.wetterSchritt(dt, kamera.position, t);
+    if (ski || W.weihnachten) W.wetterSchritt(dt, kamera.position, t);
     gesicht(dt, .4);
     W.animieren(t); lichtSchritt(dt);
     teilchenSchritt(dt);

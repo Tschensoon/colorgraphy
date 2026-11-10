@@ -238,8 +238,24 @@ export function flugWelt(T, W) {
     f.cockpitAus = null;
   }
 
+  let KR = null;
   function ring() {
-    const g = new T.Group(); teil(ringGeo, M.ring, g); return g;
+    const g = new T.Group();
+    if (!W.weihnachten) { teil(ringGeo, M.ring, g); return g; }
+    if (!KR) {                                           // Weihnachten: grüner Kranz mit Lichterkette und roter Schleife
+      KR = { tanne: std({ color: "#2c6b35", roughness: .85, emissive: "#0d3a14", emissiveIntensity: .25 }), licht: new T.MeshBasicMaterial({ color: "#ffe28a" }), rot: std({ color: "#d1202a", roughness: .5 }),
+        geo: new T.TorusGeometry(1.7, .26, 10, 44), kugel: new T.SphereGeometry(1, 10, 8), schlaufe: new T.TorusGeometry(.28, .08, 8, 18), band: new T.BoxGeometry(.14, .7, .05) };
+      for (const k of ["geo", "kugel", "schlaufe", "band"]) KR[k].userData.geteilt = true;
+    }
+    teil(KR.geo, KR.tanne, g);
+    const n = 22, l = new T.InstancedMesh(KR.kugel, KR.licht, n), m = new T.Matrix4(), q = new T.Quaternion(), s = new T.Vector3(.08, .08, .08);
+    for (let i = 0; i < n; i++) { const w = i / n * Math.PI * 2; m.compose(new T.Vector3(Math.cos(w) * 1.7, Math.sin(w) * 1.7, .24), q, s); l.setMatrixAt(i, m); }
+    g.add(l);
+    const beeren = new T.InstancedMesh(KR.kugel, KR.rot, 16);   // rote Beeren zwischen den Lichtern
+    for (let i = 0; i < 16; i++) { const w = (i + .5) / 16 * Math.PI * 2, r = 1.7 + (i % 2 ? .14 : -.14); m.compose(new T.Vector3(Math.cos(w) * r, Math.sin(w) * r, .2), q, new T.Vector3(.1, .1, .1)); beeren.setMatrixAt(i, m); }
+    g.add(beeren);
+    for (const sx of [-1, 1]) { const sl = teil(KR.schlaufe, KR.rot, g, sx * .26, -1.75, .3); sl.scale.set(1, .7, 1); const b = teil(KR.band, KR.rot, g, sx * .12, -2.1, .28); b.rotation.z = sx * .25; }
+    return g;
   }
   // Zerklüftete Formen: Punkte werden je nach Lage verschoben, die Flächen einzeln eingefärbt
   const zackig = (geom, staerke, phase, nurAussen = false) => {
