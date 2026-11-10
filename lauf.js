@@ -41,7 +41,7 @@ if (rahmen) {
   function laden() {
     if (!bereit) {
       const text = losKnopf.textContent; losKnopf.disabled = true; losKnopf.textContent = "Lädt die 3D-Welt …";
-      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=55"), import("./lauf-ton.js?v=12"), import("./lauf-flug.js?v=17"), import("./lauf-effekte.js?v=4"), import("./lauf-buero.js?v=1"), import("./detektiv-figuren.js?v=4")])
+      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=56"), import("./lauf-ton.js?v=12"), import("./lauf-flug.js?v=17"), import("./lauf-effekte.js?v=4"), import("./lauf-buero.js?v=1"), import("./detektiv-figuren.js?v=4")])
         .then(([m, w, t, f, e, bm, fm]) => { THREE = m; T = t.ton(); aufbauen(w, f, e, bm, fm); T.weihnachten(W.weihnachten); losKnopf.disabled = false; losKnopf.textContent = text; });
     }
     return bereit;
@@ -135,6 +135,13 @@ if (rahmen) {
     wolkenGruppe = W.wolken(); szene.add(wolkenGruppe);
     ferneGruppe = W.ferne(); szene.add(ferneGruppe);
     sonnenBild = W.sonnenScheibe(); szene.add(sonnenBild);
+    {                                                    // Sternenhimmel für die Nacht: Punkte knapp vor der Himmelskuppel
+      const n = handy ? 220 : 380, p = new Float32Array(n * 3);
+      for (let i = 0; i < n; i++) { const w = Math.random() * Math.PI * 2, h = .08 + Math.random() * .9, r = Math.sqrt(1 - h * h) * 160; p.set([Math.cos(w) * r, h * 160, Math.sin(w) * r], i * 3); }
+      const geo = new THREE.BufferGeometry(); geo.setAttribute("position", new THREE.BufferAttribute(p, 3));
+      nachtSterne = new THREE.Points(geo, new THREE.PointsMaterial({ color: "#ffffff", size: 2.2, sizeAttenuation: false, transparent: true, opacity: 0, depthWrite: false, fog: false }));
+      nachtSterne.renderOrder = -.5; nachtSterne.frustumCulled = false; nachtSterne.visible = false; szene.add(nachtSterne);
+    }
     // Spiegelungen für Sterne, Ball und Pfützen kommen aus einem Abbild des Himmels
     const pmrem = new THREE.PMREMGenerator(renderer), himmelSzene = new THREE.Scene();
     himmelSzene.add(W.himmel());
@@ -374,6 +381,7 @@ if (rahmen) {
     teilchen = [];
     abschnitte = []; hindernisse = []; sterne = []; booster = []; startNr = 0;
     FL.ab = PHASEN_ABSTAND[0]; FL.rueck = 0; FL.phaseNr = 0;
+    tagUhr = 0; W.tageszeit(0, 0); Object.assign(GE, { jubel: 0, sternchen: 0, blick: 0, blickPause: 3 });
     aktZone = 0; W.zoneWechsel(0, true); stimmungSetzen(true);
     Object.assign(B, { schild: 0, ruhe: 0, magnet: 0, doppelt: 0, schubs: null });
     FL.naechsteArt = "folie"; FL.schlittenBei = 0; FL.sonder = null;
@@ -869,7 +877,7 @@ if (rahmen) {
   function stolpern() {
     komboWeg();
     if (R.anjaPhase || (A.nah && A.abstand < 7)) { verlieren(`${JAGD()} hat dich erwischt!`, "anja"); return; }
-    S.stolper = .5; tempo = Math.max(START_TEMPO, tempo * .85);
+    S.stolper = .5; tempo = Math.max(START_TEMPO, tempo * .85); GE.sternchen = 1.3;
     wackeln = .35; T.stolpern(); if (navigator.vibrate) navigator.vibrate(40);
     anjaKommt(6);
   }
@@ -927,7 +935,7 @@ if (rahmen) {
     if (R.jubel || rekord <= 0 || punkte <= rekord) return;
     // steht eine Fahne am Weg, wird erst beim Vorbeilaufen gejubelt (Törtchen bringen einen manchmal etwas früher über den Rekord)
     if (fahneOrt && !FL.an && fahne && fahne.parent && !(S.idx > fahneOrt.nr || (S.idx === fahneOrt.nr && S.s >= fahneOrt.s))) return;
-    R.jubel = true; T.rekord(); meldung("Neuer Rekord!", "Du bist weiter als je zuvor!");
+    R.jubel = true; T.rekord(); meldung("Neuer Rekord!", "Du bist weiter als je zuvor!"); GE.jubel = 1.5;
     const wo = spieler.gruppe.getWorldPosition(new THREE.Vector3()); wo.y += 1.5;
     for (const farbe of ["#ffd54a", "#3baa35", "#ff7aa2", "#6ec6ff", "#a8c700"]) funkeln(wo, farbe, 10);
   }
@@ -1247,6 +1255,16 @@ if (rahmen) {
     if (hebe) { g.position.y = hebe * .9; spieler.beine.forEach((b, i) => { b.oben.rotation.x = Math.sin(schlussSzene.t * 9 + i) * .35; b.unten.rotation.x = -.3; }); }
     spieler.schwanz.rotation.z = Math.sin(S.lauf * .5) * .3; spieler.schwanz.rotation.x = .25 + Math.sin(S.lauf) * .15;
     spieler.hals.rotation.x += GE.freude * .4;           // Kopf kurz hoch vor Freude
+    if (GE.jubel > 0 && lauft) {                         // Rekord: Arme hoch und ein paar Freudenhüpfer
+      const w = Math.sin(Math.min(1, GE.jubel / .3, (1.5 - GE.jubel) / .2) * Math.PI / 2), tj = performance.now() / 1000;
+      if (zweiBeine(spieler)) spieler.arme.forEach((a, i) => {
+        const s = i ? 1 : -1;
+        a.oben.rotation.x *= 1 - w; a.unten.rotation.x = a.unten.rotation.x * (1 - w) + .25 * w;
+        a.oben.rotation.z = s * (2.5 + Math.sin(tj * 16) * .28) * w; a.unten.rotation.z = s * .35 * w;
+      });
+      else spieler.hals.rotation.x += w * .35;
+      if (S.y === 0 && S.duck <= 0) spieler.koerper.position.y += Math.abs(Math.sin(tj * 11)) * .13 * w;
+    }
     gesicht(dt, lauft ? 1 : .3);
     // Startbild und Ergebnis: sie steht, winkt mit dem Vorderbein und die Kamera schwenkt um sie herum
     const leerlauf = zustand === "start" || zustand === "aus";
@@ -1342,6 +1360,7 @@ if (rahmen) {
       if (lauft && aktZone === WINTER()) FL.schlittenBei = punkte + 120;
     }
     const zeit = performance.now() / 1000;
+    if (zustand === "laeuft") tagUhr += dt;
     W.zoneSchritt(dt); W.animieren(zeit); lichtSchritt(dt);
     schattenNachfuehren(px, pz);
 
@@ -1430,21 +1449,76 @@ if (rahmen) {
   const lichtZiel = { sonne: 2.8, himmel: .85, laterne: 0, scheibe: null };
   function stimmungSetzen(sofort) {
     const st = BU.an ? BUERO_STIMMUNG : FL.an ? (FL.art === "wasser" ? W.zonen[2].stimmung : FL.art === "schlitten" ? W.zonen[WINTER()].stimmung : LUFT_STIMMUNG) : W.zonen[aktZone].stimmung;
-    lichtZiel.sonne = st.licht; lichtZiel.himmel = st.himmel; lichtZiel.laterne = st.laterne || 0; (lichtZiel.scheibe = lichtZiel.scheibe || new THREE.Color()).set(st.scheibe || "#ffffff");
+    lichtZiel.st = st; lichtZiel.sonne = st.licht; lichtZiel.himmel = st.himmel; lichtZiel.laterne = st.laterne || 0; (lichtZiel.scheibe = lichtZiel.scheibe || new THREE.Color()).set(st.scheibe || "#ffffff");
     if (NB) { NB.stimmung(st); if (sofort) NB.schritt(0, true); }
     if (sofort) { sonne.intensity = st.licht; himmelLicht.intensity = st.himmel; laterneLicht.intensity = lichtZiel.laterne; sonnenBild.material.color.copy(lichtZiel.scheibe); }
   }
+  // Tageszeit: beim Laufen wird es langsam Abend, dann Nacht und wieder Morgen (ein Umlauf dauert vier Minuten).
+  // In der Luft, auf dem Wasser und in den Zwischenspielen bleibt es Tag.
+  let tagUhr = 0, nachtSterne = null;
+  const weich = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+  const tagFarbe = { farbe: null, saett: 1, kontrast: 1, glanz: 1 }, MOND = { c: null };
+  function tagWerte() {
+    if (FL.an || DU.an || FO.an || BU.an) return [0, 0];
+    const u = tagUhr % 240;
+    return [weich(68, 90, u) * (1 - weich(150, 174, u)), weich(52, 70, u) * (1 - weich(80, 96, u)) + weich(146, 160, u) * (1 - weich(166, 182, u))];
+  }
   function lichtSchritt(dt) {
-    const k = Math.min(1, dt * .8);
-    sonne.intensity += (lichtZiel.sonne - sonne.intensity) * k; himmelLicht.intensity += (lichtZiel.himmel - himmelLicht.intensity) * k;
-    laterneLicht.intensity += (lichtZiel.laterne - laterneLicht.intensity) * k; if (lichtZiel.scheibe) sonnenBild.material.color.lerp(lichtZiel.scheibe, k);
+    const k = Math.min(1, dt * .8), [nacht, rot] = tagWerte();
+    W.tageszeit(nacht, rot);
+    const zielSonne = Math.max(Math.min(lichtZiel.sonne, .95), lichtZiel.sonne * (1 - .68 * nacht)), zielHimmel = lichtZiel.himmel * (1 - .42 * nacht);
+    sonne.intensity += (zielSonne - sonne.intensity) * k; himmelLicht.intensity += (zielHimmel - himmelLicht.intensity) * k;
+    laterneLicht.intensity += (Math.max(lichtZiel.laterne, nacht * 3.6) - laterneLicht.intensity) * k;
+    if (lichtZiel.scheibe) { MOND.c = MOND.c || new THREE.Color(); MOND.c.copy(lichtZiel.scheibe).lerp(MOND.ab || (MOND.ab = new THREE.Color("#ffb070")), rot * .7).lerp(MOND.hell || (MOND.hell = new THREE.Color("#dfe6ff")), nacht); sonnenBild.material.color.lerp(MOND.c, k); }
+    if (nachtSterne) { nachtSterne.visible = nacht > .02; nachtSterne.material.opacity = nacht * (.75 + Math.sin(performance.now() / 600) * .1); nachtSterne.position.copy(kamera.position); }
+    if (NB && lichtZiel.st && (nacht > 0 || rot > 0 || tagFarbe.aktiv)) {     // Farbstimmung: abends wärmer, nachts kühler, und Lichter leuchten stärker
+      const st = lichtZiel.st; tagFarbe.farbe = (tagFarbe.farbe || new THREE.Color()).set(st.farbe).lerp(MOND.warm || (MOND.warm = new THREE.Color("#ffcfa0")), rot * .6).lerp(MOND.kuehl || (MOND.kuehl = new THREE.Color("#b4c2ff")), nacht * .65);
+      tagFarbe.saett = st.saett; tagFarbe.kontrast = st.kontrast; tagFarbe.glanz = st.glanz + nacht * .55 + rot * .15; tagFarbe.aktiv = nacht > 0 || rot > 0;
+      NB.stimmung(tagFarbe);
+    }
     if (spieler) { laterneLicht.position.copy(spieler.gruppe.position); laterneLicht.position.y += 3.4; }
     if (NB) NB.schritt(dt);
     wolkenGruppe.rotation.y += dt * .004;                 // die Wolken ziehen langsam
   }
   // Gesicht: blinzeln, Ohren wippen; sie freut sich über Sterne und legt die Ohren an, wenn Anja nah ist
-  const GE = { blinzel: 2, freude: 0 };
+  const GE = { blinzel: 2, freude: 0, jubel: 0, sternchen: 0, blick: 0, blickPause: 3 };
+  // Sternchen, die nach einem Stolperer um den Kopf kreisen
+  let kopfSterne = null;
+  function sternchenSchritt(dt, zuFuss) {
+    GE.sternchen = Math.max(0, GE.sternchen - dt);
+    const an = GE.sternchen > 0 && zuFuss;
+    if (!an) { if (kopfSterne) kopfSterne.visible = false; return; }
+    if (!kopfSterne) {
+      const c = document.createElement("canvas"); c.width = c.height = 64; const x = c.getContext("2d");
+      x.translate(32, 32); x.beginPath(); for (let i = 0; i < 10; i++) { const r = i % 2 ? 12 : 29, w = i / 10 * Math.PI * 2 - Math.PI / 2; x.lineTo(Math.cos(w) * r, Math.sin(w) * r); } x.closePath();
+      x.fillStyle = "#ffd84a"; x.fill(); x.lineWidth = 4; x.strokeStyle = "#ffffff"; x.stroke();
+      const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
+      kopfSterne = new THREE.Group();
+      for (let i = 0; i < 4; i++) kopfSterne.add(new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, fog: false })));
+      szene.add(kopfSterne);
+    }
+    if (spieler.kopfHoehe === undefined) {              // Höhe des Kopfes einmal je Figur ausmessen
+      spieler.gruppe.updateMatrixWorld(true);
+      spieler.kopfHoehe = new THREE.Box3().setFromObject(spieler.gruppe).max.y - spieler.gruppe.position.y;
+    }
+    const wo = spieler.hals.getWorldPosition(new THREE.Vector3()), t = performance.now() / 1000, f = Math.min(1, GE.sternchen / .3);
+    kopfSterne.visible = true; kopfSterne.position.set(wo.x, spieler.gruppe.position.y + spieler.kopfHoehe * spieler.gruppe.scale.y + .12, wo.z);
+    kopfSterne.children.forEach((s, i) => {
+      const w = t * 7 + i * Math.PI / 2;
+      s.position.set(Math.cos(w) * .34, Math.sin(w * 2) * .04, Math.sin(w) * .34); s.scale.setScalar(.27 * f); s.material.rotation = t * 3 + i;
+    });
+  }
   function gesicht(dt, wippen) {
+    // nur beim Laufen: Sternchen nach dem Stolpern, und ein kurzer Blick über die Schulter, wenn die Verfolgerin nah ist
+    const zuFuss = zustand === "laeuft" && !(FL.an || DU.an || FO.an || BU.an);
+    GE.jubel = Math.max(0, GE.jubel - dt);
+    sternchenSchritt(dt, zuFuss);
+    if (GE.blick > 0) GE.blick = Math.max(0, GE.blick - dt);
+    else if (zuFuss && A.nah && !B.schubs && (GE.blickPause -= dt) <= 0) { GE.blick = .8; GE.blickPause = zufall(3.5, 6); GE.blickSeite = Math.random() < .5 ? -1 : 1; }
+    if (GE.blick > 0 || GE.blickAn) {
+      const w = zuFuss && GE.blick > 0 ? Math.sin((1 - GE.blick / .8) * Math.PI) : 0;
+      spieler.hals.rotation.y = GE.blickSeite * w * (zweiBeine(spieler) ? 1.25 : .95); GE.blickAn = w > 0;
+    }
     GE.blinzel -= dt; if (GE.blinzel < -.13) GE.blinzel = zufall(1.8, 4.5);
     const angst = A.nah && zustand === "laeuft" ? 1 : 0;
     const auf = GE.blinzel < 0 ? .12 : 1 + angst * .25;

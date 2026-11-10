@@ -2710,13 +2710,22 @@ export function welt(T, handy) {
     for (const b of [bodenA, bodenB]) { b.position.x = px; b.position.z = pz; b.material.map.offset.set(px / (400 / 90), -pz / (400 / 90)); }
   }
   function verbinden(o) { verbunden = o; }
+  // Tageszeit: Abendrot (rot) und Nacht (nacht), je 0 bis 1, färben Himmel, Dunst, Sonnenlicht, Wolken und die fernen Hügel
+  const tagTon = new T.Color(1, 1, 1), sonnenTon = new T.Color(1, 1, 1), tagTmp = new T.Color();
+  const ABENDROT = new T.Color("#ffb080"), NACHTBLAU = new T.Color("#33426f"), ABENDSONNE = new T.Color("#ff9450"), MONDLICHT = new T.Color("#a9bcff");
+  function tageszeit(nacht, rot) {
+    tagTon.setRGB(1, 1, 1).lerp(ABENDROT, rot * .6).lerp(NACHTBLAU, nacht * .88);
+    sonnenTon.setRGB(1, 1, 1).lerp(ABENDSONNE, rot * .75).lerp(MONDLICHT, nacht * .85);
+    mat.wolke.color.copy(tagTon);
+  }
+  const getoent = (farbe, ton) => tagTmp.copy(farbe).multiply(ton);
   function zoneWechsel(z, sofort) {
     zielZone = z; const Z = ZONEN[z];
     zielFarben.nebel.set(Z.nebel); zielFarben.himmel.set(Z.himmel); zielFarben.sonne.set(Z.sonne); zielFarben.huegel.set(Z.huegel); zielFarben.kronen.set(Z.kronen);
     if (sofort) {
       bodenA.material.map = Z.boden; bodenA.material.needsUpdate = true; bodenB.material.opacity = 0; blende = 1;
-      if (verbunden) { verbunden.szene.fog.color.copy(zielFarben.nebel); verbunden.himmelMat.color.copy(zielFarben.himmel); verbunden.sonne.color.copy(zielFarben.sonne); }
-      if (fernMat) { fernMat[0].color.copy(zielFarben.huegel); fernMat[1].color.copy(zielFarben.huegel).offsetHSL(0, 0, .05); fernMat[2].color.copy(zielFarben.kronen); }
+      if (verbunden) { verbunden.szene.fog.color.copy(getoent(zielFarben.nebel, tagTon)); verbunden.himmelMat.color.copy(getoent(zielFarben.himmel, tagTon)); verbunden.sonne.color.copy(getoent(zielFarben.sonne, sonnenTon)); }
+      if (fernMat) { fernMat[0].color.copy(zielFarben.huegel).multiply(tagTon); fernMat[1].color.copy(zielFarben.huegel).offsetHSL(0, 0, .05).multiply(tagTon); fernMat[2].color.copy(zielFarben.kronen).multiply(tagTon); }
     } else { bodenB.material.map = Z.boden; bodenB.material.needsUpdate = true; bodenB.material.opacity = 0; blende = 0; }
     wetterArt(Z.wetter);
   }
@@ -2727,9 +2736,9 @@ export function welt(T, handy) {
     }
     if (verbunden) {
       const k = Math.min(1, dt * .8);
-      verbunden.szene.fog.color.lerp(zielFarben.nebel, k); verbunden.himmelMat.color.lerp(zielFarben.himmel, k); verbunden.sonne.color.lerp(zielFarben.sonne, k);
+      verbunden.szene.fog.color.lerp(getoent(zielFarben.nebel, tagTon), k); verbunden.himmelMat.color.lerp(getoent(zielFarben.himmel, tagTon), k); verbunden.sonne.color.lerp(getoent(zielFarben.sonne, sonnenTon), k);
     }
-    if (fernMat) { fernMat[0].color.lerp(zielFarben.huegel, Math.min(1, dt * .8)); fernMat[1].color.lerp(zielFarben.huegel, Math.min(1, dt * .6)); fernMat[2].color.lerp(zielFarben.kronen, Math.min(1, dt * .8)); }
+    if (fernMat) { fernMat[0].color.lerp(getoent(zielFarben.huegel, tagTon), Math.min(1, dt * .8)); fernMat[1].color.lerp(getoent(zielFarben.huegel, tagTon), Math.min(1, dt * .6)); fernMat[2].color.lerp(getoent(zielFarben.kronen, tagTon), Math.min(1, dt * .8)); }
   }
 
   // --- Wetter und Tiere in der Luft ---
@@ -2821,6 +2830,6 @@ export function welt(T, handy) {
     for (let i = 0; i < 8; i++) { const w = (i + .5) / 8 * Math.PI * 2; teil(X.geo.kugel, X.kugel, g, Math.cos(w) * .26, .07, Math.sin(w) * .26).scale.setScalar(.03); }
     return g;
   }
-  return { sparen, adventskranz, weihnachten, blitz, wiesenBlumen, wegFuer, randFuer, tanne, schneemann, stuhl, STUHL_SITZ, folienRolle, folieStoff, folieKante, marlenaBauen, kissen, duellBuehne, wasserNormal: wellen, rekordFahne, figurBauen, FIGUREN, leoBauen, FIGUR_INFO, toertchen, frauBauen, sprechblase, froebelBanner, froebelHeckenTafel, froebelTafel, froebelSchild, kontaktSchatten, grasBueschel, dampf, weltHindernis, entsorgen, pfeilSchild, bodenPfeil, AUSSTATTUNG, ausstattungSetzen, zonen: ZONEN, zoneFuer, dekoFuer, heckeFuer, blumenFuer, bodenFlaeche, bodenFolgen, verbinden, zoneWechsel, zoneSchritt,
+  return { tageszeit, sparen, adventskranz, weihnachten, blitz, wiesenBlumen, wegFuer, randFuer, tanne, schneemann, stuhl, STUHL_SITZ, folienRolle, folieStoff, folieKante, marlenaBauen, kissen, duellBuehne, wasserNormal: wellen, rekordFahne, figurBauen, FIGUREN, leoBauen, FIGUR_INFO, toertchen, frauBauen, sprechblase, froebelBanner, froebelHeckenTafel, froebelTafel, froebelSchild, kontaktSchatten, grasBueschel, dampf, weltHindernis, entsorgen, pfeilSchild, bodenPfeil, AUSSTATTUNG, ausstattungSetzen, zonen: ZONEN, zoneFuer, dekoFuer, heckeFuer, blumenFuer, bodenFlaeche, bodenFolgen, verbinden, zoneWechsel, zoneSchritt,
     animieren, wetterSchritt, voegelSchritt, luft, mat, geo, giraffeBauen, anjaBauen, boden, heckenStueck, blumen, ferne, sonnenScheibe, funke, staub, kante, dekoNeu, hindernis, stern, panzer, booster, blase, himmel, wolken, gras };
 }
