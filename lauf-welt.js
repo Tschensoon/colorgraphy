@@ -2682,8 +2682,8 @@ export function welt(T, handy) {
   }, true);
   bodenFlecken.repeat.set(6, 6);
   const schneeFlecken = leinwand(512, 512, (g, w, h) => {      // Weihnachten: Schnee liegt in Flecken auf den Wiesen
-    for (let i = 0; i < 70; i++) {
-      const x = Math.random() * w, y = Math.random() * h, r = 14 + Math.random() * 46;
+    for (let i = 0; i < 115; i++) {
+      const x = Math.random() * w, y = Math.random() * h, r = 16 + Math.random() * 52;
       for (const dx of [-w, 0, w]) for (const dy of [-h, 0, h]) { const v = g.createRadialGradient(x + dx, y + dy, r * .55, x + dx, y + dy, r); v.addColorStop(0, "rgba(250,252,255,.95)"); v.addColorStop(1, "rgba(250,252,255,0)"); g.fillStyle = v; g.fillRect(x + dx - r, y + dy - r, r * 2, r * 2); }
     }
   }, true);
@@ -2733,10 +2733,10 @@ export function welt(T, handy) {
     if (form === "blatt") { g.fillStyle = "#fff"; g.beginPath(); g.ellipse(16, 16, 13, 7, .6, 0, 7); g.fill(); return; }
     const v = g.createRadialGradient(16, 16, 0, 16, 16, 16); v.addColorStop(0, farbe); v.addColorStop(1, "rgba(255,255,255,0)"); g.fillStyle = v; g.fillRect(0, 0, 32, 32);
   }, false);
-  const ANZ = 420, wetterPos = new Float32Array(ANZ * 3), wetterFarbe = new Float32Array(ANZ * 3), tempo = new Float32Array(ANZ);
+  const ANZ = weihnachten ? (handy ? 700 : 1100) : 420, wetterPos = new Float32Array(ANZ * 3), wetterFarbe = new Float32Array(ANZ * 3), tempo = new Float32Array(ANZ);
   const wetterGeo = new T.BufferGeometry();
   wetterGeo.setAttribute("position", new T.BufferAttribute(wetterPos, 3)); wetterGeo.setAttribute("color", new T.BufferAttribute(wetterFarbe, 3));
-  const wetterMat = { schnee: new T.PointsMaterial({ map: punktBild("rgba(255,255,255,1)"), size: .22, transparent: true, depthWrite: false, vertexColors: true }),
+  const wetterMat = { schnee: new T.PointsMaterial({ map: punktBild("rgba(255,255,255,1)"), size: weihnachten ? .3 : .22, transparent: true, depthWrite: false, vertexColors: true }),
     blaetter: new T.PointsMaterial({ map: punktBild(0, "blatt"), size: .32, transparent: true, depthWrite: false, vertexColors: true, alphaTest: .3 }),
     falter: new T.PointsMaterial({ map: punktBild(0, "blatt"), size: .28, transparent: true, depthWrite: false, vertexColors: true, alphaTest: .3 }),
     funken: new T.PointsMaterial({ map: punktBild("rgba(255,255,255,1)"), size: .18, transparent: true, depthWrite: false, vertexColors: true, blending: T.AdditiveBlending }) };
@@ -2756,9 +2756,16 @@ export function welt(T, handy) {
     }
     wetterGeo.attributes.color.needsUpdate = true;
   }
-  function wetterSchritt(dt, kamPos, t) {
+  // vx, vz: Tempo der Figur oder des Fahrzeugs; Schnee bleibt in der Welt stehen und weht so am Spieler vorbei
+  function wetterSchritt(dt, kamPos, t, vx = 0, vz = 0) {
     if (!wetterTyp) return;
     wetter.position.set(kamPos.x, 0, kamPos.z);
+    if ((vx || vz) && wetterTyp === "schnee") for (let i = 0; i < ANZ; i++) {
+      const k = i * 3; if (wetterPos[k + 1] < -50) continue;
+      wetterPos[k] -= vx * dt; wetterPos[k + 2] -= vz * dt;
+      if (wetterPos[k] > 25) wetterPos[k] -= 50; else if (wetterPos[k] < -25) wetterPos[k] += 50;
+      if (wetterPos[k + 2] > 15) wetterPos[k + 2] -= 45; else if (wetterPos[k + 2] < -30) wetterPos[k + 2] += 45;
+    }
     for (let i = 0; i < ANZ; i++) {
       const k = i * 3; if (wetterPos[k + 1] < -50) continue;
       if (wetterTyp === "schnee") { wetterPos[k + 1] -= dt * 1.6 * tempo[i]; wetterPos[k] += Math.sin(t + i) * dt * .4; }

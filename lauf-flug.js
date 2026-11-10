@@ -210,26 +210,30 @@ export function flugWelt(T, W) {
     const tiere = [];
     for (const [x, y, z, nase, reihe] of [[-.45, .95, -2.8, false, 1], [.45, .95, -2.8, false, 1], [-.45, 1.35, -4.1, false, 2], [.45, 1.35, -4.1, false, 2], [0, 1.8, -5.4, true, 3]]) {
       const r = rentierFliegt(nase); r.g.position.set(x, y, z); r.g.rotation.x = .12; r.g.scale.setScalar(1.15); team.add(r.g);
-      Object.assign(r, { bx: x, by: y, bz: z, reihe, x, y }); tiere.push(r);
+      Object.assign(r, { bx: x, by: y, bz: z, reihe, x, y, vx: 0, vy: 0 }); tiere.push(r);
     }
     // goldene Zügel: je Rentier zwei Stücke über einen durchhängenden Mittelpunkt
     const zuegel = new Float32Array(tiere.length * 4 * 3), zGeo = new T.BufferGeometry();
     zGeo.setAttribute("position", new T.BufferAttribute(zuegel, 3).setUsage(T.DynamicDrawUsage));
     const leinen = new T.LineSegments(zGeo, new T.LineBasicMaterial({ color: "#e8b830" })); leinen.frustumCulled = false; team.add(leinen);
-    let quer = 0, hoch = 0;
+    let quer = 0, hoch = 0, pendel = 0, pendelV = 0;
     const animiere = (t, dt = .016, neig = 0, nick = 0) => {
-      const k = Math.min(1, dt * 3); quer += (neig - quer) * k; hoch += (nick - hoch) * k;
-      koerper.rotation.z = Math.sin(t * 2.1) * .05 - quer * .3;             // pendelt im Fahrtwind und schwingt in der Kurve nach
-      koerper.rotation.x = Math.sin(t * 1.6 + 1) * .035 + hoch * .25;
-      koerper.rotation.y = quer * .18;
-      koerper.position.y = Math.sin(t * 3.2) * .06;
+      dt = Math.min(dt, .05);
+      const k = Math.min(1, dt * 4); quer += (neig - quer) * k; hoch += (nick - hoch) * k;
+      // Schlitten hängt wie an einem Seil: schwingt in der Kurve nach außen und pendelt nach
+      pendelV += ((-quer * .55) - pendel) * 18 * dt - pendelV * 2.2 * dt; pendel += pendelV * dt;
+      koerper.rotation.z = pendel + Math.sin(t * 2.1) * .06;
+      koerper.rotation.x = Math.sin(t * 1.6 + 1) * .05 + hoch * .35;
+      koerper.rotation.y = quer * .15;
+      koerper.position.y = Math.sin(t * 3.2) * .09;
       const kufeY = .78 + koerper.position.y;
       tiere.forEach((r, i) => {
-        const f = Math.min(1, dt * (2 + r.reihe * 1.2));                  // das Leitrentier reagiert zuerst und am weitesten
-        r.x += (r.bx - quer * r.reihe * 1.1 - r.x) * f;
-        r.y += (r.by + hoch * r.reihe * .9 - r.y) * f;
+        // jedes Rentier hängt an einer Feder: zieht voraus, schießt etwas über das Ziel hinaus und schwingt zurück
+        const steif = 10 + r.reihe * 5, daempf = 3.2;
+        r.vx += ((r.bx - quer * r.reihe * 1.25) - r.x) * steif * dt - r.vx * daempf * dt; r.x += r.vx * dt;
+        r.vy += ((r.by + hoch * r.reihe * 1.8) - r.y) * steif * dt - r.vy * daempf * dt; r.y += r.vy * dt;
         r.g.position.set(r.x, r.y + Math.sin(t * 7 + i) * .08, r.bz);
-        r.g.rotation.set(.12 - hoch * .45, quer * .6, quer * .55);
+        r.g.rotation.set(.12 - hoch * .6 - r.vy * .08, quer * .7 + r.vx * .05, quer * .9 - r.vx * .06);
         r.hals.rotation.x = -.6 + Math.sin(t * 9 + i * .7) * .16;           // nickt im Galopp
         for (const l of r.beine) l.b.rotation.x = (l.vorn ? -.7 : .7) + Math.sin(t * 9 + i + l.ph + (l.vorn ? 0 : Math.PI)) * .55;
         const ax = r.bx * .4, ay = kufeY, az = -1.45, ex = r.x, ey = r.g.position.y + .05, ez = r.bz + .4;
