@@ -364,76 +364,138 @@ export function welt(T, handy) {
   // Haut, Shirt und Jeans über Farben je Punkt (Anjas Körper ist ein einziges Netz)
   const anjaKoerperMat = new T.MeshPhysicalMaterial({ vertexColors: true, roughness: .75, sheen: .3, sheenColor: new T.Color("#ffe0d0") });
 
+  // ---------- Fröbelinchen: Plüschgiraffe als Handpuppe, läuft auf zwei Beinen ----------
+  // Großer Kopf mit weit offenem rosa Maul, cremeweiße Schnauze, Kulleraugen mit Lidstrich, runde Plüsch-Hörnchen,
+  // runder Körper mit Giraffenmuster, kurze Arme und Beine mit dunkelbraunen Pfoten.
+  let plueschFleck = null, GP = null;   // erst beim ersten Bauen anlegen (die Hilfsfunktionen stehen weiter unten)
   let giraffeFormen = null;
   function giraffeFormenBauen() {
-    // Rumpf: Schulter etwas höher als die Hüfte, kräftige Brust, Ansätze der Beine weich angeformt
+    // Körper: birnenförmig, unten etwas breiter, Ansätze der Beine weich angeformt
     const rumpf = (x, y, z) => {
-      let d = F.stab(x, y, z, [0, 1.24, -.34], [0, 1.17, .36], .33, .31);
-      d = F.weich(d, F.ei(x, y, z, 0, 1.28, -.4, .3, .33, .28), .12);
-      for (const [bx, bz] of [[-.17, -.38], [.17, -.38], [-.17, .4], [.17, .4]]) d = F.weich(d, F.stab(x, y, z, [bx, 1.15, bz], [bx * 1.05, .98, bz], .12, .09), .1);
-      d = F.weich(d, F.stab(x, y, z, [0, 1.36, .62], [0, 1.32, .76], .05, .03), .08);     // Schwanzansatz
+      let d = F.ei(x, y, z, 0, .88, 0, .33, .4, .28);
+      d = F.weich(d, F.ei(x, y, z, 0, .68, .01, .36, .26, .3), .12);
+      for (const s of [-1, 1]) d = F.weich(d, F.stab(x, y, z, [s * .15, .58, 0], [s * .16, .46, 0], .12, .11), .08);
       return d;
     };
-    const rumpfHell = (x, y) => [Math.max(0, Math.min(1, (1.03 - y) / .12))];
-    // Hals und Kopf (im Hals-Gelenk): unten breit, oben schmal, der Kopf mit Schnauze weich angesetzt
-    const K = [0, 1.02, -.27];
-    const maulA = [0, K[1] - .045, K[2] - .1], maulB = [0, K[1] - .085, K[2] - .2];
+    // kurzer Hals und runder Hinterkopf (die Schnauze sind eigene Teile)
     const halsKopf = (x, y, z) => {
-      let d = F.stab(x, y, z, [0, -.06, .03], [0, .97, -.24], .2, .095);
-      d = F.weich(d, F.ei(x, y, z, K[0], K[1], K[2], .155, .16, .19), .08);
-      d = F.weich(d, F.stab(x, y, z, maulA, maulB, .088, .082), .06);
+      let d = F.stab(x, y, z, [0, -.08, 0], [0, .24, -.02], .16, .155);
+      d = F.weich(d, F.ei(x, y, z, 0, .43, -.02, .27, .27, .25), .1);
       return d;
     };
-    const kopfHell = (x, y, z) => {
-      const m = F.stab(x, y, z, maulA, maulB, .088, .082);
-      return [Math.max(0, Math.min(1, (.035 - m) / .05)) * (z < K[2] - .07 ? 1 : 0)];
-    };
+    const nichts = () => [0];
+    const pulliForm = (x, y, z) => Math.max(rumpf(x, y, z) - .028, .57 - y, y - 1.13);
+    const pulli = formNetz(pulliForm, [-.45, .5, -.38], [.45, 1.2, .38], handy ? .024 : .016, nichts);
+    { const p = pulli.attributes.position, uv = new Float32Array(p.count * 2);
+      for (let i = 0; i < p.count; i++) { uv[i * 2] = Math.atan2(p.getX(i), -p.getZ(i)) / (Math.PI * 2) + .5; uv[i * 2 + 1] = (p.getY(i) - .57) / (1.13 - .57); }
+      pulli.setAttribute("uv", new T.BufferAttribute(uv, 2)); }
     giraffeFormen = {
-      rumpf: formNetz(rumpf, [-.42, .78, -.82], [.42, 1.72, .86], handy ? .03 : .022, rumpfHell),
-      hals: formNetz(halsKopf, [-.25, -.3, -.55], [.25, 1.26, .3], handy ? .024 : .017, kopfHell),
+      pulli, kragen: new T.TorusGeometry(.262, .042, 10, 36).rotateX(Math.PI / 2), saum: new T.TorusGeometry(.345, .04, 10, 40).rotateX(Math.PI / 2),
+      aermel: new T.CylinderGeometry(.1, .094, .19, 18, 1, true).translate(0, -.085, 0), manschette: new T.TorusGeometry(.094, .028, 8, 20).rotateX(Math.PI / 2),
+      rumpf: formNetz(rumpf, [-.42, .3, -.36], [.42, 1.32, .36], handy ? .026 : .018, nichts),
+      hals: formNetz(halsKopf, [-.3, -.2, -.32], [.3, .7, .28], handy ? .022 : .015, nichts),
     };
   }
-
-  // ---------- Fröbelinchen: Plüschgiraffe ----------
   function giraffeBauen() {
+    if (!GP) {
+    plueschFleck = musterMaterial("giraffePluesch", { skala: 10, zelleA: "#753812", zelleB: "#874418", linie: "#f8ecd6", breite: [.05, .12], hell: "#f8ecd6", sheen: "#e8b47e" });
+    // Weißer Weihnachtspulli im Pixelstrick: rote Borten, Schneeflocken, Tannen mit Stern; Ärmel weiß mit rotem Bündchen
+    const strick = (w, h, malen) => leinwand(w, h, (g) => {
+      g.fillStyle = "#f6f2ea"; g.fillRect(0, 0, w, h);
+      g.strokeStyle = "rgba(120,100,80,.13)"; g.lineWidth = 1.2;
+      for (let y = 0; y < h; y += 8) for (let x = 0; x < w; x += 8) { g.beginPath(); g.moveTo(x, y); g.lineTo(x + 4, y + 7); g.lineTo(x + 8, y); g.stroke(); }
+      malen(g, w, h);
+    });
+    const masche = (g, x, y, farbe) => { g.fillStyle = farbe; g.fillRect(x * 8, y * 8 + 1, 8, 7); };
+    const bild = (g, x0, y0, muster, farben) => muster.forEach((zeile, y) => [...zeile].forEach((c, x) => { if (farben[c]) masche(g, x0 + x, y0 + y, farben[c]); }));
+    const FLOCKE = ["....r....", ".r..r..r.", "..r.r.r..", "...rrr...", "rrrrrrrrr", "...rrr...", "..r.r.r..", ".r..r..r.", "....r...."];
+    const TANNE = ["....y....", "...yyy...", "....g....", "...ggg...", "..ggggg..", "...ggg...", "..ggggg..", ".ggggggg.", "ggggggggg", "....b....", "....b...."];
+    const ROT = "#c8202b", GRUEN = "#1f7a3c";
+    const pulliBild = strick(512, 256, (g, w, h) => {
+      const sp = w / 8, um = (i, n) => Math.round(i * sp / n);   // 64 Maschen rundherum, 32 in der Höhe
+      for (let x = 0; x < sp; x++) { for (const y of [0, 1, 30, 31]) masche(g, x, y, ROT); masche(g, x, 3 + (x % 4 < 2 ? 0 : 1), GRUEN); masche(g, x, 27 + (x % 4 < 2 ? 1 : 0), GRUEN); }
+      for (let i = 0; i < 6; i++) bild(g, um(i, 6) + 1, 6, FLOCKE, { r: ROT });
+      for (let i = 0; i < 6; i++) bild(g, um(i, 6) + 6, 15, TANNE, { g: GRUEN, y: "#e9b51e", b: "#7a4a22" });
+    });
+    const aermelBild = strick(256, 128, (g, w, h) => {
+      for (let x = 0; x < w / 8; x++) { masche(g, x, 12, ROT); masche(g, x, 13, ROT); masche(g, x, 3, GRUEN); }
+    });
+    const strickMat = (map) => new T.MeshPhysicalMaterial({ map, roughness: .95, sheen: .7, sheenRoughness: .6, sheenColor: new T.Color("#ffffff") });
+    GP = {
+      pulli: strickMat(pulliBild), aermel: strickMat(aermelBild), buendchen: pluesch("#c8202b", "#ff7a80"),
+      pfote: pluesch("#8a4a1c", "#c98a55"), creme: pluesch("#f7f0e3", "#fffaf2"), nase: pluesch("#d9a774", "#f5cfa2"), rosa: pluesch("#f2a1b6", "#ffd3de"), zunge: pluesch("#e88aa2", "#ffc2d2"),
+      ohrInnen: pluesch("#fbf7f0", "#ffffff"), ohrAussen: pluesch("#c88a4c", "#ecbd88"), knubbel: pluesch("#7c4319", "#c08050"),
+      augWeiss: std({ color: "#fbfaf4", roughness: .3 }), iris: std({ color: "#6b3a17", roughness: .25 }), pupille: std({ color: "#120c08", roughness: .15 }), lid: std({ color: "#17110c", roughness: .5 }),
+    };
+    }
     if (!giraffeFormen) giraffeFormenBauen();
     const g = new T.Group(), koerper = gelenk(g, 0, 0, 0);
-    teil(giraffeFormen.rumpf, fleck, koerper);
-    // Hals mit Mähne, Kopf am Ende; der Hals kippt beim Ducken nach vorn
-    const hals = gelenk(koerper, 0, 1.42, -.48);
-    teil(giraffeFormen.hals, fleck, hals);
-    const maehne = teil(new T.CapsuleGeometry(.035, .82, 6, 12), mat.giraffeDunkel, hals, 0, .46, .03); maehne.rotation.x = -.26; maehne.scale.x = .7;
-    const kopf = gelenk(hals, 0, 1.02, -.27), augen = [], ohren = [];
+    teil(giraffeFormen.rumpf, plueschFleck, koerper);
+    // Weihnachtspulli
+    teil(giraffeFormen.pulli, GP.pulli, koerper);
+    teil(giraffeFormen.kragen, GP.buendchen, koerper, 0, 1.125, 0).castShadow = false;
+    teil(giraffeFormen.saum, GP.buendchen, koerper, 0, .585, .005).castShadow = false;
+    const hals = gelenk(koerper, 0, 1.18, -.02);
+    teil(giraffeFormen.hals, plueschFleck, hals);
+    // Schnauze: oben cremeweiß mit hellbrauner Nase, unten der Unterkiefer, dazwischen das rosa Maul
+    const oberkiefer = teil(kugel, GP.creme, hals, 0, .37, -.3); oberkiefer.scale.set(.25, .17, .25);
+    const nase = teil(kugel, GP.nase, hals, 0, .47, -.38); nase.scale.set(.17, .1, .16);
+    const maul = teil(kugel, GP.rosa, hals, 0, .23, -.3); maul.scale.set(.19, .075, .18);
+    const zunge = teil(kugel, GP.zunge, hals, 0, .21, -.4); zunge.scale.set(.055, .024, .075);
+    const unterkiefer = teil(kugel, GP.creme, hals, 0, .14, -.27); unterkiefer.scale.set(.21, .085, .19); unterkiefer.rotation.x = -.2;
+    for (const s of [-1, 1]) teil(kugel, GP.knubbel, hals, s * .055, .52, -.52).scale.set(.022, .014, .014);   // Nasenlöcher
+    const gesicht = gelenk(hals, 0, .42, -.02), augen = [], ohren = [];
+    const kopf = gelenk(hals, 0, .515, -.01);
+    const halsAnker = gelenk(hals, 0, -.1, -.04);   // Halsschmuck sitzt am Kragen unter dem Unterkiefer   // Anker für Mützen, Brillen und Ohrenschmuck (passend zum großen Kopf)
     for (const s of [-1, 1]) {
-      const horn = teil(rundStab(.026, .03, .15), mat.giraffeHell, kopf, s * .06, .26, .04); horn.rotation.z = -s * .15;
-      teil(kugel, mat.giraffeDunkel, kopf, s * .073, .27, .04).scale.setScalar(.045);
-      const ohr = teil(kegel(.05, .19, 16), mat.giraffeHell, kopf, s * .19, .1, .07);
-      ohr.rotation.z = -s * 1.2; ohr.scale.z = .5; ohr.userData.s = s; ohren.push(ohr);
-      const auge = teil(kugel, mat.auge, kopf, s * .1, .05, -.12); auge.scale.setScalar(.032);
-      const glanzP = teil(kugel, mat.glanz, kopf, s * .109, .064, -.148); glanzP.scale.setScalar(.01);
-      for (const a of [auge, glanzP]) { a.userData.y = a.scale.y; augen.push(a); }
-      teil(kugel, mat.giraffeDunkel, kopf, s * .032, -.1, -.285).scale.set(.014, .01, .01);  // Nasenlöcher
+      // Kulleraugen mit Lidstrich
+      const weiss = teil(kugel, GP.augWeiss, gesicht, s * .105, .17, -.17); weiss.scale.set(.105, .12, .085);
+      const iris = teil(kugel, GP.iris, gesicht, s * .098, .15, -.245); iris.scale.set(.058, .064, .03);
+      const pup = teil(kugel, GP.pupille, gesicht, s * .098, .15, -.268); pup.scale.set(.034, .038, .014);
+      const glanz = teil(kugel, mat.glanz, gesicht, s * .085, .17, -.277); glanz.scale.setScalar(.013);
+      for (const a of [weiss, iris, pup, glanz]) { a.userData.y = a.scale.y; augen.push(a); }
+      const lid = teil(new T.TorusGeometry(.112, .011, 6, 20, Math.PI * .85), GP.lid, gesicht, s * .105, .17, -.21);
+      lid.rotation.z = Math.PI * .075; lid.scale.set(1, 1.05, 1);
+      // Hörnchen: kurzer Stiel mit dickem, flauschigem Knubbel
+      const stiel = teil(rundStab(.035, .04, .1), GP.ohrAussen, gesicht, s * .1, .32, .06); stiel.rotation.z = -s * .2;
+      teil(kugel, GP.knubbel, gesicht, s * .12, .35, .06).scale.setScalar(.075);
+      // Ohren: außen hellbraun, innen weiß, stehen seitlich ab
+      const ohr = teil(kugel, GP.ohrAussen, gesicht, s * .28, .12, .05); ohr.scale.set(.085, .15, .035);
+      ohr.userData.s = s; ohr.rotation.z = -s * 1.2; ohren.push(ohr);
+      const innen = teil(kugel, GP.ohrInnen, ohr, 0, .05, -.55); innen.scale.set(.75, .78, .5);
     }
-    // Beine mit Knie: oben schwingt, unten knickt; runde, sich verjüngende Glieder
+    // Arme: hängen leicht nach außen, Unterarm mit Pfote
+    const arme = [];
+    for (const s of [-1, 1]) {
+      const oben = gelenk(koerper, s * .3, 1.02, -.01), neig = gelenk(oben, 0, 0, 0); neig.rotation.z = s * .5;
+      teil(rundStab(.078, .072, .24), plueschFleck, neig);
+      teil(giraffeFormen.aermel, GP.aermel, neig).castShadow = false;
+      teil(giraffeFormen.manschette, GP.buendchen, neig, 0, -.18, 0).castShadow = false;
+      const unten = gelenk(neig, 0, -.24, 0);
+      teil(rundStab(.07, .072, .12), plueschFleck, unten);
+      teil(kugel, GP.pfote, unten, 0, -.18, -.01).scale.set(.1, .105, .1);
+      arme.push({ oben, unten });
+    }
+    // Beine: kurz und kräftig, große braune Füße
     const beine = [];
-    for (const [x, z] of [[-.17, -.38], [.17, -.38], [-.17, .4], [.17, .4]]) {
-      const oben = gelenk(koerper, x, 1.12, z);
-      teil(rundStab(.088, .066, .56), fleck, oben);
-      const unten = gelenk(oben, 0, -.56, 0);
-      teil(rundStab(.063, .05, .44), mat.giraffeHell, unten);
-      teil(rundStab(.064, .072, .06), mat.giraffeDunkel, unten, 0, -.44, 0);   // Huf
+    for (const s of [-1, 1]) {
+      const oben = gelenk(koerper, s * .15, .5, 0);
+      teil(rundStab(.11, .1, .2), plueschFleck, oben);
+      const unten = gelenk(oben, 0, -.2, 0);
+      teil(rundStab(.1, .1, .14), plueschFleck, unten);
+      teil(kugel, GP.pfote, unten, 0, -.2, -.04).scale.set(.12, .085, .16);
       beine.push({ oben, unten });
     }
-    const schwanz = gelenk(koerper, 0, 1.3, .75);
-    const sm = teil(rundStab(.026, .016, .48), fleck, schwanz, 0, 0, .02); sm.rotation.x = .2;
-    teil(kugel, mat.giraffeDunkel, schwanz, 0, -.5, .1).scale.set(.045, .085, .045);
-    return { gruppe: g, koerper, hals, kopf, beine, schwanz, augen, ohren, ...FIGUR_INFO.giraffe };
+    const schwanz = gelenk(koerper, 0, .72, .27);
+    const sm = teil(rundStab(.022, .016, .2), plueschFleck, schwanz, 0, 0, .02); sm.rotation.x = .5;
+    teil(kugel, GP.knubbel, schwanz, 0, -.18, .1).scale.set(.045, .06, .045);
+    return { gruppe: g, koerper, hals, halsAnker, kopf, beine, arme, schwanz, augen, ohren, zweibeiner: true, ...FIGUR_INFO.giraffe };
   }
 
   // ---------- Schildkröte Leo: Plüschschildkröte mit grünem Panzer ----------
   const FIGUR_INFO = {
-    giraffe: { name: "Fröbelinchen", blick: 1.35, rueckenY: 0, blaseY: 1.15, blaseS: 1, cockpit: [-.85, .3, 1], kopfSkala: 1, halsSkala: 1,
-      fotoGanz: [[0, 1.35, -.15], [2.9, 2.2, -4.4]], fotoRuecken: [[0, 1.55, .1], [1.9, 2.6, 2.1]] },
+    giraffe: { name: "Fröbelinchen", blick: 1.3, rueckenY: -.3, rueckenS: .85, rueckenAnker: [0, 1.0, .3], blaseY: .95, blaseS: .92, cockpit: [0, .4, 1], kopfSkala: 1.5, halsSkala: 1.35, handY: -.2,
+      fotoGanz: [[0, 1.05, -.1], [2.6, 1.75, -3.7]], fotoRuecken: [[0, 1.0, .1], [1.8, 2.1, 2.3]] },
     leo: { name: "Leo", kopfSkala: 1, halsSkala: 1, blick: .85, rueckenY: -.5, blaseY: .72, blaseS: 1, cockpit: [.12, .4, .55],
       fotoGanz: [[0, .75, -.1], [2.3, 1.6, -3.3]], fotoRuecken: [[0, 1.2, .1], [1.7, 2.3, 2.2]] },
     hase: { name: "Rambo Rabbit", blick: .95, rueckenY: -.61, blaseY: .75, blaseS: 1, cockpit: [.05, .4, .6], kopfSkala: 1.1, halsSkala: .9,
@@ -1753,7 +1815,7 @@ export function welt(T, handy) {
       const g = new T.Group(); const b = teil(new T.TorusGeometry(.19, .022, 8, 24, Math.PI), A_MAT.schwarz, g, 0, .07, .02);
       for (const s of [-1, 1]) { const m = teil(zyl(.065, .065, .05, 18), A_MAT.rot, g, s * .19, .05, .02); m.rotation.z = Math.PI / 2; }
       return g; } },
-    rucksack: { name: "Rucksack", preis: 700, platz: "ruecken", bauen: () => {
+    rucksack: { name: "Rucksack", preis: 700, platz: "ruecken", liegend: true, bauen: () => {
       const g = new T.Group();
       teil(new T.CapsuleGeometry(.2, .22, 8, 16), A_MAT.orange, g, 0, 1.62, .18).rotation.x = Math.PI / 2;
       teil(kiste(.26, .14, .06), A_MAT.blau, g, 0, 1.58, .45);
@@ -1767,7 +1829,7 @@ export function welt(T, handy) {
       const k = teil(kegel(.15, .48, 20), A_MAT.lila, g, 0, .4, .04); k.rotation.x = .15;
       for (const [x, y, z] of [[.08, .3, -.12], [-.07, .42, -.07], [.03, .52, -.03]]) teil(kugel, A_MAT.gold, g, x, y, z).scale.setScalar(.025);
       return g; } },
-    umhang: { name: "Heldenumhang", preis: 1200, platz: "ruecken", bauen: () => {
+    umhang: { name: "Heldenumhang", preis: 1200, platz: "ruecken", liegend: true, bauen: () => {
       const g = new T.Group();
       // halber, offener Zylinder über dem Rücken: vorn an den Schultern eng, hinten weit ausgestellt
       const u = teil(new T.CylinderGeometry(.55, .4, 1.1, 24, 1, true, Math.PI * .55, Math.PI * .9), A_MAT.umhang, g, 0, 1.25, .22);
@@ -1811,7 +1873,7 @@ export function welt(T, handy) {
       teil(zyl(.172, .172, .04, 24), A_MAT.braun, g, 0, .13, .02);
       for (const s of [-1, 1]) { const h = teil(kegel(.045, .22, 12), A_MAT.horn, g, s * .2, .27, .02); h.rotation.z = -s * .7; }
       return g; } },
-    jetpack: { name: "Jetpack", preis: 1950, platz: "ruecken", bauen: () => {
+    jetpack: { name: "Jetpack", preis: 1950, platz: "ruecken", liegend: true, bauen: () => {
       const g = new T.Group();
       for (const s of [-1, 1]) {
         teil(new T.CapsuleGeometry(.09, .3, 8, 16), A_MAT.silber, g, s * .11, 1.66, .2).rotation.x = Math.PI / 2;
@@ -1824,13 +1886,18 @@ export function welt(T, handy) {
       return g; } },
   };
   function ausstattungSetzen(sp, ids) {
-    for (const ort of [sp.kopf, sp.hals, sp.koerper]) for (const k of [...ort.children]) if (k.userData.ausstattung) ort.remove(k);
+    for (const ort of [sp.kopf, sp.hals, sp.halsAnker, sp.koerper]) if (ort) for (const k of [...ort.children]) if (k.userData.ausstattung) ort.remove(k);
     for (const id of ids) {
       const a = AUSSTATTUNG[id]; if (!a) continue;
       const teilG = a.bauen(); teilG.userData.ausstattung = true;
+      if (a.platz === "ruecken" && sp.rueckenAnker) {    // aufrechte Figur: Rückenteile an den Rücken setzen, liegende Teile (Rucksack, Umhang, Jetpack) aufrichten
+        const halter = new T.Group(); halter.userData.ausstattung = true; teilG.userData.ausstattung = false;
+        teilG.position.set(0, -1.5, -.15); if (a.liegend) halter.rotation.x = Math.PI / 2;
+        halter.position.set(...sp.rueckenAnker); halter.scale.setScalar(sp.rueckenS || 1); halter.add(teilG); sp.koerper.add(halter); continue;
+      }
       if (a.platz === "ruecken") { teilG.position.y += sp.rueckenY || 0; if (sp.rueckenS) teilG.scale.setScalar(sp.rueckenS); }   // Anja: Rückenteile kleiner
       else teilG.scale.setScalar((a.platz === "hals" ? sp.halsSkala : sp.kopfSkala) || 1);   // große Köpfe bekommen große Mützen
-      (a.platz === "hals" ? sp.hals : a.platz === "ruecken" ? sp.koerper : sp.kopf).add(teilG);
+      (a.platz === "hals" ? (sp.halsAnker || sp.hals) : a.platz === "ruecken" ? sp.koerper : sp.kopf).add(teilG);
     }
   }
 

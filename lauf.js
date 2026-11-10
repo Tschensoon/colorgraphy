@@ -31,7 +31,7 @@ if (rahmen) {
   function laden() {
     if (!bereit) {
       const text = losKnopf.textContent; losKnopf.disabled = true; losKnopf.textContent = "Lädt die 3D-Welt …";
-      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=49"), import("./lauf-ton.js?v=10"), import("./lauf-flug.js?v=11"), import("./lauf-effekte.js?v=4"), import("./lauf-buero.js?v=1"), import("./detektiv-figuren.js?v=4")])
+      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=50"), import("./lauf-ton.js?v=10"), import("./lauf-flug.js?v=11"), import("./lauf-effekte.js?v=4"), import("./lauf-buero.js?v=1"), import("./detektiv-figuren.js?v=4")])
         .then(([m, w, t, f, e, bm, fm]) => { THREE = m; T = t.ton(); aufbauen(w, f, e, bm, fm); losKnopf.disabled = false; losKnopf.textContent = text; });
     }
     return bereit;
@@ -444,6 +444,7 @@ if (rahmen) {
   addEventListener("pointerup", () => { mausX = null; });
 
   // ---------- Pause und Ton ----------
+  const zweiBeine = (f) => !!(f.mensch || f.zweibeiner);   // Anja und Fröbelinchen laufen aufrecht und haben Arme
   function pauseUm() {
     if (zustand === "laeuft") { zustand = "pause"; pauseFeld.hidden = false; T.musikStop(); }
     else if (zustand === "pause") { zustand = "laeuft"; pauseFeld.hidden = true; uhr.getDelta(); T.musik(FL.an ? flugMusik() : zoneMusik()); }
@@ -1191,7 +1192,7 @@ if (rahmen) {
     const umdrehen = B.schubs ? Math.max(0, Math.sin(Math.min(1, Math.max(0, (B.schubs.t - .45) / 1.1)) * Math.PI)) : 0;
     g.rotation.y = winkel(g.rotation.y, yaw + umdrehen * Math.PI, Math.min(1, dt * 12));
     if (lauft) S.lauf += dt * tempo * tempoFaktor() * (A.nah ? 1.5 : 1.1);
-    if (spieler.mensch) {                  // Anja als Figur: läuft wie eine Läuferin, die Arme schwingen gegengleich
+    if (zweiBeine(spieler)) {              // Anja und Fröbelinchen: laufen auf zwei Beinen, die Arme schwingen gegengleich
       spieler.beine.forEach((b, i) => {
         if (S.y > 0) { b.oben.rotation.x = i ? -.4 : .9; b.unten.rotation.x = i ? -.3 : -1.3; return; }
         if (S.duck > 0) { b.oben.rotation.x = .9; b.unten.rotation.x = -1.5; return; }
@@ -1213,7 +1214,7 @@ if (rahmen) {
     });
     spieler.koerper.position.y = S.y > 0 ? 0 : Math.abs(Math.sin(S.lauf)) * .04;
     const kopfnuss = B.schubs && B.schubs.t > .7 && B.schubs.t < 1.1 ? -Math.sin((B.schubs.t - .7) / .4 * Math.PI) * .9 : 0;
-    spieler.hals.rotation.x = S.duck > 0 ? (spieler.mensch ? -.3 : -1.15) : (S.stolper > 0 ? Math.sin(S.stolper * 30) * .3 : kopfnuss);
+    spieler.hals.rotation.x = S.duck > 0 ? (zweiBeine(spieler) ? -.3 : -1.15) : (S.stolper > 0 ? Math.sin(S.stolper * 30) * .3 : kopfnuss);
     blase.visible = B.schild > 0 && (B.schild > 1 || Math.floor(B.schild * 8) % 2 === 0);
     if (blase.visible) blase.scale.setScalar(1 + Math.sin(performance.now() / 180) * .03);
     // Ducken: Hals nach vorn und in die Hocke (von den Hufen aus gestaucht, damit sie auf dem Boden bleibt)
@@ -1233,7 +1234,7 @@ if (rahmen) {
     if (leerlauf) {
       const t = performance.now() / 1000;
       spieler.beine.forEach((b, i) => { b.oben.rotation.x = 0; b.unten.rotation.x = 0; });
-      if (spieler.mensch) {                             // Anja winkt mit dem linken Arm (arme[0] sitzt links von ihr aus gesehen)
+      if (zweiBeine(spieler)) {                         // Anja und Fröbelinchen winken mit dem linken Arm (arme[0] sitzt links von ihr aus gesehen)
         spieler.koerper.rotation.x = 0;
         spieler.arme.forEach(a => { a.oben.rotation.set(0, 0, 0); a.unten.rotation.set(.15, 0, 0); });
         spieler.arme[0].oben.rotation.z = -2.6 - Math.sin(t * 7) * .3; spieler.arme[0].unten.rotation.z = -.4;
@@ -1513,7 +1514,7 @@ if (rahmen) {
     buehne.add(spieler.gruppe); spieler.gruppe.position.set(-1.8, .12, 0); spieler.gruppe.rotation.set(0, -Math.PI / 2, 0); spieler.gruppe.scale.setScalar(1);
     spieler.koerper.rotation.set(0, 0, 0); blase.visible = false;
     const ks = spieler.kopfSkala || 1;
-    if (spieler.mensch) { spieler.arme[1].unten.add(kissenF); kissenF.position.set(0, -.3, -.14); kissenF.rotation.set(Math.PI / 2, 0, 0); kissenF.scale.setScalar(1); }   // Anja hält es in der Hand
+    if (zweiBeine(spieler)) { spieler.arme[1].unten.add(kissenF); kissenF.position.set(0, spieler.handY ?? -.3, -.14); kissenF.rotation.set(Math.PI / 2, 0, 0); kissenF.scale.setScalar(1); }   // Anja hält es in der Hand
     else { spieler.kopf.add(kissenF); kissenF.position.set(0, -.1 * ks, -.3 * ks); kissenF.rotation.set(Math.PI / 2, 0, 0); kissenF.scale.setScalar(.8 * ks); }
     if (gegner.wer !== JAGD()) {                         // Gegnerin ist die Verfolgerin: Anja, bzw. Marlena, wenn man selbst Anja spielt
       buehne.remove(gegner.gruppe); gegner = JAGD() === "Marlena" ? W.marlenaBauen() : W.anjaBauen(); gegner.wer = JAGD(); buehne.add(gegner.gruppe);
@@ -1610,7 +1611,7 @@ if (rahmen) {
     const t = performance.now() / 1000, g = spieler.gruppe;
     // Fröbelinchen (bzw. die gewählte Figur): steht, wippt, haut beim Treffer mit dem Kissen im Vorderbein zu
     const pS = DU.schlag > 0 ? Math.sin((1 - DU.schlag / .35) * Math.PI) : 0;
-    if (spieler.mensch) {                               // Anja: federt wie ihre Gegnerin und haut mit dem Kissen in der Hand zu
+    if (zweiBeine(spieler)) {                           // Anja und Fröbelinchen: federn wie die Gegnerin und haut mit dem Kissen in der Hand zu
       spieler.beine.forEach((b, i) => { b.oben.rotation.x = (i ? -.25 : .25) + Math.sin(t * 5.5) * .05; b.unten.rotation.x = -.35; });
       spieler.arme[1].oben.rotation.set(.7 + pS * 1.5, 0, 0); spieler.arme[1].unten.rotation.set(.5 - pS * .3, 0, 0);
       spieler.arme[0].oben.rotation.set(.3 + Math.sin(t * 3) * .1, 0, 0); spieler.arme[0].unten.rotation.set(.9, 0, 0);
@@ -1880,7 +1881,7 @@ if (rahmen) {
     const ziel = wahl(verstecke);
     for (const v of verstecke) { v.auf = 0; v.offen = 0; v.wackel = 0; if (v !== ziel) v.text = BW.fuellen(v); }
     // Fröbelinchen sitzt klein im Fach und schaut zur Tür
-    const g = bGiraffe.gruppe, sk = Math.min(.21, ziel.hoehe * .82 / 2.75);
+    const g = bGiraffe.gruppe, sk = Math.min(.27, ziel.hoehe * .82 / 2.05);
     g.visible = true; g.scale.setScalar(sk); g.position.set(0, 0, .04); g.rotation.set(0, Math.PI, 0); ziel.inhalt.add(g);
     BU.sk = sk;
     // Ohrenspitze im Türspalt an der freien Kante (erst später sichtbar)
