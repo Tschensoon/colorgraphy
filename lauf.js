@@ -41,7 +41,7 @@ if (rahmen) {
   function laden() {
     if (!bereit) {
       const text = losKnopf.textContent; losKnopf.disabled = true; losKnopf.textContent = "Lädt die 3D-Welt …";
-      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=54"), import("./lauf-ton.js?v=12"), import("./lauf-flug.js?v=16"), import("./lauf-effekte.js?v=4"), import("./lauf-buero.js?v=1"), import("./detektiv-figuren.js?v=4")])
+      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=54"), import("./lauf-ton.js?v=12"), import("./lauf-flug.js?v=17"), import("./lauf-effekte.js?v=4"), import("./lauf-buero.js?v=1"), import("./detektiv-figuren.js?v=4")])
         .then(([m, w, t, f, e, bm, fm]) => { THREE = m; T = t.ton(); aufbauen(w, f, e, bm, fm); T.weihnachten(W.weihnachten); losKnopf.disabled = false; losKnopf.textContent = text; });
     }
     return bereit;
@@ -2390,7 +2390,7 @@ if (rahmen) {
       } else if (o.typ === "ring") {
         if (o.z <= zAlt && o.z > FL.z) {                 // genau beim Durchfliegen prüfen
           o.weg = true;
-          if (abst < 1.55) { R.ringe++; punkte += 25 * faktor; T.ring(); funkeln(o.mesh.position, "#ffcc33", 16); o.puls = .4; meldung("Durch den Ring!", `+${25 * faktor} Punkte`); }
+          if (abst < (o.mesh.userData.radius || 1.55)) { R.ringe++; punkte += 25 * faktor; T.ring(); funkeln(o.mesh.position, "#ffcc33", 16); o.puls = .4; meldung("Durch den Ring!", `+${25 * faktor} Punkte`); }
         }
       } else if (o.typ === "tor") {
         if (o.z <= zAlt && o.z > FL.z) { o.weg = true; torPruefen(o, faktor, unverwundbar); if (zustand !== "laeuft") return; }

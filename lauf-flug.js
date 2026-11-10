@@ -209,10 +209,10 @@ export function flugWelt(T, W) {
     for (const k of [...s.gruppe.children]) koerper.add(k);
     koerper.add(heck); heck.position.set(0, .05, 1.35);
     g.add(koerper, team);
-    const BASIS = new T.Vector3(0, -1.3, 4.1);                     // Platz des Schlittens hinter dem Gespann
+    const BASIS = new T.Vector3(0, -.45, 4.1);   // knapp unter und hinter dem Gespann: passt mit durch die Kränze                     // Platz des Schlittens hinter dem Gespann
     koerper.position.copy(BASIS);
     const tiere = [];
-    for (const [x, y, z, nase, reihe] of [[-.45, -.35, 1.3, false, 1], [.45, -.35, 1.3, false, 1], [-.45, .05, 0, false, 2], [.45, .05, 0, false, 2], [0, .5, -1.3, true, 3]]) {
+    for (const [x, y, z, nase, reihe] of [[-.45, -.05, 1.3, false, 1], [.45, -.05, 1.3, false, 1], [-.45, .15, 0, false, 2], [.45, .15, 0, false, 2], [0, .4, -1.3, true, 3]]) {
       const r = rentierFliegt(nase); r.g.position.set(x, y, z); r.g.rotation.x = .12; r.g.scale.setScalar(1.15); team.add(r.g);
       Object.assign(r, { bx: x, by: y, bz: z, reihe, x, y, vx: 0, vy: 0 }); tiere.push(r);
     }
@@ -228,9 +228,9 @@ export function flugWelt(T, W) {
       g.updateMatrixWorld(true);
       anker.copy(BASIS); g.localToWorld(anker);
       if (!schlittenW) schlittenW = anker.clone();
-      schlittenW.lerp(anker, Math.min(1, dt * 3));
+      schlittenW.lerp(anker, Math.min(1, dt * 5));
       lokal.copy(schlittenW); g.worldToLocal(lokal);
-      const dx = Math.max(-1.6, Math.min(1.6, lokal.x - BASIS.x)), dy = Math.max(-1, Math.min(1, lokal.y - BASIS.y));
+      const dx = Math.max(-.4, Math.min(.4, lokal.x - BASIS.x)), dy = Math.max(-.28, Math.min(.28, lokal.y - BASIS.y));
       pendelV += ((-quer * .5 - dx * .12) - pendel) * 16 * dt - pendelV * 2.4 * dt; pendel += pendelV * dt;
       koerper.position.set(BASIS.x + dx, BASIS.y + dy + Math.sin(t * 3.2) * .08, BASIS.z);
       koerper.rotation.set(Math.sin(t * 1.6 + 1) * .05 + hoch * .3 - dy * .1, Math.atan2(dx, BASIS.z), pendel + Math.sin(t * 2.1) * .05);
@@ -330,6 +330,7 @@ export function flugWelt(T, W) {
         geo: new T.TorusGeometry(1.7, .26, 10, 44), kugel: new T.SphereGeometry(1, 10, 8), schlaufe: new T.TorusGeometry(.28, .08, 8, 18), band: new T.BoxGeometry(.14, .7, .05) };
       for (const k of ["geo", "kugel", "schlaufe", "band"]) KR[k].userData.geteilt = true;
     }
+    g.scale.setScalar(1.35); g.userData.radius = 1.55 * 1.35;   // größer als der Goldring, damit Gespann und Schlitten hindurchpassen; die Wertung wächst mit
     teil(KR.geo, KR.tanne, g);
     const n = 22, l = new T.InstancedMesh(KR.kugel, KR.licht, n), m = new T.Matrix4(), q = new T.Quaternion(), s = new T.Vector3(.08, .08, .08);
     for (let i = 0; i < n; i++) { const w = i / n * Math.PI * 2; m.compose(new T.Vector3(Math.cos(w) * 1.7, Math.sin(w) * 1.7, .24), q, s); l.setMatrixAt(i, m); }
