@@ -458,7 +458,10 @@ if (rahmen) {
   const zweiBeine = (f) => !!(f.mensch || f.zweibeiner);   // Anja und Fröbelinchen laufen aufrecht und haben Arme
   function pauseUm() {
     if (zustand === "laeuft") { zustand = "pause"; pauseFeld.hidden = false; T.musikStop(); }
-    else if (zustand === "pause") { zustand = "laeuft"; pauseFeld.hidden = true; uhr.getDelta(); T.musik(FL.an ? flugMusik() : zoneMusik()); }
+    else if (zustand === "pause") {
+      zustand = "laeuft"; pauseFeld.hidden = true; uhr.getDelta(); T.musik(FL.an ? flugMusik() : zoneMusik());
+      if (handy && vollbild && !document.fullscreenElement) vollbildAn();   // nach Bildschirmsperre wieder ins Vollbild
+    }
   }
   pauseKnopf.addEventListener("click", () => { if (zustand === "laeuft" || zustand === "pause") pauseUm(); });
   $(".lauf-weiter").addEventListener("click", pauseUm);
@@ -482,7 +485,12 @@ if (rahmen) {
   zu.addEventListener("click", vollbildAus);
   // Aufruf aus der Spielauswahl: am Handy Vollbild mit Anleitung, gestartet wird erst mit „Los geht’s“
   window.froebelRennen = { oeffnen() { if (handy) { vollbildAn(); if (kannWebGL) laden(); } else rahmen.scrollIntoView({ behavior: "smooth", block: "center" }); } };
-  document.addEventListener("fullscreenchange", () => { if (!document.fullscreenElement && vollbild) vollbildAus(); });
+  // Das Vollbild geht auch verloren, wenn das Handy gesperrt wird oder man kurz die App wechselt: eine laufende Runde wird dann nur pausiert, nicht beendet
+  document.addEventListener("fullscreenchange", () => {
+    if (document.fullscreenElement || !vollbild) return;
+    if (zustand === "laeuft") pauseUm();
+    else if (zustand !== "pause" && zustand !== "rettung" && zustand !== "fang") vollbildAus();
+  });
 
   losKnopf.addEventListener("click", async () => {
     if (handy && !vollbild) vollbildAn();
