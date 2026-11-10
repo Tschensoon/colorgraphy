@@ -31,7 +31,7 @@ if (rahmen) {
   function laden() {
     if (!bereit) {
       const text = losKnopf.textContent; losKnopf.disabled = true; losKnopf.textContent = "Lädt die 3D-Welt …";
-      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=48"), import("./lauf-ton.js?v=10"), import("./lauf-flug.js?v=11"), import("./lauf-effekte.js?v=4"), import("./lauf-buero.js?v=1"), import("./detektiv-figuren.js?v=4")])
+      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=49"), import("./lauf-ton.js?v=10"), import("./lauf-flug.js?v=11"), import("./lauf-effekte.js?v=4"), import("./lauf-buero.js?v=1"), import("./detektiv-figuren.js?v=4")])
         .then(([m, w, t, f, e, bm, fm]) => { THREE = m; T = t.ton(); aufbauen(w, f, e, bm, fm); losKnopf.disabled = false; losKnopf.textContent = text; });
     }
     return bereit;
@@ -2358,7 +2358,11 @@ if (rahmen) {
       const dz = o.z - FL.z, abst = Math.hypot(o.x - FL.x, o.y - FL.y);
       if (o.typ === "stern") {
         if (B.magnet > 0 && dz > -12 && dz < 1) { if (dz > -1.5) einsammeln(o); else o.zieht = true; continue; }
-        if (Math.abs(dz) < 1.2 && abst < 1.5) einsammeln(o);
+        // Trefferzone wie das Flugzeug: Rumpf, die ganze Spannweite der Flügel und Kopf/Hals über dem Cockpit.
+        // Geprüft wird die ganze Strecke seit dem letzten Bild, damit bei hohem Tempo kein Stern durchrutscht.
+        const dx = Math.abs(o.x - FL.x), dy = o.y - FL.y, durch = dz > -1.2 && o.z < zAlt + 1.2;
+        const trifft = abst < 1.5 || (FL.art === "luft" && ((dx < 2.8 && dy > -.8 && dy < .7) || (dx < .9 && dy > -.2 && dy < 2.4)));
+        if (durch && trifft) einsammeln(o);
       } else if (o.typ === "ring") {
         if (o.z <= zAlt && o.z > FL.z) {                 // genau beim Durchfliegen prüfen
           o.weg = true;

@@ -2277,7 +2277,8 @@ export function welt(T, handy) {
   const feldwegMat = std({ map: feldweg, roughness: 1, normalMap: handy ? null : normalAus(feldwegHoehe, 3), normalScale: new T.Vector2(1, 1) });
   function wegFuer(laenge, breite, z) {
     if (ZONEN[z].weg !== "erde") return boden(laenge, breite);
-    const k = new T.Mesh(uvSkala(new T.PlaneGeometry(breite + .7, laenge), 1, laenge / 6).rotateX(-Math.PI / 2), feldwegMat);
+    const k = new T.Mesh(uvSkala(new T.PlaneGeometry(breite + .7, laenge), 1, laenge / 6).rotateX(-Math.PI / 2).translate(0, .006, 0), feldwegMat);
+    // etwas breiter als das Pflaster: um 6 mm angehoben, damit er in der Ecke zur nächsten Welt darüber liegt, statt mit ihm zu flimmern
     k.receiveShadow = true; return k;
   }
   const dschKern = std({ map: hecke, color: "#4f7a40", roughness: 1 });
