@@ -169,7 +169,58 @@ export function flugWelt(T, W) {
     };
   }
   let fliegerGeo = null;
+  // Weihnachtszeit: statt Flugzeug ein fliegender Prunkschlitten mit vier Rentieren und einem Leitrentier mit leuchtend roter Nase
+  let RF = null;
+  function rentierFliegt(roteNase) {
+    if (!RF) {
+      RF = { fell: std({ color: "#8a5a34", roughness: .85 }), hell: std({ color: "#ecd8b8", roughness: .9 }), horn: std({ color: "#d8bf8c", roughness: .7 }),
+        dunkel: std({ color: "#2a1c12", roughness: .6 }), geschirr: std({ color: "#c81e28", roughness: .5 }), gold: std({ color: "#e8b830", roughness: .25, metalness: .7 }),
+        nase: std({ color: "#ff2a2a", emissive: "#ff1a1a", emissiveIntensity: 2.2 }), kugel: new T.SphereGeometry(1, 16, 12), bein: new T.CylinderGeometry(.045, .035, .5, 7).translate(0, -.25, 0),
+        horn1: new T.CylinderGeometry(.018, .024, .34, 5).translate(0, .17, 0), horn2: new T.CylinderGeometry(.013, .016, .15, 5).translate(0, .075, 0), gurt: new T.TorusGeometry(.27, .035, 6, 20) };
+      for (const k of ["kugel", "bein", "horn1", "horn2", "gurt"]) RF[k].userData.geteilt = true;
+    }
+    const g = new T.Group(), beine = [];
+    const k = (geo, m, eltern, x, y, z) => { const t = teil(geo, m, eltern, x, y, z); t.castShadow = false; return t; };
+    teil(RF.kugel, RF.fell, g, 0, 0, 0).scale.set(.24, .23, .5);
+    k(RF.kugel, RF.hell, g, 0, -.04, -.36).scale.set(.17, .18, .16);
+    k(RF.gurt, RF.geschirr, g, 0, 0, -.18).scale.set(1, .92, 1);
+    k(RF.kugel, RF.gold, g, 0, -.24, -.18).scale.setScalar(.05);
+    const hals = new T.Group(); hals.position.set(0, .12, -.42); hals.rotation.x = -.6; g.add(hals);
+    k(new T.CylinderGeometry(.09, .12, .36, 8), RF.fell, hals, 0, .16, 0);
+    const kopf = k(RF.kugel, RF.fell, hals, 0, .36, -.08); kopf.scale.set(.12, .12, .2);
+    k(RF.kugel, roteNase ? RF.nase : RF.dunkel, hals, 0, .33, -.27).scale.setScalar(roteNase ? .085 : .035);
+    for (const s of [-1, 1]) {
+      k(RF.kugel, RF.dunkel, hals, s * .07, .41, -.16).scale.setScalar(.02);
+      const h = new T.Group(); h.position.set(s * .06, .45, -.02); h.rotation.set(.35, 0, s * -.45); hals.add(h);
+      k(RF.horn1, RF.horn, h, 0, 0, 0);
+      for (const [y, w] of [[.12, 1], [.22, .8]]) { const z = k(RF.horn2, RF.horn, h, 0, y, 0); z.rotation.set(-.4, 0, s * -w); }
+    }
+    for (const [x, z, vorn] of [[-.13, -.3, 1], [.13, -.3, 1], [-.13, .32, 0], [.13, .32, 0]]) {
+      const b = new T.Group(); b.position.set(x, -.12, z); g.add(b); k(RF.bein, RF.fell, b, 0, 0, 0); k(RF.kugel, RF.dunkel, b, 0, -.5, 0).scale.setScalar(.045);
+      beine.push({ b, vorn, ph: Math.random() * .5 });
+    }
+    k(RF.kugel, RF.hell, g, 0, .1, .5).scale.set(.06, .07, .05);
+    return { g, beine };
+  }
+  function schlittenFliegt(anja) {
+    const s = schlitten(anja), team = new T.Group(); s.gruppe.add(team);
+    const tiere = [];
+    for (const [x, y, z, nase] of [[-.45, .95, -2.8, false], [.45, .95, -2.8, false], [-.45, 1.35, -4.1, false], [.45, 1.35, -4.1, false], [0, 1.8, -5.4, true]]) {   // steigt nach vorn an, damit man das Gespann hinter dem Schlitten sieht
+      const r = rentierFliegt(nase); r.g.position.set(x, y, z); r.y = y; r.g.rotation.x = .12; r.g.scale.setScalar(1.15); team.add(r.g); tiere.push(r);
+    }
+    // goldene Zügel vom Schlitten zu jedem Rentier
+    const punkte = [];
+    for (const r of tiere) punkte.push(new T.Vector3(r.g.position.x * .4, .78, -1.45), new T.Vector3(r.g.position.x, r.y + .05, r.g.position.z + .35));
+    team.add(new T.LineSegments(new T.BufferGeometry().setFromPoints(punkte), new T.LineBasicMaterial({ color: "#e8b830" })));
+    // galoppieren: Beine schwingen, die Tiere wippen leicht versetzt
+    const animiere = (t) => tiere.forEach((r, i) => {
+      r.g.position.y = r.y + Math.sin(t * 7 + i) * .06;
+      for (const l of r.beine) l.b.rotation.x = (l.vorn ? -.7 : .7) + Math.sin(t * 9 + i + l.ph + (l.vorn ? 0 : Math.PI)) * .45;
+    });
+    return { gruppe: s.gruppe, propeller: s.propeller, sitz: s.sitz, animiere, schlitten: true };
+  }
   function flieger(anja) {
+    if (W.weihnachten) return schlittenFliegt(anja);
     const g = new T.Group(), L = lackFuer(anja ? 1 : 0), G = fliegerGeo || (fliegerGeo = fliegerFormen());
     for (const k in G) G[k].userData.geteilt = true;
     const klein = (geom, m, eltern, x, y, z) => { const k = teil(geom, m, eltern, x, y, z); k.castShadow = false; return k; };

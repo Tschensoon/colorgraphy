@@ -41,7 +41,7 @@ if (rahmen) {
   function laden() {
     if (!bereit) {
       const text = losKnopf.textContent; losKnopf.disabled = true; losKnopf.textContent = "Lädt die 3D-Welt …";
-      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=53"), import("./lauf-ton.js?v=12"), import("./lauf-flug.js?v=12"), import("./lauf-effekte.js?v=4"), import("./lauf-buero.js?v=1"), import("./detektiv-figuren.js?v=4")])
+      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=53"), import("./lauf-ton.js?v=12"), import("./lauf-flug.js?v=13"), import("./lauf-effekte.js?v=4"), import("./lauf-buero.js?v=1"), import("./detektiv-figuren.js?v=4")])
         .then(([m, w, t, f, e, bm, fm]) => { THREE = m; T = t.ton(); aufbauen(w, f, e, bm, fm); T.weihnachten(W.weihnachten); losKnopf.disabled = false; losKnopf.textContent = text; });
     }
     return bereit;
@@ -649,13 +649,13 @@ if (rahmen) {
       spieler.gruppe.position.set(0, cy, cz); spieler.gruppe.scale.setScalar(cs); spieler.beine.forEach(b => { b.oben.visible = false; });
     } else { spieler.gruppe.position.copy(alt.position); spieler.gruppe.rotation.copy(alt.rotation); }
     W.ausstattungSetzen(spieler, konto.an);
-    if (FL.an) FW.insCockpit(spieler, FL.art);
+    if (FL.an) FW.insCockpit(spieler, cockpitOrt());
     if (anja.wer !== JAGD()) {                              // Anja gewählt (oder wieder abgewählt): Verfolgerin austauschen
       const altA = anja, el = altA.gruppe.parent || szene;
       anja = verfolgerBauen(); el.remove(altA.gruppe); el.add(anja.gruppe);
       anja.gruppe.position.copy(altA.gruppe.position); anja.gruppe.rotation.copy(altA.gruppe.rotation); anja.gruppe.visible = altA.gruppe.visible;
       anja.beine.forEach(b => { b.oben.visible = altA.beine[0].oben.visible; });
-      if (FL.an) FW.insCockpit(anja, FL.art);
+      if (FL.an) FW.insCockpit(anja, cockpitOrt());
     }
     T.booster();
   }
@@ -724,7 +724,7 @@ if (rahmen) {
         else { konto.an = konto.an.filter(x => W.AUSSTATTUNG[x].platz !== a.platz); konto.an.push(id); }   // pro Platz nur ein Teil
         anprobe = null;
         schreib("froebelinchen-rennt-konto", konto);
-        W.ausstattungSetzen(spieler, konto.an); if (FL.an) FW.insCockpit(spieler, FL.art); shopZeigen();
+        W.ausstattungSetzen(spieler, konto.an); if (FL.an) FW.insCockpit(spieler, cockpitOrt()); shopZeigen();
       });
       li.append(bild, name, k); ul.append(li);
     }
@@ -2093,6 +2093,7 @@ if (rahmen) {
   const zoneMusik = () => W.zonen[aktZone].musik ?? aktZone;
   const flugMusik = () => FL.art === "schlitten" ? 7 : FL.art === "wasser" ? 2 : 6;
   const tempoKmh = () => Math.round(FL.v * 2.6);
+  const cockpitOrt = () => FL.art === "luft" && W.weihnachten ? "schlitten" : FL.art;   // Weihnachten: im Flug sitzt man im Rentierschlitten
   function flugAufbauen(modul) {
     FW = modul.flugWelt(THREE, W);
     flieger = FW.flieger(false); anjaFlieger = FW.flieger(true); meer = FW.wolkenMeer(); flugGruppe = new THREE.Group();
@@ -2126,10 +2127,10 @@ if (rahmen) {
     fahrzeug().sitz.add(spieler.gruppe); spieler.gruppe.position.set(0, cy, cz); spieler.gruppe.rotation.set(0, 0, 0); spieler.gruppe.scale.setScalar(cs);
     spieler.koerper.position.y = 0; spieler.beine.forEach(b => { b.oben.visible = false; });
     blase.scale.setScalar(2.3 / spieler.cockpit[2]); blase.position.y = .6;
-    FW.insCockpit(spieler, FL.art); const sk = spieler.gruppe.scale.x; blase.scale.setScalar(2.3 / sk); blase.position.y = (-.1 - spieler.gruppe.position.y) / sk;
+    FW.insCockpit(spieler, cockpitOrt()); const sk = spieler.gruppe.scale.x; blase.scale.setScalar(2.3 / sk); blase.position.y = (-.1 - spieler.gruppe.position.y) / sk;
     anjaFahrzeug().sitz.add(anja.gruppe); anja.gruppe.visible = true; anja.gruppe.position.set(0, -.75, .25);   // sichtbar: in der Laufwelt war sie evtl. gerade ausgeblendet anja.gruppe.rotation.set(0, 0, 0);
     anja.k.rotation.x = 0; anja.k.position.y = 0; anja.beine.forEach(b => { b.oben.visible = false; });
-    FW.insCockpit(anja, FL.art);
+    FW.insCockpit(anja, cockpitOrt());
     sternchen.forEach(st => { st.visible = false; });
     B.schubs = null; Object.assign(A, { nah: false, zeit: 0, abstand: 18, bis: 8 });
     if (ski) { const Z = W.zonen[WINTER()]; szene.fog.color.set(Z.nebel); himmelKugel.material.color.set(Z.himmel); sonne.color.set(Z.sonne); }
@@ -2429,7 +2430,7 @@ if (rahmen) {
       fg.position.set(FL.x, FL.y + Math.sin(t * 2) * .08, FL.z);
       fg.rotation.set(FL.nick, 0, FL.neig + wackel);
     }
-    fzg.propeller.rotation.z += dt * 38;
+    fzg.propeller.rotation.z += dt * 38; if (fzg.animiere) fzg.animiere(t);
     spieler.hals.rotation.x = Math.sin(t * 1.6) * .07;
     spieler.schwanz.rotation.z = Math.sin(t * 3) * .3;
     blase.visible = B.schild > 0 && (B.schild > 1 || Math.floor(B.schild * 8) % 2 === 0);
@@ -2441,7 +2442,7 @@ if (rahmen) {
     ag.visible = hinten < 8.5;
     ag.position.set(FL.ax, FL.ay + Math.sin(t * 2.3) * .1, FL.z + hinten);
     ag.rotation.set(0, 0, (FL.x - FL.ax) * -.08);
-    afz.propeller.rotation.z += dt * 40;
+    afz.propeller.rotation.z += dt * 40; if (afz.animiere) afz.animiere(t + 1.3);
     anja.arme.forEach((a, i) => {                       // ein Arm winkt drohend, beim Fangen beide Arme hoch
       const winkt = fang || i === 0;
       a.oben.rotation.x = winkt ? 2.7 + Math.sin(t * 9 + i) * .25 : .2; a.unten.rotation.x = winkt ? .4 : .9; a.oben.rotation.z = 0;
@@ -2484,7 +2485,7 @@ if (rahmen) {
     // Kondensstreifen an den Flügelspitzen
     if ((FL.dampfTakt = (FL.dampfTakt || 0) - dt) <= 0 && zustand === "laeuft" && qualitaet < 3) {
       FL.dampfTakt = nass ? .07 : .035;
-      for (const sx of nass ? [-.55, .55] : [-2.5, 2.5]) {       // in der Luft Kondensstreifen, auf dem Wasser Gischt hinter dem Boot
+      for (const sx of nass || fzg.schlitten ? [-.55, .55] : [-2.5, 2.5]) {       // in der Luft Kondensstreifen (beim Rentierschlitten hinter den Kufen), auf dem Wasser Gischt hinter dem Boot
         const d = teilchenHolen("dampf"); d.position.copy(fg.localToWorld(new THREE.Vector3(sx, nass ? 0 : -.15, nass ? 1.6 : .4)));
         if (nass) d.position.y = .12;
         d.scale.setScalar(.3); szene.add(d);
