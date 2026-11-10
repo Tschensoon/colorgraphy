@@ -1,6 +1,7 @@
 // Aussehen für „Fröbelinchen rennt“: Oberflächen (im Browser gemalt), Figuren, Kita-Welt und Hindernisse.
 // Alles wird hier aus Code erzeugt, es gibt keine fremden Bilder oder Modelle. Maße in Metern, Figuren schauen nach -z.
 export function welt(T, handy) {
+  let spar = 1;   // Deko-Dichte, siehe sparen()
   const zufall = (a, b) => a + Math.random() * (b - a);
   const wahl = (liste) => liste[Math.floor(Math.random() * liste.length)];
 
@@ -1662,7 +1663,7 @@ export function welt(T, handy) {
     if (weihnachten) {                                   // Weihnachten: Tannengirlande mit Lichtern, Bäume und Geschenke in der Halle
       const pkt = []; for (let i = 0; i <= 24; i++) { const x = -12 + i; pkt.push(new T.Vector3(x, 3.15 - Math.abs(Math.sin(i * Math.PI / 4)) * .45, -4.8)); }
       const girlande = new T.Mesh(new T.TubeGeometry(new T.CatmullRomCurve3(pkt), 120, .13, 8, false), M.tanne); g.add(girlande);
-      const lk = new T.InstancedMesh(xm().geo.kugel, xm().licht, 48), m = new T.Matrix4(), q = new T.Quaternion();
+      const lk = new T.InstancedMesh(xm().geo.lampe, xm().licht, 48), m = new T.Matrix4(), q = new T.Quaternion();
       for (let i = 0; i < 48; i++) { const x = -12 + i * .5; m.compose(new T.Vector3(x, 3.15 - Math.abs(Math.sin(x * Math.PI / 4 + 3 * Math.PI)) * .45 - .05, -4.66), q, new T.Vector3(.06, .06, .06)); lk.setMatrixAt(i, m); lk.setColorAt(i, LICHT_FARBEN[i % LICHT_FARBEN.length]); }
       g.add(lk);
       for (const x of [-6.8, 6.8]) { const b = weihnachtsbaum(); b.position.set(x, 0, -3.6); g.add(b); const p = geschenke(); p.position.set(x + (x < 0 ? 1.4 : -1.4), 0, -3.4); g.add(p); }
@@ -2368,7 +2369,8 @@ export function welt(T, handy) {
     schleife: ["#ffffff", "#f4c430", "#d62828"].map(c => std({ color: c, roughness: .4, metalness: .2 })),
     muetze: std({ color: "#d1202a", roughness: .8 }), fell: std({ color: "#ffffff", roughness: 1 }),
     geo: {
-      kugel: new T.SphereGeometry(1, 20, 14), stern: new T.ExtrudeGeometry(sternForm(.22, .1), { depth: .05, bevelEnabled: true, bevelThickness: .02, bevelSize: .02, bevelSegments: 2 }).translate(0, 0, -.025),
+      kugel: new T.SphereGeometry(1, 20, 14), lampe: new T.SphereGeometry(1, 8, 6), kugelKlein: new T.SphereGeometry(1, handy ? 10 : 14, handy ? 7 : 10),   // Lämpchen und Baumkugeln sind winzig: grobe Kugeln reichen
+      stern: new T.ExtrudeGeometry(sternForm(.22, .1), { depth: .05, bevelEnabled: true, bevelThickness: .02, bevelSize: .02, bevelSegments: 2 }).translate(0, 0, -.025),
       plaetzchen: new T.ExtrudeGeometry(sternForm(.2, .11), { depth: .05, bevelEnabled: true, bevelThickness: .025, bevelSize: .025, bevelSegments: 3 }).translate(0, 0, -.025),
       glasur: new T.ExtrudeGeometry(sternForm(.15, .08), { depth: .012, bevelEnabled: false }),
       paket: new T.BoxGeometry(1, 1, 1), band: new T.BoxGeometry(1, 1, 1), schlaufe: new T.TorusGeometry(.09, .025, 6, 14),
@@ -2394,7 +2396,7 @@ export function welt(T, handy) {
     }
     const m = new T.Matrix4(), q = new T.Quaternion();
     const viele = (liste, material, groesse, farben) => {
-      const k = new T.InstancedMesh(X.geo.kugel, material, liste.length);
+      const k = new T.InstancedMesh(X.geo.kugelKlein, material, liste.length);
       liste.forEach(([x, y, z], i) => { m.compose(new T.Vector3(x, y, z), q, new T.Vector3(groesse, groesse, groesse)); k.setMatrixAt(i, m); k.setColorAt(i, farben[i % farben.length]); });
       k.castShadow = false; g.add(k); return k;
     };
@@ -2418,7 +2420,7 @@ export function welt(T, handy) {
   }
   // Lichterkette, die oben über Hecke oder Pflanzenwand hängt
   function lichterkette(laenge, oben, dicke) {
-    const X = xm(), n = Math.max(3, Math.round(laenge * 2.4)), k = new T.InstancedMesh(X.geo.kugel, X.licht, n), m = new T.Matrix4(), q = new T.Quaternion(), s = new T.Vector3(.075, .095, .075);
+    const X = xm(), n = Math.max(3, Math.round(laenge * 2.4 * Math.max(.5, spar))), k = new T.InstancedMesh(X.geo.lampe, X.licht, n), m = new T.Matrix4(), q = new T.Quaternion(), s = new T.Vector3(.075, .095, .075);
     for (let i = 0; i < n; i++) {
       const z = -laenge / 2 + (i + .5) * laenge / n;
       m.compose(new T.Vector3(Math.sin(i * 1.7) * dicke * .2, oben - Math.abs(Math.sin(i * .9)) * .04, z), q, s); k.setMatrixAt(i, m); k.setColorAt(i, LICHT_FARBEN[i % LICHT_FARBEN.length]);
@@ -2644,8 +2646,10 @@ export function welt(T, handy) {
   };
   const grasMat = ["#82c24f", "#97c757", "#74b86a", "#c9a24a", "#5f8f5a", "#e3ecf2", "#5aa83f"].map(c =>
     windEinbauen(std({ map: grasBild, color: c, alphaTest: .45, roughness: 1 })));
+  // Automatische Qualität: ruckelt es, bekommen neue Streckenabschnitte weniger Gras, Wiesenblumen und Lämpchen
+  const sparen = (stufe) => { spar = stufe >= 2 ? .35 : stufe >= 1 ? .6 : 1; };
   function grasBueschel(laenge, z, breite) {
-    const dichte = (handy ? .45 : 1.5) * (ZONEN[z].hecke === "schnee" ? .35 : 1);
+    const dichte = (handy ? .45 : 1.5) * (ZONEN[z].hecke === "schnee" ? .35 : 1) * spar;
     const n = Math.max(1, Math.round(laenge * breite * dichte)), k = new T.InstancedMesh(grasGeo, grasMat[z], n);
     const m = new T.Matrix4(), q = new T.Quaternion(), e = new T.Euler();
     for (let i = 0; i < n; i++) {
@@ -2659,7 +2663,7 @@ export function welt(T, handy) {
   // Wildblumen in kleinen Gruppen auf der Wiese hinter den Hecken
   function wiesenBlumen(laenge, z, breite) {
     if (ZONEN[z].hecke === "schnee") return new T.Group();
-    const gruppen = Math.max(1, Math.round(laenge * breite * (handy ? .018 : .04))), je = handy ? 7 : 11, n = gruppen * je;
+    const gruppen = Math.max(1, Math.round(laenge * breite * (handy ? .018 : .04) * spar)), je = handy ? 7 : 11, n = gruppen * je;
     const k = new T.InstancedMesh(bluetenGeo, bluetenMat, n), m = new T.Matrix4(), q = new T.Quaternion(), farben = [wahl(bluetenFarben), wahl(bluetenFarben)];
     for (let i = 0; i < gruppen; i++) {
       const cx = zufall(-breite / 2, breite / 2), cz = zufall(-laenge / 2, laenge / 2), farbe = wahl(farben);
@@ -2817,6 +2821,6 @@ export function welt(T, handy) {
     for (let i = 0; i < 8; i++) { const w = (i + .5) / 8 * Math.PI * 2; teil(X.geo.kugel, X.kugel, g, Math.cos(w) * .26, .07, Math.sin(w) * .26).scale.setScalar(.03); }
     return g;
   }
-  return { adventskranz, weihnachten, blitz, wiesenBlumen, wegFuer, randFuer, tanne, schneemann, stuhl, STUHL_SITZ, folienRolle, folieStoff, folieKante, marlenaBauen, kissen, duellBuehne, wasserNormal: wellen, rekordFahne, figurBauen, FIGUREN, leoBauen, FIGUR_INFO, toertchen, frauBauen, sprechblase, froebelBanner, froebelHeckenTafel, froebelTafel, froebelSchild, kontaktSchatten, grasBueschel, dampf, weltHindernis, entsorgen, pfeilSchild, bodenPfeil, AUSSTATTUNG, ausstattungSetzen, zonen: ZONEN, zoneFuer, dekoFuer, heckeFuer, blumenFuer, bodenFlaeche, bodenFolgen, verbinden, zoneWechsel, zoneSchritt,
+  return { sparen, adventskranz, weihnachten, blitz, wiesenBlumen, wegFuer, randFuer, tanne, schneemann, stuhl, STUHL_SITZ, folienRolle, folieStoff, folieKante, marlenaBauen, kissen, duellBuehne, wasserNormal: wellen, rekordFahne, figurBauen, FIGUREN, leoBauen, FIGUR_INFO, toertchen, frauBauen, sprechblase, froebelBanner, froebelHeckenTafel, froebelTafel, froebelSchild, kontaktSchatten, grasBueschel, dampf, weltHindernis, entsorgen, pfeilSchild, bodenPfeil, AUSSTATTUNG, ausstattungSetzen, zonen: ZONEN, zoneFuer, dekoFuer, heckeFuer, blumenFuer, bodenFlaeche, bodenFolgen, verbinden, zoneWechsel, zoneSchritt,
     animieren, wetterSchritt, voegelSchritt, luft, mat, geo, giraffeBauen, anjaBauen, boden, heckenStueck, blumen, ferne, sonnenScheibe, funke, staub, kante, dekoNeu, hindernis, stern, panzer, booster, blase, himmel, wolken, gras };
 }

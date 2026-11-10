@@ -41,7 +41,7 @@ if (rahmen) {
   function laden() {
     if (!bereit) {
       const text = losKnopf.textContent; losKnopf.disabled = true; losKnopf.textContent = "Lädt die 3D-Welt …";
-      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=54"), import("./lauf-ton.js?v=12"), import("./lauf-flug.js?v=17"), import("./lauf-effekte.js?v=4"), import("./lauf-buero.js?v=1"), import("./detektiv-figuren.js?v=4")])
+      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=55"), import("./lauf-ton.js?v=12"), import("./lauf-flug.js?v=17"), import("./lauf-effekte.js?v=4"), import("./lauf-buero.js?v=1"), import("./detektiv-figuren.js?v=4")])
         .then(([m, w, t, f, e, bm, fm]) => { THREE = m; T = t.ton(); aufbauen(w, f, e, bm, fm); T.weihnachten(W.weihnachten); losKnopf.disabled = false; losKnopf.textContent = text; });
     }
     return bereit;
@@ -53,7 +53,8 @@ if (rahmen) {
   let rekord = +lies("froebelinchen-rennt-rekord", 0) || 0;
   const konto = lies("froebelinchen-rennt-konto", { sterne: 0, besitz: [], an: [] });
   let erledigt = lies("froebelinchen-rennt-aufgaben", []);
-  let qualitaet = lies("froebelinchen-rennt-qualitaet", 0);
+  // Bei jedem Besuch wird eine Stufe besser probiert: ein einzelner schlechter Tag (heißes Handy) soll nicht für immer die Schatten kosten
+  let qualitaet = Math.max(0, (+lies("froebelinchen-rennt-qualitaet", 0) || 0) - 1);
   let tutorialFertig = lies("froebelinchen-rennt-tutorial", false);
   // Figuren: Fröbelinchen und Leo gibt es sofort, die anderen ab einer Fröbel-Stufe (eine Stufe je 5000 gesammelte Punkte)
   // Figuren: Fröbelinchen, Leo und Schnäuzchen gibt es sofort. Die anderen gibt es ab einer Fröbel-Stufe zu kaufen (Sterne).
@@ -190,7 +191,7 @@ if (rahmen) {
       const sk = sonne.shadow.camera; sk.far = sk.near + .001; sk.updateProjectionMatrix();
       renderer.shadowMap.autoUpdate = false; renderer.shadowMap.needsUpdate = true;
     }
-    W.luft.visible = stufe < 3 && !FL.an;
+    W.luft.visible = stufe < 3 && !FL.an; W.sparen(stufe);
     if (kamera) groesse();
   }
   let messZeit = 0, messBilder = 0, messLangsam = 0, messSperre = 2;
