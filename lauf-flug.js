@@ -200,23 +200,44 @@ export function flugWelt(T, W) {
       beine.push({ b, vorn, ph: Math.random() * .5 });
     }
     k(RF.kugel, RF.hell, g, 0, .1, .5).scale.set(.06, .07, .05);
-    return { g, beine };
+    return { g, beine, hals };
   }
   function schlittenFliegt(anja) {
-    const s = schlitten(anja), team = new T.Group(); s.gruppe.add(team);
+    // Der Schlitten hängt in einem eigenen Gelenk (pendelt und wippt), das Gespann zieht in Kurven voraus und die Zügel hängen locker durch
+    const s = schlitten(anja), koerper = new T.Group(), team = new T.Group();
+    for (const k of [...s.gruppe.children]) koerper.add(k);
+    s.gruppe.add(koerper, team);
     const tiere = [];
-    for (const [x, y, z, nase] of [[-.45, .95, -2.8, false], [.45, .95, -2.8, false], [-.45, 1.35, -4.1, false], [.45, 1.35, -4.1, false], [0, 1.8, -5.4, true]]) {   // steigt nach vorn an, damit man das Gespann hinter dem Schlitten sieht
-      const r = rentierFliegt(nase); r.g.position.set(x, y, z); r.y = y; r.g.rotation.x = .12; r.g.scale.setScalar(1.15); team.add(r.g); tiere.push(r);
+    for (const [x, y, z, nase, reihe] of [[-.45, .95, -2.8, false, 1], [.45, .95, -2.8, false, 1], [-.45, 1.35, -4.1, false, 2], [.45, 1.35, -4.1, false, 2], [0, 1.8, -5.4, true, 3]]) {
+      const r = rentierFliegt(nase); r.g.position.set(x, y, z); r.g.rotation.x = .12; r.g.scale.setScalar(1.15); team.add(r.g);
+      Object.assign(r, { bx: x, by: y, bz: z, reihe, x, y }); tiere.push(r);
     }
-    // goldene Zügel vom Schlitten zu jedem Rentier
-    const punkte = [];
-    for (const r of tiere) punkte.push(new T.Vector3(r.g.position.x * .4, .78, -1.45), new T.Vector3(r.g.position.x, r.y + .05, r.g.position.z + .35));
-    team.add(new T.LineSegments(new T.BufferGeometry().setFromPoints(punkte), new T.LineBasicMaterial({ color: "#e8b830" })));
-    // galoppieren: Beine schwingen, die Tiere wippen leicht versetzt
-    const animiere = (t) => tiere.forEach((r, i) => {
-      r.g.position.y = r.y + Math.sin(t * 7 + i) * .06;
-      for (const l of r.beine) l.b.rotation.x = (l.vorn ? -.7 : .7) + Math.sin(t * 9 + i + l.ph + (l.vorn ? 0 : Math.PI)) * .45;
-    });
+    // goldene Zügel: je Rentier zwei Stücke über einen durchhängenden Mittelpunkt
+    const zuegel = new Float32Array(tiere.length * 4 * 3), zGeo = new T.BufferGeometry();
+    zGeo.setAttribute("position", new T.BufferAttribute(zuegel, 3).setUsage(T.DynamicDrawUsage));
+    const leinen = new T.LineSegments(zGeo, new T.LineBasicMaterial({ color: "#e8b830" })); leinen.frustumCulled = false; team.add(leinen);
+    let quer = 0, hoch = 0;
+    const animiere = (t, dt = .016, neig = 0, nick = 0) => {
+      const k = Math.min(1, dt * 3); quer += (neig - quer) * k; hoch += (nick - hoch) * k;
+      koerper.rotation.z = Math.sin(t * 2.1) * .05 - quer * .3;             // pendelt im Fahrtwind und schwingt in der Kurve nach
+      koerper.rotation.x = Math.sin(t * 1.6 + 1) * .035 + hoch * .25;
+      koerper.rotation.y = quer * .18;
+      koerper.position.y = Math.sin(t * 3.2) * .06;
+      const kufeY = .78 + koerper.position.y;
+      tiere.forEach((r, i) => {
+        const f = Math.min(1, dt * (2 + r.reihe * 1.2));                  // das Leitrentier reagiert zuerst und am weitesten
+        r.x += (r.bx - quer * r.reihe * 1.1 - r.x) * f;
+        r.y += (r.by + hoch * r.reihe * .9 - r.y) * f;
+        r.g.position.set(r.x, r.y + Math.sin(t * 7 + i) * .08, r.bz);
+        r.g.rotation.set(.12 - hoch * .45, quer * .6, quer * .55);
+        r.hals.rotation.x = -.6 + Math.sin(t * 9 + i * .7) * .16;           // nickt im Galopp
+        for (const l of r.beine) l.b.rotation.x = (l.vorn ? -.7 : .7) + Math.sin(t * 9 + i + l.ph + (l.vorn ? 0 : Math.PI)) * .55;
+        const ax = r.bx * .4, ay = kufeY, az = -1.45, ex = r.x, ey = r.g.position.y + .05, ez = r.bz + .4;
+        const mx = (ax + ex) / 2, my = (ay + ey) / 2 - .28 + Math.sin(t * 5 + i) * .05, mz = (az + ez) / 2, o = i * 12;
+        zuegel.set([ax, ay, az, mx, my, mz, mx, my, mz, ex, ey, ez], o);
+      });
+      zGeo.attributes.position.needsUpdate = true;
+    };
     return { gruppe: s.gruppe, propeller: s.propeller, sitz: s.sitz, animiere, schlitten: true };
   }
   function flieger(anja) {
