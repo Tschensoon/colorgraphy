@@ -1051,7 +1051,7 @@ if (rahmen) {
         if (!tipps.has("eis")) { tipps.add("eis"); meldung("Glatteis!", "Lenken geht kurz langsamer"); }
         continue;
       }
-      if (RE.schutz > 0 || (unverwundbar && !(R.anjaPhase && h.art !== "block"))) continue;   // in der Anja-Phase schützt das Schild nur vor Bauklötzen
+      if (RE.schutz > 0 || unverwundbar) continue;      // das Schild schützt vor allem, auch in der Anja-Phase (wie im Flug)
       if (h.art === "frau") {                          // umgerannt: Fröbelinchen stolpert, die Frau ruft hinterher
         h.getroffen = true; stolpern(); if (zustand !== "laeuft") return;
         meldung("Huch, Zusammenstoß!", "„Hast du meine Schlüssel gesehen?“"); continue;
@@ -1065,8 +1065,14 @@ if (rahmen) {
       st.weg = true; st.mesh.visible = false; sternZahl++; punkte += 10 * faktor * kombo(); funkeln(st.mesh.position, "#ffb3d1", 8);
       T.stern(sternZahl); GE.freude = .35; hud.classList.remove("hupf"); void hud.offsetWidth; hud.classList.add("hupf");
     };
+    const kopfPunkt = spieler.gruppe.position;
     for (const st of sterne) {
-      if (st.weg || st.nr !== S.idx) continue;
+      if (st.weg) continue;
+      if (st.zieht) {                                   // vom Magnet angezogen: zählt, sobald er bei ihr ankommt, auch wenn der Magnet schon aus ist
+        const m = st.mesh.position; if (Math.hypot(m.x - kopfPunkt.x, m.y - kopfPunkt.y - 1, m.z - kopfPunkt.z) < 1.3) einsammeln(st);
+        continue;
+      }
+      if (st.nr !== S.idx) continue;
       const vor = st.s - S.s;
       if (B.magnet > 0 && vor > -.5 && vor < 9) { if (vor < 1.2) einsammeln(st); else st.zieht = true; continue; }
       if (Math.abs(vor) > .8 || Math.round(S.x / SPUR) !== st.spur) continue;
@@ -2356,13 +2362,17 @@ if (rahmen) {
         continue;
       }
       const dz = o.z - FL.z, abst = Math.hypot(o.x - FL.x, o.y - FL.y);
+      // Trefferzone wie das Flugzeug: Rumpf, die ganze Spannweite der Flügel und Kopf/Hals über dem Cockpit.
+      // Geprüft wird die ganze Strecke seit dem letzten Bild, damit bei hohem Tempo nichts durchrutscht.
+      const dx = Math.abs(o.x - FL.x), dy = o.y - FL.y, durch = dz > -1.2 && o.z < zAlt + 1.2;
+      const amFahrzeug = (r) => abst < r || (FL.art === "luft" && ((dx < 2.8 && dy > -.8 && dy < .7) || (dx < .9 && dy > -.2 && dy < 2.4)));
       if (o.typ === "stern") {
+        if (o.zieht) {                                   // vom Magnet angezogen: zählt, sobald er ankommt, auch wenn der Magnet schon aus ist
+          const m = o.mesh.position; if (Math.hypot(m.x - FL.x, m.y - FL.y, m.z - FL.z) < 1.6) einsammeln(o);
+          continue;
+        }
         if (B.magnet > 0 && dz > -12 && dz < 1) { if (dz > -1.5) einsammeln(o); else o.zieht = true; continue; }
-        // Trefferzone wie das Flugzeug: Rumpf, die ganze Spannweite der Flügel und Kopf/Hals über dem Cockpit.
-        // Geprüft wird die ganze Strecke seit dem letzten Bild, damit bei hohem Tempo kein Stern durchrutscht.
-        const dx = Math.abs(o.x - FL.x), dy = o.y - FL.y, durch = dz > -1.2 && o.z < zAlt + 1.2;
-        const trifft = abst < 1.5 || (FL.art === "luft" && ((dx < 2.8 && dy > -.8 && dy < .7) || (dx < .9 && dy > -.2 && dy < 2.4)));
-        if (durch && trifft) einsammeln(o);
+        if (durch && amFahrzeug(1.5)) einsammeln(o);
       } else if (o.typ === "ring") {
         if (o.z <= zAlt && o.z > FL.z) {                 // genau beim Durchfliegen prüfen
           o.weg = true;
@@ -2371,7 +2381,7 @@ if (rahmen) {
       } else if (o.typ === "tor") {
         if (o.z <= zAlt && o.z > FL.z) { o.weg = true; torPruefen(o, faktor, unverwundbar); if (zustand !== "laeuft") return; }
       } else if (o.typ === "booster") {
-        if (Math.abs(dz) < 1.3 && abst < 1.7) {
+        if (durch && amFahrzeug(1.7)) {
           o.weg = true; o.mesh.visible = false; boosterNehmen(o.art);
           funkeln(o.mesh.position, BOOSTER_FUNKEN[o.art], 18);
         }
