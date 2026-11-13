@@ -1024,6 +1024,7 @@ if (rahmen) {
    
     let ab = abschnitte.find(a => a.nr === S.idx);
     if (FL.abflug && !S.abbiegen && ab.L - S.s < ECKE) S.abbiegen = ab.dreh;   // während der Blende biegt sie von selbst ab
+    if (B.schild > 0 && !S.abbiegen && S.s >= ab.L - .2) S.abbiegen = ab.dreh;   // mit Schutzschild biegt sie an der Ecke von selbst ab, statt in die Hecke zu laufen
     if (S.abbiegen && S.s >= ab.L - .2) {             // an der Ecke: in den nächsten Abschnitt wechseln
       const weiter = abschnitte.find(a => a.nr === S.idx + 1);
       S.s = Math.max(0, S.s - ab.L); S.idx++; S.abbiegen = 0; ab = weiter;
@@ -1079,7 +1080,9 @@ if (rahmen) {
         if (!tipps.has("eis")) { tipps.add("eis"); meldung("Glatteis!", "Lenken geht kurz langsamer"); }
         continue;
       }
-      if (RE.schutz > 0 || unverwundbar) continue;      // das Schild schützt vor allem, auch in der Anja-Phase (wie im Flug)
+      // Das Schild schützt vor allem, auch in der Anja-Phase (wie im Flug). Das Hindernis gilt damit als erledigt:
+      // läuft der Schutz ab, während sie noch mittendrin steckt, zählt es nicht nachträglich als Treffer.
+      if (RE.schutz > 0 || unverwundbar) { h.getroffen = true; continue; }
       if (h.art === "frau") {                          // umgerannt: Fröbelinchen stolpert, die Frau ruft hinterher
         h.getroffen = true; stolpern(); if (zustand !== "laeuft") return;
         meldung("Huch, Zusammenstoß!", "„Hast du meine Schlüssel gesehen?“"); continue;
@@ -2482,8 +2485,9 @@ if (rahmen) {
           o.weg = true; o.mesh.visible = false; boosterNehmen(o.art);
           funkeln(o.mesh.position, BOOSTER_FUNKEN[o.art], 18);
         }
-      } else if (!o.getroffen && !unverwundbar && Math.abs(dz) < o.tiefe && abst < o.r) {
-        o.getroffen = true; flugTreffer(o); if (zustand !== "laeuft") return;
+      } else if (!o.getroffen && Math.abs(dz) < o.tiefe && abst < o.r) {
+        o.getroffen = true;                              // mit Schild durchflogen: zählt auch dann nicht mehr, wenn der Schutz mittendrin abläuft
+        if (!unverwundbar) { flugTreffer(o); if (zustand !== "laeuft") return; }
       }
     }
     // weit hinter der Kamera: wegräumen
