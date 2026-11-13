@@ -1,18 +1,21 @@
 // Wettrennen für „Fröbelinchen rennt“: zwei Spieler treffen sich über einen Code in einer Lobby und laufen gleichzeitig dieselbe Strecke.
 // Läuft über den Realtime-Kanal von Supabase (Broadcast), ohne eigenen Server und ohne Tabelle: Es wird nichts gespeichert.
-// Ablauf: Gastgeber erstellt ein Rennen (Code), Gast tritt bei ("hallo"), Gastgeber antwortet mit "start" und der Startzahl für die Strecke,
+// Ablauf: Gastgeber erstellt ein Rennen (Code), Gast tritt bei ("hallo"), Gastgeber antwortet mit "drin": beide stehen im Lobby-Raum,
+// können chatten und melden sich bereit ("status"). Sind beide bereit, schickt der Gastgeber "start" mit der Startzahl für die Strecke,
 // beide zählen 3-2-1 und laufen los. Danach schickt jedes Gerät viermal pro Sekunde seinen Stand ("pos").
-export function rennenStarten({ db, feld, knopf, nameFehler, vorbereiten, los, stand, gegner }) {
+export function rennenStarten({ db, feld, knopf, nameFehler, verboten, vorbereiten, los, stand, gegner }) {
   const ZEICHEN = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";      // ohne 0/O und 1/I, damit man den Code gut vorlesen kann
   const ich = Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
   const $ = (s) => feld.querySelector(s);
-  const teilStart = $(".lr-start"), teilWarten = $(".lr-warten"), teilZaehler = $(".lr-zaehler");
+  const teilStart = $(".lr-start"), teilWarten = $(".lr-warten"), teilZaehler = $(".lr-zaehler"), teilLobby = $(".lr-lobby");
+  const chatListe = $(".lr-chat"), chatText = $(".lr-chat-text"), bereitKnopf = $(".lr-bereit");
   const nameFeld = $(".lr-name"), codeFeld = $(".lr-code"), status = $(".lr-status");
   let ws = null, ref = 0, joinRef = null, verbunden = false, herz = null, takt = null, wache = null, hallo = null, zaehler = null;
   let kanal = "", code = "", rolle = "", er = null, laeuft = false, zuletzt = 0, bereitFn = null, neuTimer = null, versuche = 0;
+  let imRaum = false, ichBereit = false, erBereit = false, raumTakt = null, erZuletzt = 0;
   try { nameFeld.value = localStorage.getItem("froebelinchen-name") || ""; } catch (e) {}
 
-  const zeigen = (teil) => { for (const t of [teilStart, teilWarten, teilZaehler]) t.hidden = t !== teil; };
+  const zeigen = (teil) => { for (const t of [teilStart, teilWarten, teilZaehler, teilLobby]) t.hidden = t !== teil; };
   const melden = (text, fehler) => { status.textContent = text; status.classList.toggle("fehler", !!fehler); };
   const name = () => nameFeld.value.replace(/\s+/g, " ").trim().slice(0, 16);
   const rufen = (event, payload) => {
@@ -26,8 +29,8 @@ export function rennenStarten({ db, feld, knopf, nameFehler, vorbereiten, los, s
     if (ws) { ws.onclose = ws.onmessage = ws.onerror = ws.onopen = null; try { ws.close(); } catch (e) {} ws = null; }
   }
   function trennen() {
-    for (const t of [takt, wache, hallo, zaehler]) clearInterval(t);
-    takt = wache = hallo = zaehler = null; laeuft = false; er = null; rolle = ""; bereitFn = null; versuche = 0;
+    for (const t of [takt, wache, hallo, zaehler, raumTakt]) clearInterval(t);
+    takt = wache = hallo = zaehler = raumTakt = null; imRaum = false; laeuft = false; er = null; rolle = ""; bereitFn = null; versuche = 0;
     leitungZu();
   }
   // Die Lobby bleibt bestehen, auch wenn die Leitung abreißt – am Handy passiert das, sobald man zum Verschicken des Codes
@@ -35,7 +38,7 @@ export function rennenStarten({ db, feld, knopf, nameFehler, vorbereiten, los, s
   function neuVerbinden(gleich) {
     if (!rolle || neuTimer) return;
     if (++versuche > 60) return abbruch("Verbindung verloren. Bitte noch einmal versuchen.");
-    if (!laeuft && rolle === "gastgeber" && !zaehler) $(".lr-info").textContent = "Verbinde neu …";
+    if (!laeuft && rolle === "gastgeber" && !zaehler && !imRaum) $(".lr-info").textContent = "Verbinde neu …";
     neuTimer = setTimeout(() => { neuTimer = null; leitung(); }, gleich ? 50 : Math.min(4000, 600 * versuche));
   }
   function verbinden(bereit) {
@@ -70,22 +73,80 @@ export function rennenStarten({ db, feld, knopf, nameFehler, vorbereiten, los, s
   function empfangen(art, p) {
     if (art === "hallo" && rolle === "gastgeber") {
       if (er && er.id !== p.id) return rufen("voll", { an: p.id });
-      if (!er) { er = { id: p.id, name: String(p.name || "Gast").slice(0, 16), seed: Math.floor(Math.random() * 2147483647) }; }
-      rufen("start", { an: er.id, seed: er.seed, name: name() || "Gast" });     // bei wiederholtem „hallo“ noch einmal, falls die Antwort verloren ging
-      if (!zaehler) herunterzaehlen(er.seed);
-    } else if (art === "start" && rolle === "gast" && p.an === ich && !zaehler && !laeuft) {
+      if (zaehler || laeuft) return;
+      if (!er) er = { id: p.id, name: String(p.name || "Gast").slice(0, 16) };
+      rufen("drin", { an: er.id, name: name() || "Gast" });     // bei wiederholtem „hallo“ noch einmal, falls die Antwort verloren ging
+      if (!imRaum) raumAuf();
+    } else if (art === "drin" && rolle === "gast" && p.an === ich && !imRaum && !zaehler && !laeuft) {
       clearInterval(hallo); hallo = null;
-      er = { id: "", name: String(p.name || "Gast").slice(0, 16), seed: p.seed | 0 };
-      herunterzaehlen(er.seed);
-    } else if (art === "voll" && p.an === ich && !zaehler && !laeuft) abbruch("Dieses Rennen ist schon voll.");
+      er = { id: "", name: String(p.name || "Gast").slice(0, 16) };
+      raumAuf();
+    } else if (art === "status" && imRaum && er && p.id !== ich && (rolle === "gast" || p.id === er.id)) {
+      erZuletzt = Date.now(); erBereit = !!p.bereit; if (p.name) er.name = String(p.name).slice(0, 16);
+      raumZeigen(); startPruefen();
+    } else if (art === "chat" && imRaum && er) {
+      const text = String(p.text || "").slice(0, 200);
+      if (text && !verboten(text)) chatZeile(er.name, text, false);
+    } else if (art === "tschuess" && imRaum && p.id !== ich) gegnerWeg();
+    else if (art === "start" && rolle === "gast" && p.an === ich && imRaum && !zaehler && !laeuft) herunterzaehlen(p.seed | 0);
+    else if (art === "voll" && p.an === ich && !imRaum && !zaehler && !laeuft) abbruch("Dieses Rennen ist schon voll.");
     else if (art === "pos" && laeuft && er) {
       zuletzt = Date.now();
       gegner({ name: er.name, m: +p.m || 0, p: +p.p || 0, z: p.z === "aus" ? "aus" : "laeuft", f: String(p.f || "").slice(0, 16), idx: p.idx | 0, s: +p.s || 0, x: +p.x || 0, y: +p.y || 0 });
     }
   }
 
+  // ----- Lobby-Raum: beide sehen sich, können chatten und drücken „Bereit“ -----
+  const statusSenden = () => rufen("status", { id: ich, name: name() || "Gast", bereit: ichBereit });
+  function raumAuf() {
+    imRaum = true; ichBereit = erBereit = false; erZuletzt = Date.now();
+    chatListe.replaceChildren(); chatText.value = ""; vergessen();
+    $(".lr-raum-code").textContent = code;
+    zeigen(teilLobby); melden(""); raumZeigen(); statusSenden();
+    clearInterval(raumTakt);
+    raumTakt = setInterval(() => {
+      statusSenden();
+      if (Date.now() - erZuletzt > 12000) gegnerWeg();       // meldet sich nicht mehr: hat die Lobby verlassen
+    }, 1500);
+  }
+  function raumZeigen() {
+    const zeile = (sel, wer, bereit) => { const li = $(sel); li.querySelector(".lr-sn").textContent = wer; li.querySelector(".lr-sb").textContent = bereit ? "✓ bereit" : "noch nicht bereit"; li.classList.toggle("bereit", bereit); };
+    zeile(".lr-ich", `${name() || "Du"} (du)`, ichBereit); zeile(".lr-er", er ? er.name : "", erBereit);
+    bereitKnopf.textContent = ichBereit ? "Doch nicht bereit" : "Bereit!"; bereitKnopf.classList.toggle("ghost", ichBereit);
+    $(".lr-raum-info").textContent = ichBereit && !erBereit ? `Warte auf ${er ? er.name : "den Gegner"} …` : !ichBereit && erBereit ? `${er.name} ist bereit. Drück „Bereit!“, dann geht es los.` : "Sobald beide bereit sind, startet das Rennen.";
+  }
+  function startPruefen() {                               // der Gastgeber gibt den Start, sobald beide bereit sind
+    if (rolle !== "gastgeber" || !imRaum || !ichBereit || !erBereit || zaehler || laeuft) return;
+    const seed = Math.floor(Math.random() * 2147483647), start = () => rufen("start", { an: er.id, seed });
+    start(); setTimeout(start, 250); setTimeout(start, 600);  // dreimal, falls eine Nachricht verloren geht
+    herunterzaehlen(seed);
+  }
+  function gegnerWeg() {
+    if (!imRaum) return;
+    const wer = er ? er.name : "Dein Gegner";
+    clearInterval(raumTakt); raumTakt = null; imRaum = false; ichBereit = erBereit = false;
+    if (rolle === "gastgeber") { er = null; merken(); zeigen(teilWarten); $(".lr-info").textContent = `${wer} hat die Lobby verlassen. Warte auf einen neuen Gegner …`; }
+    else abbruch(`${wer} hat die Lobby verlassen.`);
+  }
+  function chatZeile(wer, text, eigen) {
+    const li = document.createElement("li"), b = document.createElement("b");
+    if (eigen) li.className = "eigen";
+    b.textContent = wer + ": "; li.append(b, text); chatListe.append(li);
+    while (chatListe.children.length > 50) chatListe.firstChild.remove();
+    chatListe.scrollTop = chatListe.scrollHeight;
+  }
+  $(".lr-chat-form").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const text = chatText.value.replace(/\s+/g, " ").trim().slice(0, 200);
+    if (!text || !imRaum) return;
+    if (verboten(text)) { melden("Bitte bleib freundlich.", true); return; }
+    melden(""); chatText.value = ""; chatZeile(name() || "Du", text, true); rufen("chat", { text });
+  });
+  bereitKnopf.addEventListener("click", () => { if (!imRaum) return; ichBereit = !ichBereit; raumZeigen(); statusSenden(); startPruefen(); });
+
   function herunterzaehlen(seed) {
     let n = 3;
+    clearInterval(raumTakt); raumTakt = null; imRaum = false;
     zeigen(teilZaehler); melden("");
     $(".lr-gegen").textContent = `${name() || "Du"} gegen ${er.name}`;
     const zahl = $(".lr-zahl"); zahl.textContent = n;
@@ -95,6 +156,7 @@ export function rennenStarten({ db, feld, knopf, nameFehler, vorbereiten, los, s
       clearInterval(zaehler); zaehler = null;
       feld.hidden = true; zeigen(teilStart); vergessen();
       laeuft = true; zuletzt = Date.now();
+      chatListe.replaceChildren();
       los(seed, er.name);
       takt = setInterval(() => rufen("pos", stand()), 250);
       // meldet sich der Gegner 8 Sekunden lang nicht (Handy gesperrt, Netz weg), gilt er als ausgeschieden
@@ -118,7 +180,7 @@ export function rennenStarten({ db, feld, knopf, nameFehler, vorbereiten, los, s
   function warten() {
     rolle = "gastgeber"; merken();
     $(".lr-zeigen").textContent = code; $(".lr-info").textContent = "Verbinde …"; zeigen(teilWarten); melden("");
-    verbinden(() => { if (!zaehler && !laeuft) $(".lr-info").textContent = "Warte auf deinen Gegner …"; });
+    verbinden(() => { if (!zaehler && !laeuft && !imRaum) $(".lr-info").textContent = "Warte auf deinen Gegner …"; });
   }
   $(".lr-form").addEventListener("submit", (e) => {
     e.preventDefault();
@@ -130,12 +192,12 @@ export function rennenStarten({ db, feld, knopf, nameFehler, vorbereiten, los, s
     let n = 0;
     // anklopfen, bis der Gastgeber antwortet: er ist vielleicht gerade in einer anderen App, um den Code zu verschicken
     const klopfen = () => {
-      if (zaehler || laeuft) return;
+      if (zaehler || laeuft || imRaum) return;
       if (++n > 50) { abbruch("Kein Rennen mit diesem Code gefunden."); return; }
       if (n === 6) melden("Der Gastgeber antwortet noch nicht. Ich versuche es weiter …");
       rufen("hallo", { id: ich, name: name() });
     };
-    verbinden(() => { clearInterval(hallo); hallo = null; if (zaehler || laeuft) return; klopfen(); hallo = setInterval(klopfen, 1200); });
+    verbinden(() => { clearInterval(hallo); hallo = null; if (zaehler || laeuft || imRaum) return; klopfen(); hallo = setInterval(klopfen, 1200); });
   });
   $(".lr-teilen").addEventListener("click", async () => {
     const link = `${location.origin}${location.pathname}?rennen=${code}`, text = `Wettrennen bei Fröbelinchen rennt! Code: ${code}`;
@@ -144,13 +206,14 @@ export function rennenStarten({ db, feld, knopf, nameFehler, vorbereiten, los, s
       else { await navigator.clipboard.writeText(link); $(".lr-info").textContent = "Link kopiert. Warte auf deinen Gegner …"; }
     } catch (e) {}
   });
-  const zu = () => { feld.hidden = true; if (!laeuft) { trennen(); vergessen(); zeigen(teilStart); melden(""); } };
+  const zu = () => { feld.hidden = true; if (!laeuft) { if (imRaum) rufen("tschuess", { id: ich }); trennen(); vergessen(); zeigen(teilStart); melden(""); } };
   $(".lr-x").addEventListener("click", zu);
   knopf.addEventListener("click", () => oeffnen());
 
   function oeffnen(mitCode) {
     if (laeuft) ende();
-    if (rolle === "gastgeber") zeigen(zaehler ? teilZaehler : teilWarten);     // wartet schon mit einem Code: dort weitermachen
+    if (imRaum) zeigen(teilLobby);                                             // steht schon im Lobby-Raum
+    else if (rolle === "gastgeber") zeigen(zaehler ? teilZaehler : teilWarten);     // wartet schon mit einem Code: dort weitermachen
     else { zeigen(teilStart); melden(""); if (mitCode) codeFeld.value = String(mitCode).toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 4); }
     feld.hidden = false;
   }

@@ -994,8 +994,8 @@ if (rahmen) {
         : `Du: ${RN.m} m · ${g.name} läuft noch: ${g.m} m`;
     }
   }
-  import("./lauf-rennen.js?v=2").then(m => {
-    rennModul = m.rennenStarten({ db: DB, feld: rennFeld, knopf: rennKnopf, vorbereiten: () => { if (kannWebGL) laden(); }, los: rennenLos, stand: rennenStand, gegner: rennenGegner,
+  import("./lauf-rennen.js?v=3").then(m => {
+    rennModul = m.rennenStarten({ db: DB, feld: rennFeld, knopf: rennKnopf, verboten: (t) => SPERRE.some(w => t.toLowerCase().replace(/[ ._-]/g, "").includes(w)), vorbereiten: () => { if (kannWebGL) laden(); }, los: rennenLos, stand: rennenStand, gegner: rennenGegner,
       nameFehler: (n) => n.length > 16 || !ERLAUBT.test(n) ? "Bitte nur Buchstaben, Zahlen, Leerzeichen, Punkt und Bindestrich." : SPERRE.some(w => n.toLowerCase().replace(/[ ._-]/g, "").includes(w)) ? "Bitte einen anderen Namen wählen." : "" });
     const code = new URLSearchParams(location.search).get("rennen");     // Einladungslink: Lobby gleich mit dem Code öffnen
     if (code) { if (handy) vollbildAn(); rennModul.oeffnen(code); }

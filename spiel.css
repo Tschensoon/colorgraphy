@@ -450,7 +450,22 @@ li.gold .bl-rang { opacity: 1; font-size: 1.25em; line-height: 1; }
 /* Wettrennen: Lobby und Leiste mit dem Stand des Gegners */
 .lauf-rennen { text-align: center; }
 .lr-start, .lr-warten, .lr-zaehler { display: flex; flex-direction: column; align-items: center; gap: .6rem; width: 100%; max-width: 360px; }
-.lr-start[hidden], .lr-warten[hidden], .lr-zaehler[hidden] { display: none; }
+.lr-start[hidden], .lr-warten[hidden], .lr-zaehler[hidden], .lr-lobby[hidden] { display: none; }
+.lr-lobby { display: flex; flex-direction: column; align-items: stretch; gap: .5rem; width: 100%; max-width: 380px; }
+.lr-raum-code { margin-left: .3rem; padding: .05rem .5rem; border-radius: 8px; background: #e3ece6; color: #034a3e; letter-spacing: .15em; }
+.lr-spieler { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .3rem; }
+.lr-spieler li { display: flex; justify-content: space-between; gap: .6rem; align-items: baseline; padding: .45rem .7rem; border-radius: 10px; background: #f1f6f2; color: #24332f; text-align: left; }
+.lr-spieler .lr-sn { font-weight: 700; overflow-wrap: anywhere; }
+.lr-spieler .lr-sb { flex: none; font-size: .85rem; color: #8a5a00; }
+.lr-spieler li.bereit { background: #c8f2d4; }
+.lr-spieler li.bereit .lr-sb { color: #0b5d2a; }
+.lr-chat { list-style: none; margin: 0; padding: .4rem .5rem; height: 7.5rem; overflow-y: auto; border: 1px solid #c9d6d0; border-radius: 10px; background: #fff; color: #24332f; font-size: .9rem; text-align: left; }
+.lr-chat:empty::before { content: "Schreibt euch, bis beide bereit sind."; color: #8a9a95; }
+.lr-chat li { margin: 0 0 .2rem; overflow-wrap: anywhere; }
+.lr-chat li.eigen b { color: #034a3e; }
+.lr-chat-form { display: flex; gap: .4rem; }
+.lr-chat-text { flex: 1; min-width: 0; padding: .4rem .6rem; border: 1px solid #c9d6d0; border-radius: 10px; font: inherit; font-size: 16px; background: #fff; color: #24332f; }
+.lr-chat-text::placeholder { color: #8a9a95; }
 .lr-text { margin: 0; color: #24332f; font-size: .95rem; }
 .lr-oder { margin: .4rem 0 0; color: #4b5b56; font-size: .85rem; }
 .lr-name { width: 11rem; padding: .35rem .6rem; border: 1px solid #c9d6d0; border-radius: 10px; font: inherit; font-size: 16px; font-weight: 400; background: #fff; color: #24332f; }

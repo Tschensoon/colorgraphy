@@ -65,7 +65,7 @@
 </script>
 <link rel="stylesheet" href="style.css?v=17">
 <link rel="stylesheet" href="tools.css?v=9">
-<link rel="stylesheet" href="spiel.css?v=41">
+<link rel="stylesheet" href="spiel.css?v=42">
 </head>
 <body>
 <a class="skip-link" href="#top">Zum Inhalt springen</a>
@@ -197,6 +197,20 @@
                 <button type="button" class="pill small ghost lr-teilen">Link teilen</button>
                 <p class="lr-info" role="status"></p>
               </div>
+              <div class="lr-lobby" hidden>
+                <p class="lr-text">Lobby <b class="lr-raum-code"></b></p>
+                <ul class="lr-spieler">
+                  <li class="lr-ich"><span class="lr-sn"></span><b class="lr-sb"></b></li>
+                  <li class="lr-er"><span class="lr-sn"></span><b class="lr-sb"></b></li>
+                </ul>
+                <ul class="lr-chat" aria-live="polite" aria-label="Chat in der Lobby"></ul>
+                <form class="lr-chat-form">
+                  <input class="lr-chat-text" maxlength="200" autocomplete="off" enterkeyhint="send" placeholder="Nachricht schreiben …" aria-label="Nachricht">
+                  <button type="submit" class="pill small ghost">Senden</button>
+                </form>
+                <button type="button" class="pill lr-bereit">Bereit!</button>
+                <p class="lr-info lr-raum-info" role="status"></p>
+              </div>
               <div class="lr-zaehler" hidden>
                 <p class="lr-gegen"></p>
                 <p class="lr-zahl" aria-live="assertive">3</p>
@@ -240,6 +254,7 @@
       <div class="patchnotes">
         <h2>Patchnotes</h2>
         <ul>
+          <li><time datetime="2026-11-13">13.11.</time> Wettrennen mit Lobby: Ihr trefft euch vor dem Start in einem Raum, könnt chatten, und das Rennen beginnt erst, wenn beide auf Bereit gedrückt haben.</li>
           <li><time datetime="2026-11-13">13.11.</time> Wettrennen: Dein Gegner läuft jetzt als Geist auf deiner Strecke mit. Außerdem bleibt der Code bestehen, wenn du ihn am Handy in einer anderen App verschickst.</li>
           <li><time datetime="2026-11-13">13.11.</time> Neu: Wettrennen! Erstelle ein Rennen, gib deinem Gegner den Code und lauft live gegeneinander auf derselben Strecke. Wer weiter kommt, gewinnt.</li>
           <li><time datetime="2026-11-13">13.11.</time> Weekend League: Platz 1 ist jetzt auch im Dunkelmodus gut lesbar.</li>
@@ -316,7 +331,7 @@
 </footer>
 
 <script src="spiel.js?v=11" defer></script>
-<script type="module" src="lauf.js?v=98"></script>
+<script type="module" src="lauf.js?v=99"></script>
 <script src="seite.js?v=12" defer></script>
 <script src="nav-mehr.js?v=5" defer></script>
 <script src="ziehen.js?v=2" defer></script>
