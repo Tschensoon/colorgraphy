@@ -41,7 +41,7 @@ if (rahmen) {
   function laden() {
     if (!bereit) {
       const text = losKnopf.textContent; losKnopf.disabled = true; losKnopf.textContent = "Lädt die 3D-Welt …";
-      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=56"), import("./lauf-ton.js?v=12"), import("./lauf-flug.js?v=17"), import("./lauf-effekte.js?v=4"), import("./lauf-buero.js?v=1"), import("./detektiv-figuren.js?v=4")])
+      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=57"), import("./lauf-ton.js?v=12"), import("./lauf-flug.js?v=17"), import("./lauf-effekte.js?v=4"), import("./lauf-buero.js?v=1"), import("./detektiv-figuren.js?v=4")])
         .then(([m, w, t, f, e, bm, fm]) => { THREE = m; T = t.ton(); aufbauen(w, f, e, bm, fm); T.weihnachten(W.weihnachten); losKnopf.disabled = false; losKnopf.textContent = text; });
     }
     return bereit;
@@ -2275,7 +2275,7 @@ if (rahmen) {
     const o = { typ, mesh, x, y, z, y0: y, ph: Math.random() * 6, weg: false, getroffen: false, ...mehr };
     FL.objekte.push(o); return o;
   }
-  function flugStern(x, y, z) { const m = W.stern(); m.scale.setScalar(1.3);   // in der Luftwelt Sterne: vor dem hellen Himmel besser zu sehen als Törtchen
+  function flugStern(x, y, z) { const m = W.sternFlug(); m.scale.setScalar(1.5);   // in der Luftwelt Sterne mit dunklem Rand: vor dem hellen Himmel gut zu sehen
     return flugObjekt("stern", m, x, y, z); }
   // Eine Reihe auf dem Wasser: Sternenspur oder Pylonen (als Reihe mit Lücke oder als kleine Gruppe), Booster, Inseln und Bojen am Rand
   function reiheWasser() {

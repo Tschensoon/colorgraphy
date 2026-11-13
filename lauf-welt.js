@@ -1319,6 +1319,25 @@ export function welt(T, handy) {
   }
 
   function stern() { const k = new T.Mesh(geo.stern, mat.stern); k.castShadow = true; return k; }
+  // Stern für die Luftwelt: kräftiges Orange mit dunklem Rand, damit er sich vom hellen Himmel und den Wolken abhebt.
+  // Der Rand ist dieselbe Form, etwas größer und nach innen gedreht (man sieht nur ihre Rückseite) – alles in einem Netz, also ein Zeichenaufruf je Stern.
+  let sternFlugGeo = null, sternFlugMat = null;
+  function sternFlug() {
+    if (!sternFlugGeo) {
+      const g = geo.stern.index ? geo.stern.toNonIndexed() : geo.stern, p = g.attributes.position.array, nn = g.attributes.normal.array, n = p.length;
+      const pos = new Float32Array(n * 2), nor = new Float32Array(n * 2), col = new Float32Array(n * 2);
+      const innen = new T.Color("#ffa000"), rand = new T.Color("#5a1e00");
+      pos.set(p); nor.set(nn);
+      for (let i = 0; i < n; i += 3) { col[i] = innen.r; col[i + 1] = innen.g; col[i + 2] = innen.b; col[n + i] = rand.r; col[n + i + 1] = rand.g; col[n + i + 2] = rand.b; }
+      for (let i = 0; i < n; i += 9) for (const [von, nach] of [[0, 0], [3, 6], [6, 3]]) for (let k = 0; k < 3; k++) {   // Rand: größer, Dreiecke umgedreht
+        pos[n + i + nach + k] = p[i + von + k] * (k === 2 ? 2.2 : 1.24); nor[n + i + nach + k] = -nn[i + von + k];
+      }
+      sternFlugGeo = new T.BufferGeometry();
+      sternFlugGeo.setAttribute("position", new T.BufferAttribute(pos, 3)); sternFlugGeo.setAttribute("normal", new T.BufferAttribute(nor, 3)); sternFlugGeo.setAttribute("color", new T.BufferAttribute(col, 3));
+      sternFlugMat = std({ vertexColors: true, roughness: .35, metalness: .2, emissive: "#ff6a00", emissiveIntensity: .3 });
+    }
+    return new T.Mesh(sternFlugGeo, sternFlugMat);
+  }
   // Törtchen zum Einsammeln: Mürbeteig-Schälchen mit Wellenrand, rosa Sahnehaube, Sahnetupfer und Kirsche.
   // Alles ist eine einzige Form mit Farben je Punkt, damit viele Törtchen wenig Rechenzeit kosten.
   const toertchenGeo = (() => {
@@ -2830,6 +2849,6 @@ export function welt(T, handy) {
     for (let i = 0; i < 8; i++) { const w = (i + .5) / 8 * Math.PI * 2; teil(X.geo.kugel, X.kugel, g, Math.cos(w) * .26, .07, Math.sin(w) * .26).scale.setScalar(.03); }
     return g;
   }
-  return { tageszeit, sparen, adventskranz, weihnachten, blitz, wiesenBlumen, wegFuer, randFuer, tanne, schneemann, stuhl, STUHL_SITZ, folienRolle, folieStoff, folieKante, marlenaBauen, kissen, duellBuehne, wasserNormal: wellen, rekordFahne, figurBauen, FIGUREN, leoBauen, FIGUR_INFO, toertchen, frauBauen, sprechblase, froebelBanner, froebelHeckenTafel, froebelTafel, froebelSchild, kontaktSchatten, grasBueschel, dampf, weltHindernis, entsorgen, pfeilSchild, bodenPfeil, AUSSTATTUNG, ausstattungSetzen, zonen: ZONEN, zoneFuer, dekoFuer, heckeFuer, blumenFuer, bodenFlaeche, bodenFolgen, verbinden, zoneWechsel, zoneSchritt,
+  return { sternFlug, tageszeit, sparen, adventskranz, weihnachten, blitz, wiesenBlumen, wegFuer, randFuer, tanne, schneemann, stuhl, STUHL_SITZ, folienRolle, folieStoff, folieKante, marlenaBauen, kissen, duellBuehne, wasserNormal: wellen, rekordFahne, figurBauen, FIGUREN, leoBauen, FIGUR_INFO, toertchen, frauBauen, sprechblase, froebelBanner, froebelHeckenTafel, froebelTafel, froebelSchild, kontaktSchatten, grasBueschel, dampf, weltHindernis, entsorgen, pfeilSchild, bodenPfeil, AUSSTATTUNG, ausstattungSetzen, zonen: ZONEN, zoneFuer, dekoFuer, heckeFuer, blumenFuer, bodenFlaeche, bodenFolgen, verbinden, zoneWechsel, zoneSchritt,
     animieren, wetterSchritt, voegelSchritt, luft, mat, geo, giraffeBauen, anjaBauen, boden, heckenStueck, blumen, ferne, sonnenScheibe, funke, staub, kante, dekoNeu, hindernis, stern, panzer, booster, blase, himmel, wolken, gras };
 }
