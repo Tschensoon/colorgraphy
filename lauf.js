@@ -757,7 +757,7 @@ if (rahmen) {
   // ---------- Bestenliste ----------
   const ERLAUBT = /^[A-Za-zÄÖÜäöüßÀ-ÿ0-9 ._-]+$/;
   const SPERRE = ["arsch", "fick", "fotze", "hure", "nazi", "hitler", "wichs", "schlampe", "spast", "missgeburt", "fuck", "shit", "bitch", "cunt", "nigg", "porn"];
-  let offeneRunde = null, meinEintrag = null, topDaten = { alle: [], woche: [] }, topReiter = "alle";
+  let offeneRunde = null, meinEintrag = null, topDaten = { alle: [], woche: [], wochenende: [] }, topReiter = "alle";
   const zeile = (rang, name, punkte, eigen) => {
     const li = document.createElement("li"); if (eigen) li.className = "eigen";
     for (const [k, t] of [["bl-rang", rang], ["bl-name", name], ["bl-punkte", punkte]]) {
@@ -767,19 +767,27 @@ if (rahmen) {
   };
   function topZeigen() {
     let markiert = false;
-    const liste = topDaten[topReiter];
+    const liste = topDaten[topReiter], liga = topReiter === "wochenende", we = wochenende();
     const bauen = () => liste.length
       ? liste.map((e, i) => {
           const eigen = !markiert && meinEintrag && e.name === meinEintrag.name && e.punkte === meinEintrag.punkte;
           if (eigen) markiert = true;
-          return zeile(i + 1 + ".", e.name, e.punkte, eigen);
+          const li = zeile(liga && i === 0 ? "🥇" : i + 1 + ".", e.name, e.punkte, eigen);
+          if (liga && i === 0) li.classList.add("gold");     // Weekend League: Platz 1 trägt die Goldmedaille
+          return li;
         })
-      : [zeile("", topReiter === "woche" ? "Diese Woche noch keine Einträge. Lauf los!" : "Noch keine Einträge. Lauf los und trag dich als Erstes ein!", "", false)];
+      : [zeile("", liga ? (we.laeuft ? "Noch keine Einträge in dieser Runde. Lauf los und hol dir die Goldmedaille!" : "In der letzten Runde gab es keine Einträge.")
+          : topReiter === "woche" ? "Diese Woche noch keine Einträge. Lauf los!" : "Noch keine Einträge. Lauf los und trag dich als Erstes ein!", "", false)];
     topListe.replaceChildren(...bauen());
     markiert = false;
     if (seitenOl) { seitenOl.replaceChildren(...bauen()); seitenListe.hidden = false; }
     for (const k of document.querySelectorAll(".bl-reiter button")) k.setAttribute("aria-selected", k.dataset.reiter === topReiter);
-    for (const p of document.querySelectorAll(".bl-woche-info")) p.hidden = topReiter !== "woche";
+    for (const p of document.querySelectorAll(".bl-woche-info")) {
+      p.hidden = topReiter === "alle";
+      p.textContent = !liga ? "Beginnt jeden Montag neu."
+        : we.laeuft ? "Läuft bis Montag 6 Uhr. Wer am Ende vorn liegt, holt die Goldmedaille."
+        : `Endstand der letzten Runde (${we.text}). Die nächste Runde startet am Freitag um 20:30 Uhr.`;
+    }
   }
   // Die Woche läuft von Montag 0 Uhr deutscher Zeit bis Sonntagnacht, egal wo das Gerät gerade steht
   const berlin = (d) => Object.fromEntries(new Intl.DateTimeFormat("en-US", { timeZone: "Europe/Berlin", weekday: "short", year: "numeric", month: "numeric", day: "numeric", hour: "numeric", hourCycle: "h23" }).formatToParts(d).map(x => [x.type, x.value]));
@@ -787,6 +795,16 @@ if (rahmen) {
     const p = berlin(new Date()), tag = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].indexOf(p.weekday);
     const montag = Date.UTC(+p.year, +p.month - 1, +p.day - tag);
     return new Date(montag - berlin(new Date(montag)).hour * 3600000).toISOString();
+  }
+  // Weekend League: Freitag 20:30 Uhr bis Montag 6 Uhr deutscher Zeit. Dazwischen steht dort der Endstand der letzten Runde.
+  function wochenende(jetzt = new Date()) {
+    const p = berlin(jetzt), tag = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].indexOf(p.weekday);
+    const mitternacht = (versatz) => { const t = Date.UTC(+p.year, +p.month - 1, +p.day + versatz); return t - berlin(new Date(t)).hour * 3600000; };
+    let fr = 4 - tag;                                                  // Tage bis zum Freitag dieser Woche
+    if (jetzt.getTime() < mitternacht(fr) + 20.5 * 3600000) fr -= 7;   // noch nicht gestartet: die Runde der Vorwoche
+    const von = new Date(mitternacht(fr) + 20.5 * 3600000), bis = new Date(mitternacht(fr + 3) + 6 * 3600000);
+    const kurz = (d) => { const b = berlin(d); return `${b.day}.${b.month}.`; };
+    return { laeuft: jetzt < bis, von: von.toISOString(), bis: bis.toISOString(), text: `${kurz(von)} bis ${kurz(bis)}` };
   }
   const topHolen = async (filter) => {
     const r = await fetch(`${DB.url}/rest/v1/bestenliste?select=name,punkte&spiel=eq.rennt${filter}&order=punkte.desc,erstellt.asc&limit=10`,
@@ -796,8 +814,9 @@ if (rahmen) {
   };
   async function bestenlisteLaden() {
     try {
-      const [alle, woche] = await Promise.all([topHolen(""), topHolen(`&erstellt=gte.${wochenStart()}`)]);
-      topDaten = { alle, woche }; topZeigen();
+      const we = wochenende();
+      const [alle, woche, wochenendListe] = await Promise.all([topHolen(""), topHolen(`&erstellt=gte.${wochenStart()}`), topHolen(`&erstellt=gte.${we.von}&erstellt=lt.${we.bis}`)]);
+      topDaten = { alle, woche, wochenende: wochenendListe }; topZeigen();
     } catch (e) {
       topListe.replaceChildren(zeile("", "Die Bestenliste ist gerade nicht erreichbar.", "", false));
     }
@@ -829,9 +848,10 @@ if (rahmen) {
       meinEintrag = { name, punkte: runde.punkte };
       await bestenlisteLaden();
       const platzIn = (l) => l.findIndex(x => x.name === name && x.punkte === runde.punkte) + 1;
-      const platz = platzIn(topDaten.alle), platzWoche = platzIn(topDaten.woche);
-      eintragMeldung.textContent = platz ? `Eingetragen! All Time Platz ${platz}, diese Woche Platz ${platzWoche}.`
-        : platzWoche ? `Eingetragen! Diese Woche bist du auf Platz ${platzWoche}.` : "Eingetragen! Für die Top 10 hat es diesmal nicht gereicht.";
+      const platz = platzIn(topDaten.alle), platzWoche = platzIn(topDaten.woche), platzLiga = wochenende().laeuft ? platzIn(topDaten.wochenende) : 0;
+      eintragMeldung.textContent = (platz ? `Eingetragen! All Time Platz ${platz}, diese Woche Platz ${platzWoche}.`
+        : platzWoche ? `Eingetragen! Diese Woche bist du auf Platz ${platzWoche}.` : "Eingetragen! Für die Top 10 hat es diesmal nicht gereicht.")
+        + (platzLiga ? ` Weekend League: Platz ${platzLiga}${platzLiga === 1 ? " 🥇" : ""}.` : "");
       eintragForm.querySelector(".le-zeile").hidden = true; eintragForm.querySelector("label").hidden = true;
       if (platz || platzWoche) T.rekord();
     } catch (err) {
