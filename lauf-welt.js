@@ -1406,6 +1406,17 @@ export function welt(T, handy) {
 
   // Booster: Münze mit Symbol und Leuchten
   const boosterArt = {
+    frost: ["#39b6e8", (g) => {                             // Wettrennen: Glatteis für den Gegner (Schneeflocke)
+      g.strokeStyle = "#ffffff"; g.lineWidth = 7; g.lineCap = "round";
+      for (let i = 0; i < 3; i++) {
+        const w = i * Math.PI / 3, c = Math.cos(w), s = Math.sin(w);
+        g.beginPath(); g.moveTo(64 - c * 34, 64 - s * 34); g.lineTo(64 + c * 34, 64 + s * 34); g.stroke();
+        for (const r of [-1, 1]) for (const q of [-1, 1]) {
+          const bx = 64 + r * c * 22, by = 64 + r * s * 22, v = w + (r > 0 ? 0 : Math.PI) + q * .7;
+          g.beginPath(); g.moveTo(bx, by); g.lineTo(bx + Math.cos(v) * 11, by + Math.sin(v) * 11); g.stroke();
+        }
+      }
+    }],
     schild: ["#2f8be0", (g) => { g.beginPath(); g.moveTo(64, 18); g.lineTo(100, 32); g.quadraticCurveTo(98, 88, 64, 112); g.quadraticCurveTo(30, 88, 28, 32); g.closePath(); g.fill(); }],
     magnet: ["#e53935", (g) => {
       g.lineWidth = 16; g.strokeStyle = "#fff"; g.beginPath(); g.arc(64, 58, 26, Math.PI, 0, true); g.stroke();

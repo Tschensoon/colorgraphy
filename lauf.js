@@ -41,7 +41,7 @@ if (rahmen) {
   function laden() {
     if (!bereit) {
       const text = losKnopf.textContent; losKnopf.disabled = true; losKnopf.textContent = "Lädt die 3D-Welt …";
-      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=57"), import("./lauf-ton.js?v=12"), import("./lauf-flug.js?v=17"), import("./lauf-effekte.js?v=4"), import("./lauf-buero.js?v=1"), import("./detektiv-figuren.js?v=4")])
+      bereit = Promise.all([import("./vendor/three/three.module.min.js"), import("./lauf-welt.js?v=58"), import("./lauf-ton.js?v=12"), import("./lauf-flug.js?v=17"), import("./lauf-effekte.js?v=4"), import("./lauf-buero.js?v=1"), import("./detektiv-figuren.js?v=4")])
         .then(([m, w, t, f, e, bm, fm]) => { THREE = m; T = t.ton(); aufbauen(w, f, e, bm, fm); T.weihnachten(W.weihnachten); losKnopf.disabled = false; losKnopf.textContent = text; });
     }
     return bereit;
@@ -120,7 +120,7 @@ if (rahmen) {
   // Wettrennen: beide Geräte bauen dieselbe Strecke. Alles, was das Spiel bestimmt (Länge, Abbiegen, Hindernisse, Sterne, Booster),
   // würfelt deshalb mit RZ – sonst der normale Zufall, im Rennen eine Zahlenfolge aus der gemeinsamen Startzahl, je Abschnitt neu angesetzt.
   // Die Deko am Wegrand würfelt weiter frei (sie hängt vom Gerät ab und zählt nicht fürs Rennen).
-  const RN = { an: false, seed: 0, g: null, aus: false, m: 0, urteil: "" };
+  const RN = { an: false, seed: 0, g: null, aus: false, m: 0, urteil: "", zuschauen: false, ab: null };
   let RZ = Math.random;
   const zufallsFolge = (a) => () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
   const zufallS = (a, b) => a + RZ() * (b - a), wahlS = (l) => l[Math.floor(RZ() * l.length)];
@@ -230,8 +230,9 @@ if (rahmen) {
     const vor = abschnitte[abschnitte.length - 1];
     let ax = 0, az = 0, h = 0, nr = startNr;
     if (vor) { [ax, az] = punkt(vor, vor.L, 0); h = vor.h + vor.dreh; nr = vor.nr + 1; }
+    else if (RN.ab) { ({ ax, az, h } = RN.ab); }           // Zuschauen: die Strecke beginnt mitten drin, an der ausgerechneten Stelle
     RZ = RN.an ? zufallsFolge(RN.seed + nr * 7919) : Math.random;
-    const erster = !vor, L = erster ? 55 : Math.round(zufallS(34, 58));
+    const erster = !vor && !RN.ab, L = erster ? 55 : Math.round(zufallS(34, 58));
     const dreh = h === 0 ? (RZ() < .5 ? -1 : 1) : -h;   // nie nach Süden
     const ab = { nr, erster, ax, az, h, L, dreh, zone: W.zoneFuer(nr), gruppe: new THREE.Group() };
     abschnitte.push(ab); szene.add(ab.gruppe);
@@ -287,6 +288,7 @@ if (rahmen) {
         const r = RZ();
         let typ = r < .31 ? "schild" : r < .54 ? "schubs" : r < .77 ? "magnet" : "doppelt";
         if ((typ === "schild" || typ === "schubs") && ((!RN.an && R.anjaPhase) || RZ() < genStufe(nr) * .18)) typ = wahlS(["magnet", "doppelt"]);   // später seltener Schutz
+        if (RN.an && RZ() < .4) typ = "frost";           // Wettrennen: Glatteis-Booster, den man dem Gegner schickt
         const sp = wahlS([-1, 0, 1]);
         booster.push({ nr, s: bs, spur: sp, typ, mesh: setze(W.booster(typ), bs, sp * SPUR, 1.05), weg: false });
       }
@@ -405,6 +407,7 @@ if (rahmen) {
     Object.assign(A, { nah: false, zeit: 0, abstand: 16, bis: 5 });
     spieler.koerper.rotation.set(0, 0, 0);
     tipps.clear();
+    RN.ab = null;
     if (RN.an) { FL.ab = Infinity; R.frauBei = Infinity; }   // Wettrennen: nur die Laufstrecke
     while (abschnitte.length < 4) abschnittNeu();
     kamYaw = 0; kamPos = null;
@@ -566,6 +569,7 @@ if (rahmen) {
     eintragenAnbieten(p, Math.ceil(R.zeit));
     losKnopf.textContent = "Nochmal";
     ueber.hidden = false;
+    if (RN.an) zuschauenAn();
   }
 
   // ---------- Aufgaben ----------
@@ -881,7 +885,79 @@ if (rahmen) {
   // ---------- Wettrennen: Lobby mit Code, beide laufen dieselbe Strecke, wer weiter kommt, gewinnt ----------
   const rennFeld = $(".lauf-rennen"), rennKnopf = $(".lauf-rennen-knopf"), rennLeiste = $(".lauf-rennen-leiste");
   let rennModul = null;
-  function rennenAus() { RN.an = false; RN.g = null; RN.aus = false; RN.urteil = ""; rennLeiste.hidden = true; geistWeg(); if (rennModul) rennModul.ende(); }
+  function rennenAus() { zuschauenAus(); RN.an = false; RN.g = null; RN.aus = false; RN.urteil = ""; rennLeiste.hidden = true; revancheKnopf.hidden = true; emojiLeiste.hidden = true; geistWeg(); if (rennModul) rennModul.ende(); }
+  // Revanche: ein Knopf auf dem Ergebnisbild bringt beide zurück in denselben Lobby-Raum
+  const revancheKnopf = document.createElement("button");
+  revancheKnopf.type = "button"; revancheKnopf.className = "pill lauf-revanche"; revancheKnopf.hidden = true;
+  losKnopf.before(revancheKnopf);
+  revancheKnopf.addEventListener("click", () => { if (rennModul) rennModul.revanche(); });
+  // Emojis: vier Knöpfe am Rand, das Emoji erscheint beim Gegner groß im Bild
+  const EMOJIS = ["😀", "😱", "👏", "😜"];
+  const emojiLeiste = document.createElement("div"), emojiBild = document.createElement("div");
+  emojiLeiste.className = "lauf-emojis"; emojiLeiste.hidden = true; emojiBild.className = "lauf-emoji-bild"; emojiBild.setAttribute("aria-live", "polite");
+  EMOJIS.forEach((e, i) => {
+    const k = document.createElement("button"); k.type = "button"; k.textContent = e; k.setAttribute("aria-label", "Emoji " + e + " schicken");
+    k.addEventListener("click", () => { if (rennModul) rennModul.emoji(i); k.classList.remove("drueck"); void k.offsetWidth; k.classList.add("drueck"); });
+    emojiLeiste.append(k);
+  });
+  for (const art of ["touchstart", "pointerdown", "mousedown"]) emojiLeiste.addEventListener(art, (e) => e.stopPropagation());   // zählt nicht als Wischen
+  hud.after(emojiLeiste, emojiBild);
+  function rennenEmoji(i) {
+    if (!RN.an || !RN.g || !EMOJIS[i]) return;
+    emojiBild.textContent = `${RN.g.name}: ${EMOJIS[i]}`; emojiBild.classList.remove("an"); void emojiBild.offsetWidth; emojiBild.classList.add("an");
+  }
+  function rennenStreich(art) {                            // der Gegner hat einen Glatteis-Booster eingesammelt
+    if (!RN.an || !RN.g || zustand !== "laeuft" || art !== "frost") return;
+    if (B.schild > 0) { meldung("Schild hält!", `Das Glatteis von ${RN.g.name} prallt ab`); return; }
+    S.eis = 4; wackeln = Math.max(wackeln, .3); T.spur(); meldung("Glatteis!", `${RN.g.name} lässt dich rutschen: Lenken geht kurz träge`);
+  }
+  // Zuschauen: wer raus ist, sieht dem Gegner zu, bis das Rennen entschieden ist. Die Kamera folgt dem Geist, die Strecke baut sich vor ihm weiter auf.
+  const zuschauFeld = document.createElement("div");
+  zuschauFeld.className = "lauf-zuschauen"; zuschauFeld.hidden = true;
+  zuschauFeld.innerHTML = '<span></span><button type="button" class="pill small">Ergebnis</button>';
+  hud.after(zuschauFeld);
+  zuschauFeld.querySelector("button").addEventListener("click", () => zuschauenAus(true));
+  for (const art of ["touchstart", "pointerdown", "mousedown"]) zuschauFeld.addEventListener(art, (e) => e.stopPropagation());
+  function zuschauenAn() {
+    const g = RN.g;
+    if (!g || RN.urteil || g.z !== "laeuft" || !GEIST.da) return;   // nur, solange der Gegner noch läuft und das Rennen offen ist
+    if (!abschnitte.some(a => a.nr === GEIST.idx)) streckeAb(Math.max(0, GEIST.idx - 1));   // er läuft weiter hinten: Strecke dort neu aufbauen
+    RN.zuschauen = true; ueber.hidden = true; spieler.gruppe.visible = false; blase.visible = false; anja.gruppe.visible = false;
+    GEIST.f.gruppe.traverse(k => { if (k.material && k.material.userData.geist) k.material.opacity = .95; });
+    zuschauFeld.querySelector("span").textContent = `Du bist raus. Du schaust ${g.name} zu.`; zuschauFeld.hidden = false;
+    rennenAnzeige();
+  }
+  // Die Strecke ab Abschnitt „von“ neu aufbauen. Wo der Abschnitt liegt, lässt sich ausrechnen, ohne alles davor zu bauen:
+  // Länge und Abbiegerichtung jedes Abschnitts sind die ersten beiden Würfe seiner Zahlenfolge.
+  function streckeAb(von) {
+    let ab = { ax: 0, az: 0, h: 0 };
+    for (let nr = 0; nr < von; nr++) {
+      const rz = zufallsFolge(RN.seed + nr * 7919), L = nr === 0 ? 55 : Math.round(34 + rz() * 24), dreh = ab.h === 0 ? (rz() < .5 ? -1 : 1) : -ab.h;
+      const [ax, az] = punkt(ab, L, 0); ab = { ax, az, h: ab.h + dreh };
+    }
+    for (const a of abschnitte) { szene.remove(a.gruppe); W.entsorgen(a.gruppe); }
+    abschnitte = []; hindernisse = []; sterne = []; booster = [];
+    startNr = von; RN.ab = von > 0 ? ab : null;
+    while (abschnitte.length < 4) abschnittNeu();
+    kamPos = null;
+  }
+  function zuschauenAus(zeigen) {
+    if (!RN.zuschauen) return;
+    RN.zuschauen = false; zuschauFeld.hidden = true; spieler.gruppe.visible = true;
+    if (GEIST.f) GEIST.f.gruppe.traverse(k => { if (k.material && k.material.userData.geist) k.material.opacity = .5; });
+    if (zeigen && zustand === "aus") ueber.hidden = false;
+    rennenAnzeige();
+  }
+  function zuschauSchritt() {
+    const g = RN.g;
+    if (!RN.an || !g || g.z !== "laeuft" || RN.urteil || zustand !== "aus") { zuschauenAus(true); return; }
+    while (abschnitte[abschnitte.length - 1].nr < GEIST.idx + 3) abschnittNeu();
+    while (abschnitte[0].nr < GEIST.idx - 1) abschnittWeg(abschnitte.shift());
+    let ab = abschnitte.find(a => a.nr === GEIST.idx);
+    if (!ab) { streckeAb(Math.max(0, GEIST.idx - 1)); ab = abschnitte.find(a => a.nr === GEIST.idx); }
+    if (!ab) { zuschauenAus(true); return; }
+    S.idx = GEIST.idx; S.s = Math.min(GEIST.s, ab.L + H - 1); S.x = GEIST.x; S.y = 0; S.duck = 0;
+  }
   // Der Gegner als Geist: seine Figur läuft halb durchsichtig auf der eigenen Strecke mit (beide haben dieselbe Strecke).
   // Sein Stand kommt viermal pro Sekunde; dazwischen läuft der Geist mit seinem zuletzt gemessenen Tempo weiter.
   const GEIST = { f: null, figur: "", schild: null, idx: 0, s: 0, x: 0, y: 0, zIdx: 0, zS: 0, zX: 0, zY: 0, v: 0, m: 0, t: 0, lauf: 0, da: false };
@@ -913,6 +989,7 @@ if (rahmen) {
   function geistStand(g) {                               // neuer Stand vom Gegner
     const id = FIGUR_LISTE.some(x => x.id === g.f) ? g.f : "giraffe";
     if (!GEIST.f || GEIST.figur !== id) geistBauen(id, g.name);
+    if (g.z !== "laeuft") { GEIST.v = 0; return; }       // ausgeschieden: der Geist bleibt stehen, wo er war (wer zuschaut, schickt keine eigene Position mehr)
     const jetzt = performance.now();
     if (GEIST.t && jetzt > GEIST.t) GEIST.v = Math.max(0, Math.min(30, (g.m - GEIST.m) / ((jetzt - GEIST.t) / 1000)));
     Object.assign(GEIST, { m: g.m, t: jetzt, zIdx: g.idx, zS: g.s, zX: g.x, zY: g.y });
@@ -948,7 +1025,9 @@ if (rahmen) {
     f.koerper.position.y = oben || steht ? 0 : Math.abs(Math.sin(GEIST.lauf)) * .04;
   }
   async function rennenLos(seed, gegnerName) {
-    Object.assign(RN, { an: true, seed, g: { name: gegnerName, m: 0, p: 0, z: "laeuft" }, aus: false, m: 0, urteil: "" });
+    zuschauenAus();
+    Object.assign(RN, { an: true, seed, g: { name: gegnerName, m: 0, p: 0, z: "laeuft" }, aus: false, m: 0, urteil: "", zuschauen: false });
+    revancheKnopf.hidden = true;
     if (handy && !vollbild) vollbildAn();
     await laden();
     T.start(); T.verlorenStop();
@@ -965,24 +1044,27 @@ if (rahmen) {
     else { RN.g = g; geistStand(g); }
     rennenUrteil();
   }
+  function urteilen(u) { RN.urteil = u; if (u === "sieg" && T) T.rekord(); if (rennModul) rennModul.ergebnis(u); }
   // Wer weiter kommt, gewinnt: entschieden ist es, sobald beide raus sind oder einer den Endstand des anderen überholt
   function rennenUrteil() {
     const g = RN.g;
     if (RN.an && g && !RN.urteil) {
       const gRaus = g.z !== "laeuft";
       if (!RN.aus) {
-        if (gRaus && Math.round(strecke) > g.m && (zustand === "laeuft" || zustand === "pause")) { RN.urteil = "sieg"; pauseFeld.hidden = true; ende("🏆 Gewonnen!"); return; }
-      } else if (gRaus) RN.urteil = RN.m > g.m ? "sieg" : RN.m < g.m ? "niederlage" : "gleich";
-      else if (g.m > RN.m) RN.urteil = "niederlage";
-      if (RN.urteil === "sieg" && T) T.rekord();
+        if (gRaus && Math.round(strecke) > g.m && (zustand === "laeuft" || zustand === "pause")) { urteilen("sieg"); pauseFeld.hidden = true; ende("🏆 Gewonnen!"); return; }
+      } else if (gRaus) urteilen(RN.m > g.m ? "sieg" : RN.m < g.m ? "niederlage" : "gleich");
+      else if (g.m > RN.m) urteilen("niederlage");
     }
+    if (RN.urteil && RN.zuschauen) zuschauenAus(true);
     rennenAnzeige();
   }
   function rennenAnzeige() {
     const g = RN.g;
     if (!RN.an || !g) { rennLeiste.hidden = true; return; }
     const m = RN.aus ? RN.m : Math.round(strecke || 0), d = m - g.m;
-    rennLeiste.hidden = zustand === "aus";
+    rennLeiste.hidden = zustand === "aus" && !RN.zuschauen;
+    emojiLeiste.hidden = !(zustand === "laeuft" || RN.zuschauen);
+    revancheKnopf.hidden = !(RN.aus && RN.urteil); revancheKnopf.textContent = `🔁 Revanche gegen ${g.name}`;
     rennLeiste.querySelector(".rl-ich").textContent = `Du ${m} m`;
     rennLeiste.querySelector(".rl-er").textContent = `${g.name} ${g.m} m${g.z === "aus" ? " ✖" : g.z === "weg" ? " ⚠" : ""}`;
     const mitte = rennLeiste.querySelector(".rl-abstand");
@@ -994,8 +1076,8 @@ if (rahmen) {
         : `Du: ${RN.m} m · ${g.name} läuft noch: ${g.m} m`;
     }
   }
-  import("./lauf-rennen.js?v=3").then(m => {
-    rennModul = m.rennenStarten({ db: DB, feld: rennFeld, knopf: rennKnopf, verboten: (t) => SPERRE.some(w => t.toLowerCase().replace(/[ ._-]/g, "").includes(w)), vorbereiten: () => { if (kannWebGL) laden(); }, los: rennenLos, stand: rennenStand, gegner: rennenGegner,
+  import("./lauf-rennen.js?v=4").then(m => {
+    rennModul = m.rennenStarten({ db: DB, feld: rennFeld, knopf: rennKnopf, verboten: (t) => SPERRE.some(w => t.toLowerCase().replace(/[ ._-]/g, "").includes(w)), vorbereiten: () => { if (kannWebGL) laden(); }, los: rennenLos, stand: rennenStand, gegner: rennenGegner, emoji: rennenEmoji, streich: rennenStreich,
       nameFehler: (n) => n.length > 16 || !ERLAUBT.test(n) ? "Bitte nur Buchstaben, Zahlen, Leerzeichen, Punkt und Bindestrich." : SPERRE.some(w => n.toLowerCase().replace(/[ ._-]/g, "").includes(w)) ? "Bitte einen anderen Namen wählen." : "" });
     const code = new URLSearchParams(location.search).get("rennen");     // Einladungslink: Lobby gleich mit dem Code öffnen
     if (code) { if (handy) vollbildAn(); rennModul.oeffnen(code); }
@@ -1039,12 +1121,13 @@ if (rahmen) {
     wackeln = .35; T.stolpern(); if (navigator.vibrate) navigator.vibrate(40);
     anjaKommt(6);
   }
-  const BOOSTER_FUNKEN = { schild: "#6ec6ff", schubs: "#ff7aa2", magnet: "#ff6b6b", doppelt: "#c58cff" };
+  const BOOSTER_FUNKEN = { schild: "#6ec6ff", schubs: "#ff7aa2", magnet: "#ff6b6b", doppelt: "#c58cff", frost: "#7fd4ff" };
   // Booster in Luft und Wasser: Schild am häufigsten (Schubsen geht nur zu Fuß)
   const flugBooster = () => Math.random() < .325 ? "schild" : wahl(["magnet", "doppelt"]);
   function boosterNehmen(typ) {
     R.booster++; T.booster();
-    if (typ === "schild") { B.schild = 7; meldung("Schutzschild!", "7 Sekunden unverwundbar"); }
+    if (typ === "frost") { meldung("Glatteis-Booster!", `${RN.g ? RN.g.name : "Dein Gegner"} rutscht jetzt`); if (rennModul) rennModul.streich("frost"); }
+    else if (typ === "schild") { B.schild = 7; meldung("Schutzschild!", "7 Sekunden unverwundbar"); }
     else if (typ === "magnet") { B.magnet = 8; meldung("Sterne-Magnet!", "Alle Sterne fliegen zu dir"); }
     else if (typ === "doppelt") { B.doppelt = 10; meldung("Doppelte Punkte!", "10 Sekunden lang alles ×2"); }
     else if (!B.schubs) { B.schubs = { t: 0, umfallen: 0, getroffen: false }; A.nah = true; A.zeit = 99; meldung("Schubs-Booster!", `Hol sie dir, ${NAME()}!`); }
@@ -1368,6 +1451,7 @@ if (rahmen) {
     if (FO.an) { folieBild(dt); return; }
     if (BU.an) { bueroBild(dt); return; }
     if (FL.an) { flugBild(dt); return; }
+    if (RN.zuschauen) zuschauSchritt();
     const ab = abschnitte.find(a => a.nr === S.idx);
     const [px, pz] = punkt(ab, S.s, S.x), yaw = -ab.h * Math.PI / 2;
     const lauft = zustand === "laeuft", fang = zustand === "fang" && schlussSzene && schlussSzene.art === "anja";
@@ -1429,7 +1513,7 @@ if (rahmen) {
     gesicht(dt, lauft ? 1 : .3);
     if (RN.an) geistSchritt(dt);
     // Startbild und Ergebnis: sie steht, winkt mit dem Vorderbein und die Kamera schwenkt um sie herum
-    const leerlauf = zustand === "start" || zustand === "aus";
+    const leerlauf = (zustand === "start" || zustand === "aus") && !RN.zuschauen;
     if (leerlauf) {
       const t = performance.now() / 1000;
       spieler.beine.forEach((b, i) => { b.oben.rotation.x = 0; b.unten.rotation.x = 0; });
@@ -1471,7 +1555,7 @@ if (rahmen) {
       st.position.set(kopf.x + Math.cos(w) * .35, .5 + Math.sin(w * 2) * .05, kopf.z + Math.sin(w) * .35); st.rotation.y = w * 2;
     });
     anja.zopf.rotation.x = .2 + Math.sin(A.lauf * 2) * .3;
-    if (leerlauf) anja.gruppe.visible = false;
+    if (leerlauf || RN.zuschauen) anja.gruppe.visible = false;
     // weiche Schatten direkt unter den Füßen; beim Springen kleiner und heller
     schattenF.visible = true; schattenF.position.set(g.position.x, .035, g.position.z); schattenF.rotation.y = g.rotation.y;
     schattenF.scale.setScalar(1 / (1 + S.y * .5)); schattenF.material.opacity = 1 / (1 + S.y * .8);

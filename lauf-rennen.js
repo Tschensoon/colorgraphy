@@ -3,7 +3,7 @@
 // Ablauf: Gastgeber erstellt ein Rennen (Code), Gast tritt bei ("hallo"), Gastgeber antwortet mit "drin": beide stehen im Lobby-Raum,
 // können chatten und melden sich bereit ("status"). Sind beide bereit, schickt der Gastgeber "start" mit der Startzahl für die Strecke,
 // beide zählen 3-2-1 und laufen los. Danach schickt jedes Gerät viermal pro Sekunde seinen Stand ("pos").
-export function rennenStarten({ db, feld, knopf, nameFehler, verboten, vorbereiten, los, stand, gegner }) {
+export function rennenStarten({ db, feld, knopf, nameFehler, verboten, vorbereiten, los, stand, gegner, emoji, streich }) {
   const ZEICHEN = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";      // ohne 0/O und 1/I, damit man den Code gut vorlesen kann
   const ich = Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
   const $ = (s) => feld.querySelector(s);
@@ -12,7 +12,10 @@ export function rennenStarten({ db, feld, knopf, nameFehler, verboten, vorbereit
   const nameFeld = $(".lr-name"), codeFeld = $(".lr-code"), status = $(".lr-status");
   let ws = null, ref = 0, joinRef = null, verbunden = false, herz = null, takt = null, wache = null, hallo = null, zaehler = null;
   let kanal = "", code = "", rolle = "", er = null, laeuft = false, zuletzt = 0, bereitFn = null, neuTimer = null, versuche = 0;
-  let imRaum = false, ichBereit = false, erBereit = false, raumTakt = null, erZuletzt = 0;
+  let imRaum = false, ichBereit = false, erBereit = false, raumTakt = null, erZuletzt = 0, erWill = false;
+  const siege = { ich: 0, er: 0, runden: 0 };
+  const standZeile = document.createElement("p"); standZeile.className = "lr-info lr-raum-stand"; standZeile.hidden = true;
+  $(".lr-spieler").before(standZeile);
   try { nameFeld.value = localStorage.getItem("froebelinchen-name") || ""; } catch (e) {}
 
   const zeigen = (teil) => { for (const t of [teilStart, teilWarten, teilZaehler, teilLobby]) t.hidden = t !== teil; };
@@ -30,7 +33,7 @@ export function rennenStarten({ db, feld, knopf, nameFehler, verboten, vorbereit
   }
   function trennen() {
     for (const t of [takt, wache, hallo, zaehler, raumTakt]) clearInterval(t);
-    takt = wache = hallo = zaehler = raumTakt = null; imRaum = false; laeuft = false; er = null; rolle = ""; bereitFn = null; versuche = 0;
+    takt = wache = hallo = zaehler = raumTakt = null; imRaum = false; laeuft = false; erWill = false; siege.ich = siege.er = siege.runden = 0; er = null; rolle = ""; bereitFn = null; versuche = 0;
     leitungZu();
   }
   // Die Lobby bleibt bestehen, auch wenn die Leitung abreißt – am Handy passiert das, sobald man zum Verschicken des Codes
@@ -90,6 +93,9 @@ export function rennenStarten({ db, feld, knopf, nameFehler, verboten, vorbereit
     } else if (art === "tschuess" && imRaum && p.id !== ich) gegnerWeg();
     else if (art === "start" && rolle === "gast" && p.an === ich && imRaum && !zaehler && !laeuft) herunterzaehlen(p.seed | 0);
     else if (art === "voll" && p.an === ich && !imRaum && !zaehler && !laeuft) abbruch("Dieses Rennen ist schon voll.");
+    else if (art === "nochmal" && laeuft && er && p.id !== ich) { erWill = true; revanchePruefen(); }
+    else if (art === "emoji" && (laeuft || imRaum) && er) emoji(p.e | 0);
+    else if (art === "streich" && laeuft && er) streich(String(p.art || ""));
     else if (art === "pos" && laeuft && er) {
       zuletzt = Date.now();
       gegner({ name: er.name, m: +p.m || 0, p: +p.p || 0, z: p.z === "aus" ? "aus" : "laeuft", f: String(p.f || "").slice(0, 16), idx: p.idx | 0, s: +p.s || 0, x: +p.x || 0, y: +p.y || 0 });
@@ -109,7 +115,18 @@ export function rennenStarten({ db, feld, knopf, nameFehler, verboten, vorbereit
       if (Date.now() - erZuletzt > 12000) gegnerWeg();       // meldet sich nicht mehr: hat die Lobby verlassen
     }, 1500);
   }
+  // Revanche: nach dem Rennen zurück in denselben Raum. Wer zuerst drückt, lädt den anderen ein; der landet dort, sobald sein Lauf vorbei ist.
+  function zurueckInRaum(vonMir) {
+    for (const t of [takt, wache]) clearInterval(t);
+    takt = wache = null; laeuft = false; erWill = false;
+    raumAuf(); feld.hidden = false;
+    if (vonMir) { rufen("nochmal", { id: ich }); setTimeout(() => rufen("nochmal", { id: ich }), 400); }
+    else melden(`${er.name} möchte eine Revanche.`);
+  }
+  function revanchePruefen() { if (erWill && laeuft && stand().z === "aus") zurueckInRaum(false); }
   function raumZeigen() {
+    standZeile.hidden = !siege.runden;
+    if (er) standZeile.textContent = `Stand: ${name() || "Du"} ${siege.ich} : ${siege.er} ${er.name}`;
     const zeile = (sel, wer, bereit) => { const li = $(sel); li.querySelector(".lr-sn").textContent = wer; li.querySelector(".lr-sb").textContent = bereit ? "✓ bereit" : "noch nicht bereit"; li.classList.toggle("bereit", bereit); };
     zeile(".lr-ich", `${name() || "Du"} (du)`, ichBereit); zeile(".lr-er", er ? er.name : "", erBereit);
     bereitKnopf.textContent = ichBereit ? "Doch nicht bereit" : "Bereit!"; bereitKnopf.classList.toggle("ghost", ichBereit);
@@ -158,7 +175,7 @@ export function rennenStarten({ db, feld, knopf, nameFehler, verboten, vorbereit
       laeuft = true; zuletzt = Date.now();
       chatListe.replaceChildren();
       los(seed, er.name);
-      takt = setInterval(() => rufen("pos", stand()), 250);
+      takt = setInterval(() => { rufen("pos", stand()); revanchePruefen(); }, 250);
       // meldet sich der Gegner 8 Sekunden lang nicht (Handy gesperrt, Netz weg), gilt er als ausgeschieden
       wache = setInterval(() => { if (er && Date.now() - zuletzt > 8000) gegner({ name: er.name, z: "weg" }); }, 1000);
     }, 1000);
@@ -211,6 +228,7 @@ export function rennenStarten({ db, feld, knopf, nameFehler, verboten, vorbereit
   knopf.addEventListener("click", () => oeffnen());
 
   function oeffnen(mitCode) {
+    if (laeuft && er && stand().z === "aus") return zurueckInRaum(true);       // Rennen vorbei: zurück in den Raum zur Revanche
     if (laeuft) ende();
     if (imRaum) zeigen(teilLobby);                                             // steht schon im Lobby-Raum
     else if (rolle === "gastgeber") zeigen(zaehler ? teilZaehler : teilWarten);     // wartet schon mit einem Code: dort weitermachen
@@ -225,5 +243,7 @@ export function rennenStarten({ db, feld, knopf, nameFehler, verboten, vorbereit
     if (alt && /^[A-Z0-9]{4}$/.test(alt.code) && Date.now() - alt.zeit < 15 * 60000 && name() && !nameFehler(name())) { code = alt.code; warten(); feld.hidden = false; wartet = true; }
     else vergessen();
   } catch (e) {}
-  return { oeffnen, ende, zu, aktiv: () => laeuft, wartet: () => wartet || rolle !== "" };
+  const revanche = () => { if (laeuft && er) zurueckInRaum(true); else oeffnen(); };
+  const ergebnis = (u) => { siege.runden++; if (u === "sieg") siege.ich++; else if (u === "niederlage") siege.er++; };
+  return { oeffnen, ende, zu, revanche, ergebnis, emoji: (i) => rufen("emoji", { e: i }), streich: (art) => rufen("streich", { art }), aktiv: () => laeuft, wartet: () => wartet || rolle !== "" };
 }
