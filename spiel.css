@@ -447,7 +447,30 @@ li.gold .bl-rang { opacity: 1; font-size: 1.25em; line-height: 1; }
 .chat-status { margin: 0; min-height: 1.1em; font-size: .85rem; color: #b3261e; }
 .chat-hinweis { margin: 0; font-size: .75rem; color: #7a8a85; text-align: center; }
 .lauf-chat-knopf.neu { background: #ffe9a8 !important; }
-.lauf-overlay .lauf-knoepfe .lauf-chat-knopf { grid-column: 1 / -1; }
+/* Wettrennen: Lobby und Leiste mit dem Stand des Gegners */
+.lauf-rennen { text-align: center; }
+.lr-start, .lr-warten, .lr-zaehler { display: flex; flex-direction: column; align-items: center; gap: .6rem; width: 100%; max-width: 360px; }
+.lr-start[hidden], .lr-warten[hidden], .lr-zaehler[hidden] { display: none; }
+.lr-text { margin: 0; color: #24332f; font-size: .95rem; }
+.lr-oder { margin: .4rem 0 0; color: #4b5b56; font-size: .85rem; }
+.lr-name { width: 11rem; padding: .35rem .6rem; border: 1px solid #c9d6d0; border-radius: 10px; font: inherit; font-size: 16px; font-weight: 400; background: #fff; color: #24332f; }
+.lr-form { display: flex; gap: .4rem; justify-content: center; }
+.lr-code { width: 7rem; padding: .45rem .6rem; border: 1px solid #c9d6d0; border-radius: 10px; font: inherit; font-size: 1.2rem; font-weight: 800; letter-spacing: .2em; text-align: center; text-transform: uppercase; background: #fff; color: #24332f; }
+.lr-name::placeholder, .lr-code::placeholder { color: #8a9a95; font-weight: 400; letter-spacing: 0; }
+.lr-zeigen { margin: 0; padding: .3rem 1rem; border-radius: 14px; background: #e3ece6; color: #034a3e; font-size: 2.4rem; font-weight: 800; letter-spacing: .25em; text-indent: .25em; font-variant-numeric: tabular-nums; }
+.lr-info { margin: 0; color: #4b5b56; font-size: .9rem; }
+.lr-gegen { margin: 0; color: #24332f; font-weight: 700; }
+.lr-zahl { margin: 0; color: #034a3e; font-size: 5rem; font-weight: 800; line-height: 1; }
+.lr-status { margin: 0; min-height: 1.3em; color: #4b5b56; font-size: .9rem; }
+.lr-status.fehler { color: #b3261e; font-weight: 700; }
+.lauf-rennen-leiste { position: absolute; top: 52px; left: 50%; transform: translateX(-50%); z-index: 2; display: flex; gap: .6rem; align-items: baseline; max-width: calc(100% - 20px);
+  padding: .3rem .8rem; border-radius: 999px; background: rgba(3, 74, 62, .88); color: #fff; font-size: .85rem; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; pointer-events: none; }
+.lauf-rennen-leiste[hidden] { display: none; }
+.lauf-rahmen.vollbild .lauf-rennen-leiste { top: calc(env(safe-area-inset-top) + 56px); }
+.lauf-rennen-leiste .rl-er { overflow: hidden; text-overflow: ellipsis; }
+.rl-abstand { padding: .05rem .5rem; border-radius: 999px; background: #fff; color: #24332f; }
+.rl-abstand[data-lage="vorn"] { background: #c8f2d4; color: #0b5d2a; }
+.rl-abstand[data-lage="hinten"] { background: #ffd9d4; color: #8a1c12; }
 
 /* Ankes Büro: Zeitanzeige wird rot, wenn Anke gleich zurück ist */
 .folie.buero.eilig .fo-zeit { color: #e53935; animation: bu-puls .5s ease-in-out infinite alternate; }

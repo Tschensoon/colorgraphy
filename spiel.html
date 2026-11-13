@@ -65,7 +65,7 @@
 </script>
 <link rel="stylesheet" href="style.css?v=17">
 <link rel="stylesheet" href="tools.css?v=9">
-<link rel="stylesheet" href="spiel.css?v=40">
+<link rel="stylesheet" href="spiel.css?v=41">
 </head>
 <body>
 <a class="skip-link" href="#top">Zum Inhalt springen</a>
@@ -104,6 +104,7 @@
         <div class="lauf-rahmen" id="lauf-rahmen">
           <div class="lauf-buehne"></div>
           <div class="lauf-hud" aria-live="off"></div>
+          <div class="lauf-rennen-leiste" hidden><span class="rl-ich"></span><b class="rl-abstand"></b><span class="rl-er"></span></div>
           <div class="lauf-warnung" aria-hidden="true"><strong>Achtung, Anja kommt!</strong><span>Lauf schneller!</span></div>
           <button type="button" class="spiel-zu lauf-zu" aria-label="Vollbild beenden">✕</button>
           <div class="lauf-steuer">
@@ -166,6 +167,7 @@
               <button type="button" class="pill lauf-los">Los geht’s</button>
               <button type="button" class="pill ghost lauf-shop-knopf">★ Shop</button>
               <button type="button" class="pill ghost lauf-top-knopf">🏆 Bestenliste</button>
+              <button type="button" class="pill ghost lauf-rennen-knopf">🏁 Wettrennen</button>
               <button type="button" class="pill ghost lauf-chat-knopf">💬 Chat</button>
             </div>
            </div>
@@ -175,6 +177,31 @@
               <p class="ls-bank">Bestenliste</p>
               <div class="bl-reiter" role="tablist" aria-label="Zeitraum"><button type="button" role="tab" data-reiter="alle" aria-selected="true">All Time</button><button type="button" role="tab" data-reiter="woche" aria-selected="false">Wöchentlich</button><button type="button" role="tab" data-reiter="wochenende" aria-selected="false">Weekend League</button></div><ol class="lauf-top-liste"></ol><p class="bl-woche-info" hidden>Beginnt jeden Montag neu.</p>
               <button type="button" class="pill small ghost lt-zu">Fertig</button>
+            </div>
+            <div class="lauf-shop lauf-rennen" hidden>
+              <button type="button" class="panel-x lr-x" aria-label="Wettrennen schließen">✕</button>
+              <p class="ls-bank">Wettrennen</p>
+              <div class="lr-start">
+                <p class="lr-text">Lauf live gegen einen anderen Spieler: gleiche Strecke, gleicher Start. Wer weiter kommt, gewinnt.</p>
+                <label class="chat-name-zeile">Dein Name <input class="lr-name" maxlength="16" autocomplete="nickname" spellcheck="false" placeholder="Spitzname"></label>
+                <button type="button" class="pill lr-neu">Rennen erstellen</button>
+                <p class="lr-oder">oder mit einem Code beitreten</p>
+                <form class="lr-form">
+                  <input class="lr-code" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Code" aria-label="Code">
+                  <button type="submit" class="pill small">Beitreten</button>
+                </form>
+              </div>
+              <div class="lr-warten" hidden>
+                <p class="lr-text">Gib deinem Gegner diesen Code:</p>
+                <p class="lr-zeigen"></p>
+                <button type="button" class="pill small ghost lr-teilen">Link teilen</button>
+                <p class="lr-info" role="status"></p>
+              </div>
+              <div class="lr-zaehler" hidden>
+                <p class="lr-gegen"></p>
+                <p class="lr-zahl" aria-live="assertive">3</p>
+              </div>
+              <p class="lr-status" role="status"></p>
             </div>
             <div class="lauf-shop lauf-chat" hidden>
               <button type="button" class="panel-x lc-x" aria-label="Chat schließen">✕</button>
@@ -213,6 +240,7 @@
       <div class="patchnotes">
         <h2>Patchnotes</h2>
         <ul>
+          <li><time datetime="2026-11-13">13.11.</time> Neu: Wettrennen! Erstelle ein Rennen, gib deinem Gegner den Code und lauft live gegeneinander auf derselben Strecke. Wer weiter kommt, gewinnt.</li>
           <li><time datetime="2026-11-13">13.11.</time> Weekend League: Platz 1 ist jetzt auch im Dunkelmodus gut lesbar.</li>
           <li><time datetime="2026-11-13">13.11.</time> Neu: die Weekend League in der Bestenliste. Sie läuft jedes Wochenende von Freitag 20:30 Uhr bis Montag 6 Uhr, und Platz 1 bekommt die Goldmedaille.</li>
           <li><time datetime="2026-11-13">13.11.</time> Schutzschild repariert: Mit Schild biegt deine Figur an der Ecke von selbst ab, und ein Hindernis zählt nicht mehr als Treffer, wenn der Schutz mittendrin abläuft.</li>
@@ -287,7 +315,7 @@
 </footer>
 
 <script src="spiel.js?v=11" defer></script>
-<script type="module" src="lauf.js?v=96"></script>
+<script type="module" src="lauf.js?v=97"></script>
 <script src="seite.js?v=12" defer></script>
 <script src="nav-mehr.js?v=5" defer></script>
 <script src="ziehen.js?v=2" defer></script>

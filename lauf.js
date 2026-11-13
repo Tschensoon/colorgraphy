@@ -117,6 +117,16 @@ if (rahmen) {
   };
   const zufall = (a, b) => a + Math.random() * (b - a);
   const wahl = (l) => l[Math.floor(Math.random() * l.length)];
+  // Wettrennen: beide Geräte bauen dieselbe Strecke. Alles, was das Spiel bestimmt (Länge, Abbiegen, Hindernisse, Sterne, Booster),
+  // würfelt deshalb mit RZ – sonst der normale Zufall, im Rennen eine Zahlenfolge aus der gemeinsamen Startzahl, je Abschnitt neu angesetzt.
+  // Die Deko am Wegrand würfelt weiter frei (sie hängt vom Gerät ab und zählt nicht fürs Rennen).
+  const RN = { an: false, seed: 0, g: null, aus: false, m: 0, urteil: "" };
+  let RZ = Math.random;
+  const zufallsFolge = (a) => () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  const zufallS = (a, b) => a + RZ() * (b - a), wahlS = (l) => l[Math.floor(RZ() * l.length)];
+  // Schwierigkeit beim Bauen: sonst nach Punkten, im Rennen nach der Abschnittsnummer (die Punkte der beiden Spieler unterscheiden sich)
+  const genStufe = (nr) => RN.an ? Math.min(4, Math.floor(nr / 22)) : schwerStufe();
+  const genTempoF = (nr) => RN.an ? [1, 1.05, 1.1, 1.15, 1.2][genStufe(nr)] : tempoFaktor();
 
   // ---------- Aufbau ----------
   let W, sonne, himmelKugel, wolkenGruppe, ferneGruppe, sonnenBild, laterneLicht, aktZone = 0;
@@ -220,8 +230,9 @@ if (rahmen) {
     const vor = abschnitte[abschnitte.length - 1];
     let ax = 0, az = 0, h = 0, nr = startNr;
     if (vor) { [ax, az] = punkt(vor, vor.L, 0); h = vor.h + vor.dreh; nr = vor.nr + 1; }
-    const erster = !vor, L = erster ? 55 : Math.round(zufall(34, 58));
-    const dreh = h === 0 ? (Math.random() < .5 ? -1 : 1) : -h;   // nie nach Süden
+    RZ = RN.an ? zufallsFolge(RN.seed + nr * 7919) : Math.random;
+    const erster = !vor, L = erster ? 55 : Math.round(zufallS(34, 58));
+    const dreh = h === 0 ? (RZ() < .5 ? -1 : 1) : -h;   // nie nach Süden
     const ab = { nr, erster, ax, az, h, L, dreh, zone: W.zoneFuer(nr), gruppe: new THREE.Group() };
     abschnitte.push(ab); szene.add(ab.gruppe);
     const yaw = -h * Math.PI / 2;
@@ -269,13 +280,14 @@ if (rahmen) {
     }
 
     // Ab und zu ein Booster an einer freien Stelle
-    if (!erster && Math.random() < .5) {
-      const bs = zufall(14, L - 14);
+    RZ = RN.an ? zufallsFolge(RN.seed + nr * 7919 + 4001) : Math.random;   // eigene Folge, unabhängig davon, wie viele Hindernisse davor gewürfelt wurden
+    if (!erster && RZ() < .5) {
+      const bs = zufallS(14, L - 14);
       if (!hindernisse.some(o => o.nr === nr && Math.abs(o.s - bs) < 4)) {
-        const r = Math.random();
+        const r = RZ();
         let typ = r < .31 ? "schild" : r < .54 ? "schubs" : r < .77 ? "magnet" : "doppelt";
-        if ((typ === "schild" || typ === "schubs") && (R.anjaPhase || Math.random() < schwerStufe() * .18)) typ = wahl(["magnet", "doppelt"]);   // später seltener Schutz
-        const sp = wahl([-1, 0, 1]);
+        if ((typ === "schild" || typ === "schubs") && ((!RN.an && R.anjaPhase) || RZ() < genStufe(nr) * .18)) typ = wahlS(["magnet", "doppelt"]);   // später seltener Schutz
+        const sp = wahlS([-1, 0, 1]);
         booster.push({ nr, s: bs, spur: sp, typ, mesh: setze(W.booster(typ), bs, sp * SPUR, 1.05), weg: false });
       }
     }
@@ -293,17 +305,17 @@ if (rahmen) {
   // und es bleibt immer mindestens eine Spur frei. Mit der Zeit kommen schwerere Muster dazu.
   function hindernisseVerteilen(ab, setze) {
     const schwer = Math.min(1, ab.nr / 30);
-    const tempoDort = Math.min(MAX_TEMPO, START_TEMPO + ab.nr * .45) * tempoFaktor();   // schneller: Hindernisse weiter auseinander
+    const tempoDort = Math.min(MAX_TEMPO, START_TEMPO + ab.nr * .45) * genTempoF(ab.nr);   // schneller: Hindernisse weiter auseinander
     const mindest = tempoDort * .95 + 3;              // gut eine Sekunde Reaktionszeit
     let s = ab.erster ? 24 : 14;
     while (s < ab.L - 11) {
       const typ = hindernisNeu(ab, s, setze, schwer, null);
       // Kombination: kurz danach ein zweites Hindernis, das man mit einer Bewegung schafft
-      if (schwer > .25 && Math.random() < .2 + .35 * schwer + schwerStufe() * .08 && s + tempoDort * .7 + 2 < ab.L - 11) {
+      if (schwer > .25 && RZ() < .2 + .35 * schwer + genStufe(ab.nr) * .08 && s + tempoDort * .7 + 2 < ab.L - 11) {
         s += tempoDort * .7 + 2;
         hindernisNeu(ab, s, setze, schwer, typ);
       }
-      s += mindest * Math.max(.85, 1.35 - .35 * schwer - schwerStufe() * .06) + zufall(0, 7 * (1 - schwer) + 2);
+      s += mindest * Math.max(.85, 1.35 - .35 * schwer - genStufe(ab.nr) * .06) + zufallS(0, 7 * (1 - schwer) + 2);
     }
   }
   // Art des Hindernisses: block = ausweichen (sonst Rundenende), niedrig = drüberspringen, hoch = ducken, eis = rutschig
@@ -314,23 +326,24 @@ if (rahmen) {
   function hindernisNeu(ab, s, setze, schwer, vorher) {
     const extra = WELT_HINDERNISSE[ab.zone] || [];
     let typ;
-    if (extra.length && Math.random() < .4 + schwerStufe() * .08) typ = wahl(extra);   // später mehr bewegte Hindernisse
+    if (extra.length && RZ() < .4 + genStufe(ab.nr) * .08) typ = wahlS(extra);   // später mehr bewegte Hindernisse
     else {
-      const r = Math.random(), kw = .22 + .12 * schwer;
+      const r = RZ(), kw = .22 + .12 * schwer;
       typ = r < kw ? "kloetze" : r < kw + .25 ? "ball" : r < kw + .42 ? "balken" : r < kw + .55 ? "pfuetze" : "stange";
     }
     if (vorher && vorher.art === "block" && ART[typ] === "block") typ = "balken";   // nie zwei Sperren direkt hintereinander
     let spuren = [-1, 0, 1], mesh = null, bew = null;
     if (typ === "kloetze") {
-      const zwei = Math.random() < .25 + .4 * schwer;
-      spuren = [-1, 0, 1].sort(() => Math.random() - .5).slice(0, zwei ? 2 : 1);
+      const zwei = RZ() < .25 + .4 * schwer;
+      spuren = [-1, 0, 1]; for (let i = 2; i > 0; i--) { const j = Math.floor(RZ() * (i + 1)); [spuren[i], spuren[j]] = [spuren[j], spuren[i]]; }   // mischen (auf jedem Gerät gleich)
+      spuren = spuren.slice(0, zwei ? 2 : 1);
       for (const sp of spuren) setze(W.hindernis("kloetze"), s, sp * SPUR);
     } else if (typ === "ball" || typ === "heuballen" || typ === "schneeball") {
-      spuren = [wahl([-1, 0, 1])];
+      spuren = [wahlS([-1, 0, 1])];
       mesh = setze(typ === "ball" ? W.hindernis("ball") : W.weltHindernis(typ), s, spuren[0] * SPUR);
       if (typ !== "ball") bew = { vs: typ === "heuballen" ? 3 : 4.5, weg: 0, max: 7 };   // rollt auf Fröbelinchen zu
     } else if (typ === "huhn" || typ === "enten" || typ === "gans") {
-      const von = wahl([-1, 1]), x = von * (H - .4);
+      const von = wahlS([-1, 1]), x = von * (H - .4);
       mesh = setze(W.weltHindernis(typ), s, x);
       bew = { vx: -von * (typ === "huhn" ? 1.7 : typ === "gans" ? 1.3 : 1.1), x };                              // läuft quer über den Weg
       spuren = [Math.round(x / SPUR)];
@@ -340,7 +353,7 @@ if (rahmen) {
     else if (typ === "pfuetze") setze(W.hindernis("pfuetze", 2 * H), s, 0);
     else if (typ === "laternen") setze(W.weltHindernis("laternen", 2 * H - .2), s, 0);   // Laternenkette quer: ducken
     else if (typ === "liane") setze(W.weltHindernis("liane", 2 * H - .2), s, 0);         // Liane quer: ducken
-    else if (typ === "affe") { spuren = [wahl([-1, 0, 1])]; mesh = setze(W.weltHindernis("affe", 2 * H, spuren[0] * SPUR), s, spuren[0] * SPUR); }   // Banane auf einer Spur
+    else if (typ === "affe") { spuren = [wahlS([-1, 0, 1])]; mesh = setze(W.weltHindernis("affe", 2 * H, spuren[0] * SPUR), s, spuren[0] * SPUR); }   // Banane auf einer Spur
     else setze(W.hindernis("stange", 2 * H - .2), s, 0);   // Turnstange quer: ducken
     const h = { nr: ab.nr, ab, s, typ, art: ART[typ], hoehe: HOEHE[typ] || 0, tiefe: typ === "eis" ? 1.5 : .55, spuren, mesh, bew, getroffen: false };
     hindernisse.push(h);
@@ -356,15 +369,15 @@ if (rahmen) {
       sterne.push({ nr: ab.nr, s: ds, spur: sp, h: hoehe, mesh: m, weg: false });
     };
     const ganzBreit = h.spuren.length === 3 && !h.bew;
-    if (h.art === "niedrig" && ganzBreit && Math.random() < .6) {
-      const sp = wahl([-1, 0, 1]);
+    if (h.art === "niedrig" && ganzBreit && RZ() < .6) {
+      const sp = wahlS([-1, 0, 1]);
       for (let i = -2; i <= 2; i++) legen(s + i * 1.1, sp, .9 + 1.3 * (1 - (i * i) / 4));
-    } else if (Math.random() < .3) {
-      const folge = wahl([[-1, 0, 1, 0, -1, 0], [1, 0, -1, 0, 1, 0]]);
+    } else if (RZ() < .3) {
+      const folge = wahlS([[-1, 0, 1, 0, -1, 0], [1, 0, -1, 0, 1, 0]]);
       folge.forEach((sp, i) => legen(s + 3.5 + i * 1.7, sp, .9));
     } else {
       const frei = [-1, 0, 1].filter(sp => h.art !== "block" || !h.spuren.includes(sp));
-      const sp = wahl(frei);
+      const sp = wahlS(frei);
       for (let i = 0; i < 4; i++) legen(s + 3 + i * 1.3, sp, .9);
     }
   }
@@ -392,6 +405,7 @@ if (rahmen) {
     Object.assign(A, { nah: false, zeit: 0, abstand: 16, bis: 5 });
     spieler.koerper.rotation.set(0, 0, 0);
     tipps.clear();
+    if (RN.an) { FL.ab = Infinity; R.frauBei = Infinity; }   // Wettrennen: nur die Laufstrecke
     while (abschnitte.length < 4) abschnittNeu();
     kamYaw = 0; kamPos = null;
     hudZeigen();
@@ -504,7 +518,8 @@ if (rahmen) {
     if (handy && !vollbild) vollbildAn();
     await laden();
     T.start(); T.verlorenStop();
-    if (zustand === "aus") neu();
+    if (RN.an) { rennenAus(); neu(); }                  // nach einem Wettrennen wieder ein normales Spiel
+    else if (zustand === "aus") neu();
     zustand = "laeuft"; window.froebelAktiv = "lauf";
     ueber.hidden = true; ladenZu(); topFeld.hidden = true; eintragForm.hidden = true; uhr.getDelta();
     T.musik(zoneMusik());
@@ -541,6 +556,7 @@ if (rahmen) {
     if (!tutorialFertig) { tutorialFertig = true; schreib("froebelinchen-rennt-tutorial", true); }
     aufgabenZeigen();
     stufeNachRunde(p);
+    if (RN.an) { RN.aus = true; RN.m = Math.round(strecke); rennenUrteil(); }
     // passt das Namensfeld nicht ganz ins Bild (kleine Handys), zu den Punkten scrollen: Punkte und Namensfeld stehen dann oben
     requestAnimationFrame(() => {
       const info = $(".lauf-info"); info.scrollTop = 0;
@@ -862,6 +878,63 @@ if (rahmen) {
   $(".lauf-top-knopf").addEventListener("click", () => { bestenlisteLaden(); topFeld.hidden = false; });
   $(".lt-zu").addEventListener("click", () => { topFeld.hidden = true; });
   $(".lt-x").addEventListener("click", () => { topFeld.hidden = true; });
+  // ---------- Wettrennen: Lobby mit Code, beide laufen dieselbe Strecke, wer weiter kommt, gewinnt ----------
+  const rennFeld = $(".lauf-rennen"), rennKnopf = $(".lauf-rennen-knopf"), rennLeiste = $(".lauf-rennen-leiste");
+  let rennModul = null;
+  function rennenAus() { RN.an = false; RN.g = null; RN.aus = false; RN.urteil = ""; rennLeiste.hidden = true; if (rennModul) rennModul.ende(); }
+  async function rennenLos(seed, gegnerName) {
+    Object.assign(RN, { an: true, seed, g: { name: gegnerName, m: 0, p: 0, z: "laeuft" }, aus: false, m: 0, urteil: "" });
+    if (handy && !vollbild) vollbildAn();
+    await laden();
+    T.start(); T.verlorenStop();
+    neu();
+    zustand = "laeuft"; window.froebelAktiv = "lauf";
+    ueber.hidden = true; ladenZu(); topFeld.hidden = true; eintragForm.hidden = true; pauseFeld.hidden = true; uhr.getDelta();
+    T.musik(zoneMusik()); meldung("Wettrennen!", `Du gegen ${gegnerName} · wer weiter kommt, gewinnt`);
+    rennenAnzeige();
+  }
+  const rennenStand = () => ({ m: RN.aus ? RN.m : Math.round(strecke || 0), p: Math.floor(punkte || 0), z: RN.aus ? "aus" : "laeuft", idx: S.idx, s: +S.s.toFixed(1), x: +S.x.toFixed(2), y: +S.y.toFixed(2) });
+  function rennenGegner(g) {
+    if (!RN.an) return;
+    if (g.z === "weg") { if (RN.g && RN.g.z === "laeuft") RN.g = { ...RN.g, z: "weg" }; }   // meldet sich nicht mehr: zählt mit seinem letzten Stand
+    else RN.g = g;
+    rennenUrteil();
+  }
+  // Wer weiter kommt, gewinnt: entschieden ist es, sobald beide raus sind oder einer den Endstand des anderen überholt
+  function rennenUrteil() {
+    const g = RN.g;
+    if (RN.an && g && !RN.urteil) {
+      const gRaus = g.z !== "laeuft";
+      if (!RN.aus) {
+        if (gRaus && Math.round(strecke) > g.m && (zustand === "laeuft" || zustand === "pause")) { RN.urteil = "sieg"; pauseFeld.hidden = true; ende("🏆 Gewonnen!"); return; }
+      } else if (gRaus) RN.urteil = RN.m > g.m ? "sieg" : RN.m < g.m ? "niederlage" : "gleich";
+      else if (g.m > RN.m) RN.urteil = "niederlage";
+      if (RN.urteil === "sieg" && T) T.rekord();
+    }
+    rennenAnzeige();
+  }
+  function rennenAnzeige() {
+    const g = RN.g;
+    if (!RN.an || !g) { rennLeiste.hidden = true; return; }
+    const m = RN.aus ? RN.m : Math.round(strecke || 0), d = m - g.m;
+    rennLeiste.hidden = zustand === "aus";
+    rennLeiste.querySelector(".rl-ich").textContent = `Du ${m} m`;
+    rennLeiste.querySelector(".rl-er").textContent = `${g.name} ${g.m} m${g.z === "aus" ? " ✖" : g.z === "weg" ? " ⚠" : ""}`;
+    const mitte = rennLeiste.querySelector(".rl-abstand");
+    mitte.textContent = d > 0 ? `▲ ${d} m vorn` : d < 0 ? `▼ ${-d} m hinten` : "gleichauf"; mitte.dataset.lage = d > 0 ? "vorn" : d < 0 ? "hinten" : "gleich";
+    if (RN.aus && zustand === "aus") {                   // Ergebnis-Überschrift: Urteil oder Zwischenstand, solange der Gegner noch läuft
+      ueberTitel.textContent = RN.urteil === "sieg" ? `🏆 Gewonnen gegen ${g.name}! ${RN.m} m zu ${g.m} m`
+        : RN.urteil === "gleich" ? `Unentschieden gegen ${g.name}: beide ${RN.m} m`
+        : RN.urteil === "niederlage" ? (g.z === "laeuft" ? `${g.name} liegt vorn: ${g.m} m zu ${RN.m} m` : `${g.name} war weiter: ${g.m} m zu ${RN.m} m`)
+        : `Du: ${RN.m} m · ${g.name} läuft noch: ${g.m} m`;
+    }
+  }
+  import("./lauf-rennen.js?v=1").then(m => {
+    rennModul = m.rennenStarten({ db: DB, feld: rennFeld, knopf: rennKnopf, vorbereiten: () => { if (kannWebGL) laden(); }, los: rennenLos, stand: rennenStand, gegner: rennenGegner,
+      nameFehler: (n) => n.length > 16 || !ERLAUBT.test(n) ? "Bitte nur Buchstaben, Zahlen, Leerzeichen, Punkt und Bindestrich." : SPERRE.some(w => n.toLowerCase().replace(/[ ._-]/g, "").includes(w)) ? "Bitte einen anderen Namen wählen." : "" });
+    const code = new URLSearchParams(location.search).get("rennen");     // Einladungslink: Lobby gleich mit dem Code öffnen
+    if (code) { if (handy) vollbildAn(); rennModul.oeffnen(code); }
+  }).catch(() => { rennKnopf.hidden = true; });
   // solange Laden oder Bestenliste offen sind: X, Pause und Ton des Spiels ausblenden (das X würde sonst das ganze Spiel schließen)
   // Chat: verbindet sich gleich beim Öffnen der Seite, damit man sieht, wer online ist und ob es Neues gibt
   const chatFeld = $(".lauf-chat"), chatKnopf = $(".lauf-chat-knopf");
@@ -869,7 +942,7 @@ if (rahmen) {
   import("./lauf-chat.js?v=2").then(m => { chat = m.chatStarten({ db: DB, feld: chatFeld, knopf: chatKnopf }); }).catch(() => { chatKnopf.hidden = true; });
   chatKnopf.addEventListener("click", () => { if (chat) chat.oeffnen(); });
   $(".lc-x").addEventListener("click", () => { if (chat) chat.schliessen(); else chatFeld.hidden = true; });
-  const panelBeobachter = new MutationObserver(() => rahmen.classList.toggle("panel-offen", !shop.hidden || !topFeld.hidden || !chatFeld.hidden));
+  const panelBeobachter = new MutationObserver(() => rahmen.classList.toggle("panel-offen", !shop.hidden || !topFeld.hidden || !chatFeld.hidden || !rennFeld.hidden));
   for (const el of [shop, topFeld, chatFeld]) panelBeobachter.observe(el, { attributes: true, attributeFilter: ["hidden"] });
   bestenlisteLaden();
 
@@ -1152,7 +1225,7 @@ if (rahmen) {
     const sz = schlussSzene; sz.t += dt;
     if (sz.art === "anja") A.abstand += (1 - A.abstand) * Math.min(1, dt * 5);
     else spieler.koerper.rotation.z = Math.min(.5, sz.t * 1.5) * (S.spur >= 0 ? 1 : -1);
-    if (sz.t > 1.6 && !weiterAnbieten(sz)) ende(sz.grund);
+    if (sz.t > 1.6 && (RN.an || !weiterAnbieten(sz))) ende(sz.grund);
   }
   // Weiterspielen für Sterne: einmal pro Runde, kurze Bedenkzeit, die Knöpfe sind zuerst gesperrt (gegen versehentliches Tippen)
   const WEITER_PREIS = 5000, WEITER_ZEIT = 8, WEITER_SPERRE = .7, WEITER_SCHUTZ = 4;
@@ -1380,7 +1453,7 @@ if (rahmen) {
     if (ab.zone !== aktZone) {
       aktZone = ab.zone; W.zoneWechsel(aktZone); stimmungSetzen(); R.welt = Math.max(R.welt, Math.floor(S.idx / 3));
       if (lauft) { T.welt(); T.musik(zoneMusik()); if (!B.schubs) meldung(W.zonen[aktZone].name, W.zonen[aktZone].unter); }
-      if (lauft && aktZone === WINTER()) FL.schlittenBei = punkte + 120;
+      if (lauft && aktZone === WINTER() && !RN.an) FL.schlittenBei = punkte + 120;
     }
     const zeit = performance.now() / 1000;
     if (zustand === "laeuft") tagUhr += dt;
