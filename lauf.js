@@ -511,7 +511,7 @@ if (rahmen) {
   document.addEventListener("fullscreenchange", () => {
     if (document.fullscreenElement || !vollbild) return;
     if (zustand === "laeuft") pauseUm();
-    else if (zustand !== "pause" && zustand !== "rettung" && zustand !== "fang") vollbildAus();
+    else if (zustand !== "pause" && zustand !== "rettung" && zustand !== "fang" && rennFeld.hidden) vollbildAus();   // offene Wettrennen-Lobby bleibt stehen (man wechselt kurz die App, um den Code zu verschicken)
   });
 
   losKnopf.addEventListener("click", async () => {
@@ -881,7 +881,72 @@ if (rahmen) {
   // ---------- Wettrennen: Lobby mit Code, beide laufen dieselbe Strecke, wer weiter kommt, gewinnt ----------
   const rennFeld = $(".lauf-rennen"), rennKnopf = $(".lauf-rennen-knopf"), rennLeiste = $(".lauf-rennen-leiste");
   let rennModul = null;
-  function rennenAus() { RN.an = false; RN.g = null; RN.aus = false; RN.urteil = ""; rennLeiste.hidden = true; if (rennModul) rennModul.ende(); }
+  function rennenAus() { RN.an = false; RN.g = null; RN.aus = false; RN.urteil = ""; rennLeiste.hidden = true; geistWeg(); if (rennModul) rennModul.ende(); }
+  // Der Gegner als Geist: seine Figur läuft halb durchsichtig auf der eigenen Strecke mit (beide haben dieselbe Strecke).
+  // Sein Stand kommt viermal pro Sekunde; dazwischen läuft der Geist mit seinem zuletzt gemessenen Tempo weiter.
+  const GEIST = { f: null, figur: "", schild: null, idx: 0, s: 0, x: 0, y: 0, zIdx: 0, zS: 0, zX: 0, zY: 0, v: 0, m: 0, t: 0, lauf: 0, da: false };
+  function geistWeg() {
+    if (GEIST.f) { szene.remove(GEIST.f.gruppe); GEIST.f.gruppe.traverse(k => { if (k.material && k.material.userData.geist) k.material.dispose(); }); }
+    if (GEIST.schild) { GEIST.schild.material.map.dispose(); GEIST.schild.material.dispose(); }
+    GEIST.f = null; GEIST.schild = null; GEIST.figur = ""; GEIST.da = false; GEIST.t = 0;
+  }
+  function geistBauen(id, name) {
+    geistWeg();
+    const f = W.figurBauen(id), kopien = new Map();
+    f.gruppe.traverse(k => {
+      if (!k.isMesh || !k.material || Array.isArray(k.material)) return;
+      if (!kopien.has(k.material)) { const m = k.material.clone(); m.transparent = true; m.opacity = .5; m.depthWrite = false; m.userData = { geist: true }; kopien.set(k.material, m); }
+      k.material = kopien.get(k.material); k.castShadow = false; k.receiveShadow = false;
+    });
+    const c = document.createElement("canvas"); c.width = 256; c.height = 64; const x = c.getContext("2d");
+    x.font = "bold 34px system-ui, sans-serif"; x.textAlign = "center"; x.textBaseline = "middle";
+    const b = Math.min(244, x.measureText(name).width + 36);
+    x.fillStyle = "rgba(3,74,62,.85)"; x.beginPath(); x.roundRect(128 - b / 2, 8, b, 48, 24); x.fill();
+    x.fillStyle = "#fff"; x.fillText(name, 128, 33, 220);
+    const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
+    const schild = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, fog: false }));
+    f.gruppe.updateMatrixWorld(true);
+    schild.position.y = new THREE.Box3().setFromObject(f.gruppe).max.y + .45; schild.scale.set(1.8, .45, 1);
+    f.gruppe.add(schild); f.gruppe.visible = false; szene.add(f.gruppe);
+    Object.assign(GEIST, { f, figur: id, schild, da: false, t: 0, v: 0 });
+  }
+  function geistStand(g) {                               // neuer Stand vom Gegner
+    const id = FIGUR_LISTE.some(x => x.id === g.f) ? g.f : "giraffe";
+    if (!GEIST.f || GEIST.figur !== id) geistBauen(id, g.name);
+    const jetzt = performance.now();
+    if (GEIST.t && jetzt > GEIST.t) GEIST.v = Math.max(0, Math.min(30, (g.m - GEIST.m) / ((jetzt - GEIST.t) / 1000)));
+    Object.assign(GEIST, { m: g.m, t: jetzt, zIdx: g.idx, zS: g.s, zX: g.x, zY: g.y });
+    if (g.z !== "laeuft") GEIST.v = 0;
+    if (!GEIST.da) { Object.assign(GEIST, { da: true, idx: g.idx, s: g.s, x: g.x, y: g.y }); }
+  }
+  function geistSchritt(dt) {
+    const f = GEIST.f;
+    if (!f || !GEIST.da || !RN.an) { if (f) f.gruppe.visible = false; return; }
+    GEIST.zS += GEIST.v * dt;                              // zwischen zwei Meldungen mit dem letzten Tempo weiterlaufen
+    if (GEIST.idx !== GEIST.zIdx) { GEIST.idx = GEIST.zIdx; GEIST.s = GEIST.zS; }
+    else GEIST.s += (GEIST.zS - GEIST.s) * Math.min(1, dt * 8);
+    GEIST.x += (GEIST.zX - GEIST.x) * Math.min(1, dt * 12); GEIST.y += (GEIST.zY - GEIST.y) * Math.min(1, dt * 14);
+    const ab = abschnitte.find(a => a.nr === GEIST.idx);
+    f.gruppe.visible = !!ab;
+    if (!ab) return;
+    const [px, pz] = punkt(ab, Math.min(GEIST.s, ab.L + H - 1), GEIST.x);
+    f.gruppe.position.set(px, GEIST.y, pz); f.gruppe.rotation.y = -ab.h * Math.PI / 2;
+    GEIST.lauf += dt * GEIST.v * 1.1;
+    const oben = GEIST.y > .05, steht = GEIST.v < .5;
+    if (zweiBeine(f)) {
+      f.beine.forEach((b, i) => {
+        if (oben) { b.oben.rotation.x = i ? -.4 : .9; b.unten.rotation.x = i ? -.3 : -1.3; return; }
+        const ph = GEIST.lauf + i * Math.PI;
+        b.oben.rotation.x = steht ? 0 : Math.sin(ph) * .75; b.unten.rotation.x = steht ? 0 : -Math.max(0, Math.sin(ph + 1.6)) * 1.35;
+      });
+      f.arme.forEach((a, i) => { const ph = GEIST.lauf + i * Math.PI; a.oben.rotation.x = steht ? 0 : -Math.sin(ph) * .7; a.unten.rotation.x = steht ? .15 : 1.1 + Math.sin(ph) * .25; });
+    } else f.beine.forEach((b, i) => {
+      const ph = GEIST.lauf + (i === 0 || i === 3 ? 0 : Math.PI), vorn = i < 2;
+      if (oben) { b.oben.rotation.x = vorn ? .6 : -.5; b.unten.rotation.x = vorn ? -1.2 : -.5; return; }
+      b.oben.rotation.x = steht ? 0 : Math.sin(ph) * .55; b.unten.rotation.x = steht ? 0 : -Math.max(0, Math.sin(ph + 1.5)) * .95;
+    });
+    f.koerper.position.y = oben || steht ? 0 : Math.abs(Math.sin(GEIST.lauf)) * .04;
+  }
   async function rennenLos(seed, gegnerName) {
     Object.assign(RN, { an: true, seed, g: { name: gegnerName, m: 0, p: 0, z: "laeuft" }, aus: false, m: 0, urteil: "" });
     if (handy && !vollbild) vollbildAn();
@@ -893,11 +958,11 @@ if (rahmen) {
     T.musik(zoneMusik()); meldung("Wettrennen!", `Du gegen ${gegnerName} · wer weiter kommt, gewinnt`);
     rennenAnzeige();
   }
-  const rennenStand = () => ({ m: RN.aus ? RN.m : Math.round(strecke || 0), p: Math.floor(punkte || 0), z: RN.aus ? "aus" : "laeuft", idx: S.idx, s: +S.s.toFixed(1), x: +S.x.toFixed(2), y: +S.y.toFixed(2) });
+  const rennenStand = () => ({ m: RN.aus ? RN.m : Math.round(strecke || 0), p: Math.floor(punkte || 0), z: RN.aus ? "aus" : "laeuft", f: figur, idx: S.idx, s: +S.s.toFixed(1), x: +S.x.toFixed(2), y: +S.y.toFixed(2) });
   function rennenGegner(g) {
     if (!RN.an) return;
     if (g.z === "weg") { if (RN.g && RN.g.z === "laeuft") RN.g = { ...RN.g, z: "weg" }; }   // meldet sich nicht mehr: zählt mit seinem letzten Stand
-    else RN.g = g;
+    else { RN.g = g; geistStand(g); }
     rennenUrteil();
   }
   // Wer weiter kommt, gewinnt: entschieden ist es, sobald beide raus sind oder einer den Endstand des anderen überholt
@@ -929,7 +994,7 @@ if (rahmen) {
         : `Du: ${RN.m} m · ${g.name} läuft noch: ${g.m} m`;
     }
   }
-  import("./lauf-rennen.js?v=1").then(m => {
+  import("./lauf-rennen.js?v=2").then(m => {
     rennModul = m.rennenStarten({ db: DB, feld: rennFeld, knopf: rennKnopf, vorbereiten: () => { if (kannWebGL) laden(); }, los: rennenLos, stand: rennenStand, gegner: rennenGegner,
       nameFehler: (n) => n.length > 16 || !ERLAUBT.test(n) ? "Bitte nur Buchstaben, Zahlen, Leerzeichen, Punkt und Bindestrich." : SPERRE.some(w => n.toLowerCase().replace(/[ ._-]/g, "").includes(w)) ? "Bitte einen anderen Namen wählen." : "" });
     const code = new URLSearchParams(location.search).get("rennen");     // Einladungslink: Lobby gleich mit dem Code öffnen
@@ -1362,6 +1427,7 @@ if (rahmen) {
       if (S.y === 0 && S.duck <= 0) spieler.koerper.position.y += Math.abs(Math.sin(tj * 11)) * .13 * w;
     }
     gesicht(dt, lauft ? 1 : .3);
+    if (RN.an) geistSchritt(dt);
     // Startbild und Ergebnis: sie steht, winkt mit dem Vorderbein und die Kamera schwenkt um sie herum
     const leerlauf = zustand === "start" || zustand === "aus";
     if (leerlauf) {
