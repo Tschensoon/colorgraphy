@@ -448,7 +448,9 @@ li.gold .bl-rang { opacity: 1; font-size: 1.25em; line-height: 1; }
 .chat-hinweis { margin: 0; font-size: .75rem; color: #7a8a85; text-align: center; }
 .lauf-chat-knopf.neu { background: #ffe9a8 !important; }
 /* Wettrennen: Revanche-Knopf, Emojis, Zuschauen */
-.lauf-knoepfe .lauf-revanche[hidden] { display: none; }
+.lauf-knoepfe .lauf-revanche[hidden], .lauf-knoepfe .lauf-los[hidden], .lauf-knoepfe .lauf-verlassen[hidden] { display: none; }
+.lauf-overlay .lauf-knoepfe .lauf-verlassen { grid-column: 1 / -1; }
+.lauf-knoepfe .lauf-revanche:disabled { background: #e3ece6; color: #4b5b56; cursor: default; }
 .lauf-overlay .lauf-knoepfe .lauf-revanche { grid-column: 1 / -1; background: #e8b830; color: #24332f; }
 .lr-raum-stand { font-weight: 800; color: #034a3e; }
 .lr-raum-stand[hidden] { display: none; }

@@ -3,7 +3,7 @@
 // Ablauf: Gastgeber erstellt ein Rennen (Code), Gast tritt bei ("hallo"), Gastgeber antwortet mit "drin": beide stehen im Lobby-Raum,
 // können chatten und melden sich bereit ("status"). Sind beide bereit, schickt der Gastgeber "start" mit der Startzahl für die Strecke,
 // beide zählen 3-2-1 und laufen los. Danach schickt jedes Gerät viermal pro Sekunde seinen Stand ("pos").
-export function rennenStarten({ db, feld, knopf, nameFehler, verboten, vorbereiten, los, stand, gegner, emoji, streich }) {
+export function rennenStarten({ db, feld, knopf, nameFehler, verboten, vorbereiten, los, stand, gegner, emoji, streich, weg }) {
   const ZEICHEN = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";      // ohne 0/O und 1/I, damit man den Code gut vorlesen kann
   const ich = Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
   const $ = (s) => feld.querySelector(s);
@@ -12,7 +12,7 @@ export function rennenStarten({ db, feld, knopf, nameFehler, verboten, vorbereit
   const nameFeld = $(".lr-name"), codeFeld = $(".lr-code"), status = $(".lr-status");
   let ws = null, ref = 0, joinRef = null, verbunden = false, herz = null, takt = null, wache = null, hallo = null, zaehler = null;
   let kanal = "", code = "", rolle = "", er = null, laeuft = false, zuletzt = 0, bereitFn = null, neuTimer = null, versuche = 0;
-  let imRaum = false, ichBereit = false, erBereit = false, raumTakt = null, erZuletzt = 0, erWill = false;
+  let imRaum = false, ichBereit = false, erBereit = false, raumTakt = null, erZuletzt = 0, erWill = false, erFort = false;
   const siege = { ich: 0, er: 0, runden: 0 };
   const standZeile = document.createElement("p"); standZeile.className = "lr-info lr-raum-stand"; standZeile.hidden = true;
   $(".lr-spieler").before(standZeile);
@@ -33,7 +33,7 @@ export function rennenStarten({ db, feld, knopf, nameFehler, verboten, vorbereit
   }
   function trennen() {
     for (const t of [takt, wache, hallo, zaehler, raumTakt]) clearInterval(t);
-    takt = wache = hallo = zaehler = raumTakt = null; imRaum = false; laeuft = false; erWill = false; siege.ich = siege.er = siege.runden = 0; er = null; rolle = ""; bereitFn = null; versuche = 0;
+    takt = wache = hallo = zaehler = raumTakt = null; imRaum = false; laeuft = false; erWill = false; erFort = false; siege.ich = siege.er = siege.runden = 0; er = null; rolle = ""; bereitFn = null; versuche = 0;
     leitungZu();
   }
   // Die Lobby bleibt bestehen, auch wenn die Leitung abreißt – am Handy passiert das, sobald man zum Verschicken des Codes
@@ -91,6 +91,7 @@ export function rennenStarten({ db, feld, knopf, nameFehler, verboten, vorbereit
       const text = String(p.text || "").slice(0, 200);
       if (text && !verboten(text)) chatZeile(er.name, text, false);
     } else if (art === "tschuess" && imRaum && p.id !== ich) gegnerWeg();
+    else if (art === "tschuess" && laeuft && er && p.id !== ich) { erFort = true; weg(); }   // nach dem Rennen gegangen: keine Revanche mehr möglich
     else if (art === "start" && rolle === "gast" && p.an === ich && imRaum && !zaehler && !laeuft) herunterzaehlen(p.seed | 0);
     else if (art === "voll" && p.an === ich && !imRaum && !zaehler && !laeuft) abbruch("Dieses Rennen ist schon voll.");
     else if (art === "nochmal" && laeuft && er && p.id !== ich) { erWill = true; revanchePruefen(); }
@@ -117,6 +118,7 @@ export function rennenStarten({ db, feld, knopf, nameFehler, verboten, vorbereit
   }
   // Revanche: nach dem Rennen zurück in denselben Raum. Wer zuerst drückt, lädt den anderen ein; der landet dort, sobald sein Lauf vorbei ist.
   function zurueckInRaum(vonMir) {
+    if (erFort) return;
     for (const t of [takt, wache]) clearInterval(t);
     takt = wache = null; laeuft = false; erWill = false;
     raumAuf(); feld.hidden = false;
@@ -235,7 +237,7 @@ export function rennenStarten({ db, feld, knopf, nameFehler, verboten, vorbereit
     else { zeigen(teilStart); melden(""); if (mitCode) codeFeld.value = String(mitCode).toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 4); }
     feld.hidden = false;
   }
-  function ende() { trennen(); }
+  function ende() { if (er && (imRaum || laeuft)) rufen("tschuess", { id: ich }); trennen(); }
   // Seite wurde neu geladen, während ein Rennen auf den Gegner wartete (höchstens 15 Minuten her): mit demselben Code weiter warten
   let wartet = false;
   try {

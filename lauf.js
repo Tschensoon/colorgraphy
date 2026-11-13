@@ -518,6 +518,7 @@ if (rahmen) {
   });
 
   losKnopf.addEventListener("click", async () => {
+    if (RN.an && zustand === "aus") { if (!RN.gWeg && rennModul) rennModul.revanche(); return; }   // im Wettrennen: nie allein weiterspielen, dafür gibt es „Wettrennen verlassen“
     if (handy && !vollbild) vollbildAn();
     await laden();
     T.start(); T.verlorenStop();
@@ -885,7 +886,13 @@ if (rahmen) {
   // ---------- Wettrennen: Lobby mit Code, beide laufen dieselbe Strecke, wer weiter kommt, gewinnt ----------
   const rennFeld = $(".lauf-rennen"), rennKnopf = $(".lauf-rennen-knopf"), rennLeiste = $(".lauf-rennen-leiste");
   let rennModul = null;
-  function rennenAus() { zuschauenAus(); RN.an = false; RN.g = null; RN.aus = false; RN.urteil = ""; rennLeiste.hidden = true; revancheKnopf.hidden = true; emojiLeiste.hidden = true; geistWeg(); if (rennModul) rennModul.ende(); }
+  function rennenAus() { zuschauenAus(); RN.an = false; RN.g = null; RN.aus = false; RN.urteil = ""; RN.gWeg = false; rennLeiste.hidden = true; revancheKnopf.hidden = true; verlassenKnopf.hidden = true; losKnopf.hidden = false; emojiLeiste.hidden = true; geistWeg(); if (rennModul) rennModul.ende(); }
+  // Nach einem Wettrennen gibt es statt „Nochmal“ nur die Revanche und einen eigenen Knopf zum Verlassen
+  const verlassenKnopf = document.createElement("button");
+  verlassenKnopf.type = "button"; verlassenKnopf.className = "pill ghost lauf-verlassen"; verlassenKnopf.textContent = "Wettrennen verlassen"; verlassenKnopf.hidden = true;
+  losKnopf.after(verlassenKnopf);
+  verlassenKnopf.addEventListener("click", () => { rennenAus(); rennFeld.hidden = true; ueberTitel.textContent = "Fröbelinchen rennt"; });
+  function rennenGegnerWeg() { if (!RN.an) return; RN.gWeg = true; rennenAnzeige(); }
   // Revanche: ein Knopf auf dem Ergebnisbild bringt beide zurück in denselben Lobby-Raum
   const revancheKnopf = document.createElement("button");
   revancheKnopf.type = "button"; revancheKnopf.className = "pill lauf-revanche"; revancheKnopf.hidden = true;
@@ -1027,7 +1034,7 @@ if (rahmen) {
   async function rennenLos(seed, gegnerName) {
     zuschauenAus();
     Object.assign(RN, { an: true, seed, g: { name: gegnerName, m: 0, p: 0, z: "laeuft" }, aus: false, m: 0, urteil: "", zuschauen: false });
-    revancheKnopf.hidden = true;
+    revancheKnopf.hidden = true; verlassenKnopf.hidden = true; losKnopf.hidden = false; RN.gWeg = false;
     if (handy && !vollbild) vollbildAn();
     await laden();
     T.start(); T.verlorenStop();
@@ -1064,7 +1071,10 @@ if (rahmen) {
     const m = RN.aus ? RN.m : Math.round(strecke || 0), d = m - g.m;
     rennLeiste.hidden = zustand === "aus" && !RN.zuschauen;
     emojiLeiste.hidden = !(zustand === "laeuft" || RN.zuschauen);
-    revancheKnopf.hidden = !(RN.aus && RN.urteil); revancheKnopf.textContent = `🔁 Revanche gegen ${g.name}`;
+    const vorbei = RN.aus && zustand === "aus";
+    losKnopf.hidden = vorbei; verlassenKnopf.hidden = !vorbei;
+    revancheKnopf.hidden = !(RN.aus && RN.urteil); revancheKnopf.disabled = !!RN.gWeg;
+    revancheKnopf.textContent = RN.gWeg ? `${g.name} hat das Wettrennen verlassen` : `🔁 Revanche gegen ${g.name}`;
     rennLeiste.querySelector(".rl-ich").textContent = `Du ${m} m`;
     rennLeiste.querySelector(".rl-er").textContent = `${g.name} ${g.m} m${g.z === "aus" ? " ✖" : g.z === "weg" ? " ⚠" : ""}`;
     const mitte = rennLeiste.querySelector(".rl-abstand");
@@ -1076,8 +1086,8 @@ if (rahmen) {
         : `Du: ${RN.m} m · ${g.name} läuft noch: ${g.m} m`;
     }
   }
-  import("./lauf-rennen.js?v=4").then(m => {
-    rennModul = m.rennenStarten({ db: DB, feld: rennFeld, knopf: rennKnopf, verboten: (t) => SPERRE.some(w => t.toLowerCase().replace(/[ ._-]/g, "").includes(w)), vorbereiten: () => { if (kannWebGL) laden(); }, los: rennenLos, stand: rennenStand, gegner: rennenGegner, emoji: rennenEmoji, streich: rennenStreich,
+  import("./lauf-rennen.js?v=5").then(m => {
+    rennModul = m.rennenStarten({ db: DB, feld: rennFeld, knopf: rennKnopf, verboten: (t) => SPERRE.some(w => t.toLowerCase().replace(/[ ._-]/g, "").includes(w)), vorbereiten: () => { if (kannWebGL) laden(); }, los: rennenLos, stand: rennenStand, gegner: rennenGegner, emoji: rennenEmoji, streich: rennenStreich, weg: rennenGegnerWeg,
       nameFehler: (n) => n.length > 16 || !ERLAUBT.test(n) ? "Bitte nur Buchstaben, Zahlen, Leerzeichen, Punkt und Bindestrich." : SPERRE.some(w => n.toLowerCase().replace(/[ ._-]/g, "").includes(w)) ? "Bitte einen anderen Namen wählen." : "" });
     const code = new URLSearchParams(location.search).get("rennen");     // Einladungslink: Lobby gleich mit dem Code öffnen
     if (code) { if (handy) vollbildAn(); rennModul.oeffnen(code); }
