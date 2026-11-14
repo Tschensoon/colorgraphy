@@ -461,12 +461,23 @@ li.gold .bl-rang { opacity: 1; font-size: 1.25em; line-height: 1; }
 .lauf-angriffe button { width: 3.6rem; height: 3.6rem; padding: 0; border-radius: 50%; border: 3px solid #fff; background: #034a3e; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center;
   cursor: pointer; box-shadow: 0 4px 12px rgba(0, 0, 0, .3); touch-action: manipulation; -webkit-tap-highlight-color: transparent; animation: angriff-neu .5s ease-out; }
 .lauf-angriffe button[data-typ="langsam"] { background: #8a5a2b; } .lauf-angriffe button[data-typ="halb"] { background: #8e44ad; }
-.lauf-angriffe button[data-typ="eis"] { background: #1e88e5; } .lauf-angriffe button[data-typ="konter"] { background: #e8b830; color: #24332f; }
+.lauf-angriffe button[data-typ="eis"] { background: #1e88e5; }
 .lauf-angriffe span { font-size: 1.45rem; line-height: 1; font-weight: 900; }
 .lauf-angriffe small { font-size: max(.55rem, 9px); font-weight: 800; line-height: 1.1; margin-top: .1rem; }
 .lauf-angriffe button:active { transform: scale(.92); }
 .lauf-angriffe button { position: relative; border-color: #ff5a5a; }   /* roter Rand: Attacke gegen den Gegner */
-.lauf-angriffe button[data-typ="konter"] { border-color: #fff; }
+/* Konter: immer da, grau mit Ladefüllung, farbig sobald nutzbar, leuchtend solange er wartet */
+.lauf-angriffe .lauf-konter { --l: 0; border-color: #fff; color: #fff; animation: none; cursor: default;
+  background: conic-gradient(#e8b830 calc(var(--l) * 1turn), #7d8a85 0); }
+.lauf-angriffe .lauf-konter span, .lauf-angriffe .lauf-konter small { opacity: .8; text-shadow: 0 1px 2px rgba(0, 0, 0, .4); }
+.lauf-angriffe .lauf-konter:not(.bereit):not(.aktiv) span { filter: grayscale(1); }
+.lauf-angriffe .lauf-konter.bereit, .lauf-angriffe .lauf-konter.aktiv { background: #e8b830; color: #24332f; cursor: pointer; }
+.lauf-angriffe .lauf-konter.bereit { animation: angriff-neu .5s ease-out; }
+.lauf-angriffe .lauf-konter.bereit span, .lauf-angriffe .lauf-konter.bereit small, .lauf-angriffe .lauf-konter.aktiv span, .lauf-angriffe .lauf-konter.aktiv small { opacity: 1; text-shadow: none; }
+.lauf-angriffe .lauf-konter.aktiv { box-shadow: 0 0 0 4px rgba(255, 213, 74, .6), 0 4px 12px rgba(0, 0, 0, .3); animation: konter-glimmen 1.2s ease-in-out infinite alternate; }
+.lauf-angriffe .lauf-konter i { color: #034a3e; }
+.lauf-angriffe .lauf-konter:not(.bereit):not(.aktiv) i { display: none; }
+@keyframes konter-glimmen { to { box-shadow: 0 0 0 7px rgba(255, 213, 74, .25), 0 4px 12px rgba(0, 0, 0, .3); } }
 .lauf-angriffe i { position: absolute; top: -.35rem; right: -.45rem; min-width: 1.35rem; padding: .1rem .25rem; border-radius: 999px; background: #fff; color: #c62828;
   font-style: normal; font-size: .72rem; font-weight: 900; line-height: 1.1; box-shadow: 0 2px 6px rgba(0, 0, 0, .25); }
 .lauf-angriffe button[data-typ="konter"] i { color: #034a3e; }

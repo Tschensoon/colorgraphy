@@ -120,7 +120,7 @@ if (rahmen) {
   // Wettrennen: beide Geräte bauen dieselbe Strecke. Alles, was das Spiel bestimmt (Länge, Abbiegen, Hindernisse, Sterne, Booster),
   // würfelt deshalb mit RZ – sonst der normale Zufall, im Rennen eine Zahlenfolge aus der gemeinsamen Startzahl, je Abschnitt neu angesetzt.
   // Die Deko am Wegrand würfelt weiter frei (sie hängt vom Gerät ab und zählt nicht fürs Rennen).
-  const RN = { an: false, seed: 0, g: null, aus: false, m: 0, urteil: "", zuschauen: false, ab: null, frei: 0, angriffe: [], konter: false };
+  const RN = { an: false, seed: 0, g: null, aus: false, m: 0, urteil: "", zuschauen: false, ab: null, frei: 0, angriffe: [], konter: false, konterAb: 0 };
   let RZ = Math.random;
   const zufallsFolge = (a) => () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
   const zufallS = (a, b) => a + RZ() * (b - a), wahlS = (l) => l[Math.floor(RZ() * l.length)];
@@ -441,6 +441,7 @@ if (rahmen) {
     if ((e.code === "KeyP" || e.code === "Escape") && (zustand === "laeuft" || zustand === "pause")) { e.preventDefault(); pauseUm(); return; }
     if (DU.an && (e.code === "KeyA" || e.code === "KeyB")) { e.preventDefault(); if (!e.repeat) duellTaste(e.code === "KeyA" ? "A" : "B"); return; }
     if (BU.an && zustand === "laeuft" && (e.code === "Enter" || e.code === "NumpadEnter")) { e.preventDefault(); bueroTaste("hoch"); return; }
+    if (e.code === "KeyQ" && RN.an && zustand === "laeuft") { e.preventDefault(); if (!e.repeat) konterEinsetzen(); return; }   // Wettrennen: Konter
     if (e.code === "KeyE" && RN.an && zustand === "laeuft") { e.preventDefault(); if (!e.repeat) angriffEinsetzen(0); return; }   // Wettrennen: ersten Angriffs-Booster einsetzen
     const art = TASTEN[e.code];
     if (!art || zustand !== "laeuft") return;
@@ -901,70 +902,91 @@ if (rahmen) {
   revancheKnopf.addEventListener("click", () => { if (rennModul) rennModul.revanche(); });
   // Attacken (Angriffs-Booster): alle ANGRIFF_ALLE Punkte einer Runde wird eine frei (höchstens drei auf Vorrat).
   // Sie heißen bewusst nicht „Booster“, denn Booster helfen im Spiel sonst einem selbst; Knopf und Meldung nennen den Gegner.
-  // Einsetzen per Knopf links unten oder mit Taste E; Bremse, Halbe Punkte und Glatteis treffen den Gegner,
-  // der Konter wartet auf die nächste Attacke des Gegners: Sie prallt ab, trifft ihn selbst, und es gibt 500 Punkte obendrauf.
-  // Zurückgeschickte Attacken („zurueck-…“) lassen sich nicht noch einmal kontern, nur der Schild hält sie auf.
-  const ANGRIFF_ALLE = 5000;
+  // Einsetzen per Knopf links unten oder mit Taste E; Bremse, Halbe Punkte und Glatteis treffen den Gegner.
+  // Der Konter-Knopf steht immer unten in der Spalte: grau, füllt sich mit den Punkten und ist nach KONTER_ALLE Punkten farbig und nutzbar
+  // (Taste Q). Eingesetzt wartet er auf die nächste Attacke des Gegners: Sie prallt ab, trifft ihn selbst, und es gibt 500 Punkte obendrauf.
+  // Danach lädt er von vorn. Zurückgeschickte Attacken („zurueck-…“) lassen sich nicht noch einmal kontern, nur der Schild hält sie auf.
+  const ANGRIFF_ALLE = 5000, KONTER_ALLE = 1000;
   const ANGRIFFE = {
     langsam: { bild: "🐌", name: "Bremse", ich: (g) => `${g} läuft 3 Sekunden nur halb so schnell`, er: (g) => `${g} bremst dich: 3 Sekunden halbes Tempo` },
     halb: { bild: "½", name: "½ Punkte", ich: (g) => `${g} bekommt 5 Sekunden nur halbe Punkte`, er: (g) => `${g} halbiert 5 Sekunden lang deine Punkte` },
     eis: { bild: "❄️", name: "Glatteis", ich: (g) => `${g} rutscht 5 Sekunden übers Glatteis`, er: (g) => `${g} lässt dich 5 Sekunden rutschen` },
-    konter: { bild: "🪃", name: "Konter", marke: "🛡" },
   };
-  const angriffLeiste = document.createElement("div");
+  const angriffLeiste = document.createElement("div"), konterKnopf = document.createElement("button");
   angriffLeiste.className = "lauf-angriffe"; angriffLeiste.hidden = true;
+  konterKnopf.type = "button"; konterKnopf.className = "lauf-konter"; konterKnopf.innerHTML = "<span>🪃</span><small>Konter</small><i>🛡</i>";
+  konterKnopf.addEventListener("click", () => konterEinsetzen());
   for (const art of ["touchstart", "pointerdown", "mousedown"]) angriffLeiste.addEventListener(art, (e) => e.stopPropagation());   // zählt nicht als Wischen
   hud.after(angriffLeiste);
+  const angriffeSichtbar = () => RN.an && zustand === "laeuft" && !RN.aus;
   function angriffeZeigen() {
     const knoepfe = RN.angriffe.map((typ, i) => {
       const a = ANGRIFFE[typ], k = document.createElement("button");
-      k.type = "button"; k.dataset.typ = typ; k.innerHTML = `<span>${a.bild}</span><small>${a.name}</small><i>${a.marke || "🎯"}</i>`;   // 🎯: trifft den Gegner
-      const gegen = RN.g ? RN.g.name : "deinen Gegner";
-      const text = typ === "konter" ? `Konter: die nächste Attacke von ${gegen} prallt zurück, dazu 500 Punkte` : `Attacke ${a.name} gegen ${gegen}`;
+      k.type = "button"; k.dataset.typ = typ; k.innerHTML = `<span>${a.bild}</span><small>${a.name}</small><i>🎯</i>`;   // 🎯: trifft den Gegner
+      const text = `Attacke ${a.name} gegen ${RN.g ? RN.g.name : "deinen Gegner"}`;
       k.setAttribute("aria-label", text); if (!handy) k.title = text + (i === 0 ? " (Taste E)" : "");
       k.addEventListener("click", () => angriffEinsetzen(i));
       return k;
     });
-    angriffLeiste.replaceChildren(...knoepfe);
-    angriffLeiste.hidden = !knoepfe.length || zustand !== "laeuft" || RN.aus;
+    angriffLeiste.replaceChildren(...knoepfe, konterKnopf);
+    angriffLeiste.hidden = !angriffeSichtbar();
+    konterStand = ""; konterZeigen();
+  }
+  // Konter-Knopf: Ladestand als Füllung, farbig sobald nutzbar, leuchtend solange er wartet
+  let konterStand = "";
+  function konterZeigen() {
+    const anteil = Math.max(0, Math.min(1, (punkte - RN.konterAb) / KONTER_ALLE));
+    const stand = RN.konter ? "aktiv" : anteil >= 1 ? "bereit" : "laden" + Math.floor(anteil * 50);
+    if (stand === konterStand) return;
+    const vorher = konterStand; konterStand = stand;
+    konterKnopf.classList.toggle("aktiv", RN.konter); konterKnopf.classList.toggle("bereit", stand === "bereit");
+    konterKnopf.style.setProperty("--l", RN.konter || anteil >= 1 ? 1 : anteil);
+    konterKnopf.disabled = stand !== "bereit";
+    const g = RN.g ? RN.g.name : "dein Gegner";
+    const text = RN.konter ? `Konter wartet: die nächste Attacke von ${g} prallt zurück` : stand === "bereit" ? `Konter einsetzen: die nächste Attacke von ${g} prallt zurück, dazu 500 Punkte` : `Konter lädt: ${Math.floor(anteil * 100)} %`;
+    konterKnopf.setAttribute("aria-label", text); if (!handy) konterKnopf.title = text + (stand === "bereit" ? " (Taste Q)" : "");
+    if (stand === "bereit" && vorher.startsWith("laden")) T.stern(1);   // nur ein leiser Ton, keine Meldung: stört beim Laufen nicht
   }
   function angriffPruefen() {
-    if (!RN.an || RN.aus || punkte < RN.frei) return;
+    if (!RN.an || RN.aus) return;
+    konterZeigen();
+    if (punkte < RN.frei) return;
     RN.frei += ANGRIFF_ALLE;
     if (RN.angriffe.length >= 3) return;
     const typ = wahl(Object.keys(ANGRIFFE)), a = ANGRIFFE[typ];
     RN.angriffe.push(typ); angriffeZeigen(); T.booster();
-    const g = RN.g ? RN.g.name : "deinen Gegner", wie = handy ? "links unten antippen" : "Taste E";
-    meldung(typ === "konter" ? "🪃 Konter frei!" : "🎯 Attacke frei!", typ === "konter" ? `Schickt die nächste Attacke von ${g} zurück · ${wie}` : `${a.bild} ${a.name} gegen ${g} · ${wie}`);
+    meldung("🎯 Attacke frei!", `${a.bild} ${a.name} gegen ${RN.g ? RN.g.name : "deinen Gegner"} · ${handy ? "links unten antippen" : "Taste E"}`);
+  }
+  function konterEinsetzen() {
+    const g = RN.g;
+    if (!RN.an || !g || zustand !== "laeuft" || RN.aus || RN.konter || punkte - RN.konterAb < KONTER_ALLE) return;
+    RN.konter = true; T.booster(); konterZeigen();
+    meldung("🪃 Konter bereit!", `Die nächste Attacke von ${g.name} fliegt zurück`);
   }
   function angriffEinsetzen(i) {
     const typ = RN.angriffe[i], g = RN.g;
     if (!typ || !RN.an || !g || zustand !== "laeuft" || RN.aus || !rennModul) return;
     const a = ANGRIFFE[typ];
-    if (typ === "konter") {
-      if (RN.konter) { meldung("Konter steht schon", "Heb dir diesen für später auf"); return; }
-      RN.konter = true; meldung("🪃 Konter bereit!", `Die nächste Attacke von ${g.name} fliegt zurück`);
-    } else {
-      if (g.z !== "laeuft") { meldung(`${g.name} ist schon raus`, "Heb dir die Attacke auf"); return; }
-      rennModul.streich(typ); meldung(`🎯 ${a.name} geschickt!`, a.ich(g.name));
-    }
+    if (g.z !== "laeuft") { meldung(`${g.name} ist schon raus`, "Heb dir die Attacke auf"); return; }
+    rennModul.streich(typ); meldung(`🎯 ${a.name} geschickt!`, a.ich(g.name));
     RN.angriffe.splice(i, 1); T.booster(); angriffeZeigen();
   }
+  const WIRKUNG = { frost: "Glatteis", eis: "5 Sekunden Glatteis", langsam: "3 Sekunden halbes Tempo", halb: "5 Sekunden halbe Punkte" };
   function rennenStreich(art) {                            // der Gegner hat eine Attacke gegen mich eingesetzt (oder meinen Konter abbekommen)
     if (!RN.an || !RN.g || zustand !== "laeuft" || RN.aus) return;
     const g = RN.g.name, zurueck = art.startsWith("zurueck-");
     if (zurueck) art = art.slice(8);
     if (art !== "frost" && !ANGRIFFE[art]) return;
     if (!zurueck && RN.konter) {                          // Konter: abwehren und zurückschicken
-      RN.konter = false; punkte += 500; rennModul.streich("zurueck-" + art); T.booster(); wackeln = Math.max(wackeln, .15);
-      meldung("🪃 Gekontert!", `${art === "frost" ? "Das Glatteis" : "Die " + ANGRIFFE[art].name} fliegt zurück zu ${g} · +500 Punkte`);
+      RN.konter = false; punkte += 500; RN.konterAb = punkte; rennModul.streich("zurueck-" + art); T.booster(); wackeln = Math.max(wackeln, .15);   // der Konter lädt von vorn
+      konterZeigen(); meldung("🪃 Gekontert!", `Zurück zu ${g}: ${WIRKUNG[art]} · +500 Punkte`);
       return;
     }
     if (B.schild > 0) { meldung("Schild hält!", `Die Attacke von ${g} prallt ab`); return; }
     if (art === "frost" || art === "eis") { S.eis = art === "eis" ? 5 : 4; wackeln = Math.max(wackeln, .3); T.spur(); }
     else if (art === "langsam") { B.langsam = 3; wackeln = Math.max(wackeln, .25); T.ducken(); }
     else if (art === "halb") { B.halb = 5; T.ducken(); }
-    if (zurueck) meldung(`🪃 ${g} kontert!`, `Deine Attacke fliegt zurück: ${{ frost: "Glatteis", eis: "5 Sekunden Glatteis", langsam: "3 Sekunden halbes Tempo", halb: "5 Sekunden halbe Punkte" }[art]} für dich`);
+    if (zurueck) meldung(`🪃 ${g} kontert!`, `Deine Attacke fliegt zurück: ${WIRKUNG[art]} für dich`);
     else meldung(art === "frost" ? "Glatteis!" : `${ANGRIFFE[art].bild} Attacke von ${g}!`, art === "frost" ? `${g} lässt dich rutschen: Lenken geht kurz träge` : ANGRIFFE[art].er(g));
   }
   // Zuschauen: wer raus ist, sieht dem Gegner zu, bis das Rennen entschieden ist. Die Kamera folgt dem Geist, die Strecke baut sich vor ihm weiter auf.
@@ -1082,7 +1104,7 @@ if (rahmen) {
   }
   async function rennenLos(seed, gegnerName) {
     zuschauenAus();
-    Object.assign(RN, { an: true, seed, g: { name: gegnerName, m: 0, p: 0, z: "laeuft" }, aus: false, m: 0, urteil: "", zuschauen: false, frei: ANGRIFF_ALLE, angriffe: [], konter: false });
+    Object.assign(RN, { an: true, seed, g: { name: gegnerName, m: 0, p: 0, z: "laeuft" }, aus: false, m: 0, urteil: "", zuschauen: false, frei: ANGRIFF_ALLE, angriffe: [], konter: false, konterAb: 0 });
     angriffeZeigen();
     revancheKnopf.hidden = true; verlassenKnopf.hidden = true; losKnopf.hidden = false; RN.gWeg = false;
     if (handy && !vollbild) vollbildAn();
@@ -1120,7 +1142,7 @@ if (rahmen) {
     if (!RN.an || !g) { rennLeiste.hidden = true; return; }
     const m = RN.aus ? RN.m : Math.round(strecke || 0), d = m - g.m;
     rennLeiste.hidden = zustand === "aus" && !RN.zuschauen;
-    angriffLeiste.hidden = !RN.angriffe.length || zustand !== "laeuft" || RN.aus;
+    angriffLeiste.hidden = !angriffeSichtbar();
     const vorbei = RN.aus && zustand === "aus";
     losKnopf.hidden = vorbei; verlassenKnopf.hidden = !vorbei;
     revancheKnopf.hidden = !(RN.aus && RN.urteil); revancheKnopf.disabled = !!RN.gWeg;
