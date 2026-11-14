@@ -454,16 +454,23 @@ li.gold .bl-rang { opacity: 1; font-size: 1.25em; line-height: 1; }
 .lauf-overlay .lauf-knoepfe .lauf-revanche { grid-column: 1 / -1; background: #e8b830; color: #24332f; }
 .lr-raum-stand { font-weight: 800; color: #034a3e; }
 .lr-raum-stand[hidden] { display: none; }
-.lauf-emojis { position: absolute; left: 10px; bottom: 12px; z-index: 2; display: flex; flex-direction: column; gap: .35rem; }
-.lauf-emojis[hidden] { display: none; }
-.lauf-rahmen.vollbild .lauf-emojis { left: calc(env(safe-area-inset-left) + 10px); bottom: calc(env(safe-area-inset-bottom) + 12px); }
-.lauf-emojis button { width: 2.5rem; height: 2.5rem; padding: 0; border: 0; border-radius: 50%; background: rgba(255, 255, 255, .8); font-size: 1.25rem; line-height: 1; cursor: pointer; }
-.lauf-emojis button.drueck { animation: emoji-drueck .3s ease-out; }
-@keyframes emoji-drueck { 50% { transform: scale(1.35); } }
-.lauf-emoji-bild { position: absolute; top: 92px; left: 50%; z-index: 2; transform: translateX(-50%); padding: .3rem .9rem; border-radius: 999px; background: rgba(255, 255, 255, .92); color: #24332f;
-  font-size: 1.5rem; font-weight: 800; white-space: nowrap; pointer-events: none; opacity: 0; }
-.lauf-emoji-bild.an { animation: emoji-bild 2.2s ease-out; }
-@keyframes emoji-bild { 0% { opacity: 0; transform: translateX(-50%) scale(.6); } 12% { opacity: 1; transform: translateX(-50%) scale(1.15); } 22% { transform: translateX(-50%) scale(1); } 80% { opacity: 1; } 100% { opacity: 0; transform: translateX(-50%) translateY(-14px); } }
+/* Angriffs-Booster im Wettrennen: Spalte links unten */
+.lauf-angriffe { position: absolute; left: 10px; bottom: 12px; z-index: 2; display: flex; flex-direction: column; gap: .45rem; }
+.lauf-angriffe[hidden] { display: none; }
+.lauf-rahmen.vollbild .lauf-angriffe { left: calc(env(safe-area-inset-left) + 10px); bottom: calc(env(safe-area-inset-bottom) + 12px); }
+.lauf-angriffe button { width: 3.6rem; height: 3.6rem; padding: 0; border-radius: 50%; border: 3px solid #fff; background: #034a3e; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  cursor: pointer; box-shadow: 0 4px 12px rgba(0, 0, 0, .3); touch-action: manipulation; -webkit-tap-highlight-color: transparent; animation: angriff-neu .5s ease-out; }
+.lauf-angriffe button[data-typ="langsam"] { background: #8a5a2b; } .lauf-angriffe button[data-typ="halb"] { background: #8e44ad; }
+.lauf-angriffe button[data-typ="eis"] { background: #1e88e5; } .lauf-angriffe button[data-typ="konter"] { background: #e8b830; color: #24332f; }
+.lauf-angriffe span { font-size: 1.45rem; line-height: 1; font-weight: 900; }
+.lauf-angriffe small { font-size: max(.55rem, 9px); font-weight: 800; line-height: 1.1; margin-top: .1rem; }
+.lauf-angriffe button:active { transform: scale(.92); }
+.lauf-angriffe button { position: relative; border-color: #ff5a5a; }   /* roter Rand: Attacke gegen den Gegner */
+.lauf-angriffe button[data-typ="konter"] { border-color: #fff; }
+.lauf-angriffe i { position: absolute; top: -.35rem; right: -.45rem; min-width: 1.35rem; padding: .1rem .25rem; border-radius: 999px; background: #fff; color: #c62828;
+  font-style: normal; font-size: .72rem; font-weight: 900; line-height: 1.1; box-shadow: 0 2px 6px rgba(0, 0, 0, .25); }
+.lauf-angriffe button[data-typ="konter"] i { color: #034a3e; }
+@keyframes angriff-neu { 0% { transform: scale(.3); } 60% { transform: scale(1.2); } 100% { transform: scale(1); } }
 .lauf-zuschauen { position: absolute; left: 50%; bottom: 14px; z-index: 2; transform: translateX(-50%); display: flex; gap: .6rem; align-items: center; max-width: calc(100% - 110px);
   padding: .4rem .5rem .4rem .9rem; border-radius: 999px; background: rgba(255, 255, 255, .92); color: #24332f; font-size: .9rem; font-weight: 700; }
 .lauf-zuschauen[hidden] { display: none; }

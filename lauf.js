@@ -101,7 +101,7 @@ if (rahmen) {
   let startNr = 0;                                 // Nummer des ersten Abschnitts (nach der Landung geht es weiter)
   let abschnitte = [], hindernisse = [], sterne = [], booster = [];
   // Booster-Zeiten in Sekunden; schubs = laufende Szene, in der Fröbelinchen Anja wegschubst
-  const B = { schild: 0, ruhe: 0, magnet: 0, doppelt: 0, schubs: null };
+  const B = { schild: 0, ruhe: 0, magnet: 0, doppelt: 0, schubs: null, langsam: 0, halb: 0 };   // langsam/halb: Angriffe des Gegners im Wettrennen
   let blase, sternchen = [];
   let zustand = "start", tempo, punkte, sternZahl, strecke, wackeln = 0, schlussSzene = null;
   const S = { idx: 0, s: 0, spur: 0, x: 0, y: 0, vy: 0, duck: 0, abbiegen: 0, stolper: 0, lauf: 0, sprungPuffer: 0, eis: 0, lande: 0 };
@@ -120,7 +120,7 @@ if (rahmen) {
   // Wettrennen: beide Geräte bauen dieselbe Strecke. Alles, was das Spiel bestimmt (Länge, Abbiegen, Hindernisse, Sterne, Booster),
   // würfelt deshalb mit RZ – sonst der normale Zufall, im Rennen eine Zahlenfolge aus der gemeinsamen Startzahl, je Abschnitt neu angesetzt.
   // Die Deko am Wegrand würfelt weiter frei (sie hängt vom Gerät ab und zählt nicht fürs Rennen).
-  const RN = { an: false, seed: 0, g: null, aus: false, m: 0, urteil: "", zuschauen: false, ab: null };
+  const RN = { an: false, seed: 0, g: null, aus: false, m: 0, urteil: "", zuschauen: false, ab: null, frei: 0, angriffe: [], konter: false };
   let RZ = Math.random;
   const zufallsFolge = (a) => () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
   const zufallS = (a, b) => a + RZ() * (b - a), wahlS = (l) => l[Math.floor(RZ() * l.length)];
@@ -398,7 +398,7 @@ if (rahmen) {
     FL.ab = PHASEN_ABSTAND[0]; FL.rueck = 0; FL.phaseNr = 0;
     tagUhr = 0; W.tageszeit(0, 0); Object.assign(GE, { jubel: 0, sternchen: 0, blick: 0, blickPause: 3 });
     aktZone = 0; W.zoneWechsel(0, true); stimmungSetzen(true);
-    Object.assign(B, { schild: 0, ruhe: 0, magnet: 0, doppelt: 0, schubs: null });
+    Object.assign(B, { schild: 0, ruhe: 0, magnet: 0, doppelt: 0, schubs: null, langsam: 0, halb: 0 });
     FL.naechsteArt = "folie"; FL.schlittenBei = 0; FL.sonder = null;
     Object.assign(R, { boote: 0, fluege: 0, anjaPhase: false, tempoF: 1, booster: 0, schubs: 0, welt: 0, zeit: 0, laufZeit: 0, flug: 0, ringe: 0, tore: 0, schlitten: 0, frauBei: 20, kombo: 0, fahne: false, jubel: false });
     RE.genutzt = false; RE.schutz = 0; RE.szene = null; weiterFeld.hidden = true;
@@ -441,6 +441,7 @@ if (rahmen) {
     if ((e.code === "KeyP" || e.code === "Escape") && (zustand === "laeuft" || zustand === "pause")) { e.preventDefault(); pauseUm(); return; }
     if (DU.an && (e.code === "KeyA" || e.code === "KeyB")) { e.preventDefault(); if (!e.repeat) duellTaste(e.code === "KeyA" ? "A" : "B"); return; }
     if (BU.an && zustand === "laeuft" && (e.code === "Enter" || e.code === "NumpadEnter")) { e.preventDefault(); bueroTaste("hoch"); return; }
+    if (e.code === "KeyE" && RN.an && zustand === "laeuft") { e.preventDefault(); if (!e.repeat) angriffEinsetzen(0); return; }   // Wettrennen: ersten Angriffs-Booster einsetzen
     const art = TASTEN[e.code];
     if (!art || zustand !== "laeuft") return;
     e.preventDefault(); gedrueckt.add(art); flugTasten();
@@ -886,7 +887,7 @@ if (rahmen) {
   // ---------- Wettrennen: Lobby mit Code, beide laufen dieselbe Strecke, wer weiter kommt, gewinnt ----------
   const rennFeld = $(".lauf-rennen"), rennKnopf = $(".lauf-rennen-knopf"), rennLeiste = $(".lauf-rennen-leiste");
   let rennModul = null;
-  function rennenAus() { zuschauenAus(); RN.an = false; RN.g = null; RN.aus = false; RN.urteil = ""; RN.gWeg = false; rennLeiste.hidden = true; revancheKnopf.hidden = true; verlassenKnopf.hidden = true; losKnopf.hidden = false; emojiLeiste.hidden = true; geistWeg(); if (rennModul) rennModul.ende(); }
+  function rennenAus() { zuschauenAus(); RN.an = false; RN.g = null; RN.aus = false; RN.urteil = ""; RN.gWeg = false; rennLeiste.hidden = true; revancheKnopf.hidden = true; verlassenKnopf.hidden = true; losKnopf.hidden = false; RN.angriffe = []; RN.konter = false; angriffLeiste.hidden = true; geistWeg(); if (rennModul) rennModul.ende(); }
   // Nach einem Wettrennen gibt es statt „Nochmal“ nur die Revanche und einen eigenen Knopf zum Verlassen
   const verlassenKnopf = document.createElement("button");
   verlassenKnopf.type = "button"; verlassenKnopf.className = "pill ghost lauf-verlassen"; verlassenKnopf.textContent = "Wettrennen verlassen"; verlassenKnopf.hidden = true;
@@ -898,25 +899,73 @@ if (rahmen) {
   revancheKnopf.type = "button"; revancheKnopf.className = "pill lauf-revanche"; revancheKnopf.hidden = true;
   losKnopf.before(revancheKnopf);
   revancheKnopf.addEventListener("click", () => { if (rennModul) rennModul.revanche(); });
-  // Emojis: vier Knöpfe am Rand, das Emoji erscheint beim Gegner groß im Bild
-  const EMOJIS = ["😀", "😱", "👏", "😜"];
-  const emojiLeiste = document.createElement("div"), emojiBild = document.createElement("div");
-  emojiLeiste.className = "lauf-emojis"; emojiLeiste.hidden = true; emojiBild.className = "lauf-emoji-bild"; emojiBild.setAttribute("aria-live", "polite");
-  EMOJIS.forEach((e, i) => {
-    const k = document.createElement("button"); k.type = "button"; k.textContent = e; k.setAttribute("aria-label", "Emoji " + e + " schicken");
-    k.addEventListener("click", () => { if (rennModul) rennModul.emoji(i); k.classList.remove("drueck"); void k.offsetWidth; k.classList.add("drueck"); });
-    emojiLeiste.append(k);
-  });
-  for (const art of ["touchstart", "pointerdown", "mousedown"]) emojiLeiste.addEventListener(art, (e) => e.stopPropagation());   // zählt nicht als Wischen
-  hud.after(emojiLeiste, emojiBild);
-  function rennenEmoji(i) {
-    if (!RN.an || !RN.g || !EMOJIS[i]) return;
-    emojiBild.textContent = `${RN.g.name}: ${EMOJIS[i]}`; emojiBild.classList.remove("an"); void emojiBild.offsetWidth; emojiBild.classList.add("an");
+  // Attacken (Angriffs-Booster): alle ANGRIFF_ALLE Punkte einer Runde wird eine frei (höchstens drei auf Vorrat).
+  // Sie heißen bewusst nicht „Booster“, denn Booster helfen im Spiel sonst einem selbst; Knopf und Meldung nennen den Gegner.
+  // Einsetzen per Knopf links unten oder mit Taste E; Bremse, Halbe Punkte und Glatteis treffen den Gegner,
+  // der Konter wartet auf die nächste Attacke des Gegners: Sie prallt ab, trifft ihn selbst, und es gibt 500 Punkte obendrauf.
+  // Zurückgeschickte Attacken („zurueck-…“) lassen sich nicht noch einmal kontern, nur der Schild hält sie auf.
+  const ANGRIFF_ALLE = 5000;
+  const ANGRIFFE = {
+    langsam: { bild: "🐌", name: "Bremse", ich: (g) => `${g} läuft 3 Sekunden nur halb so schnell`, er: (g) => `${g} bremst dich: 3 Sekunden halbes Tempo` },
+    halb: { bild: "½", name: "½ Punkte", ich: (g) => `${g} bekommt 5 Sekunden nur halbe Punkte`, er: (g) => `${g} halbiert 5 Sekunden lang deine Punkte` },
+    eis: { bild: "❄️", name: "Glatteis", ich: (g) => `${g} rutscht 5 Sekunden übers Glatteis`, er: (g) => `${g} lässt dich 5 Sekunden rutschen` },
+    konter: { bild: "🪃", name: "Konter", marke: "🛡" },
+  };
+  const angriffLeiste = document.createElement("div");
+  angriffLeiste.className = "lauf-angriffe"; angriffLeiste.hidden = true;
+  for (const art of ["touchstart", "pointerdown", "mousedown"]) angriffLeiste.addEventListener(art, (e) => e.stopPropagation());   // zählt nicht als Wischen
+  hud.after(angriffLeiste);
+  function angriffeZeigen() {
+    const knoepfe = RN.angriffe.map((typ, i) => {
+      const a = ANGRIFFE[typ], k = document.createElement("button");
+      k.type = "button"; k.dataset.typ = typ; k.innerHTML = `<span>${a.bild}</span><small>${a.name}</small><i>${a.marke || "🎯"}</i>`;   // 🎯: trifft den Gegner
+      const gegen = RN.g ? RN.g.name : "deinen Gegner";
+      const text = typ === "konter" ? `Konter: die nächste Attacke von ${gegen} prallt zurück, dazu 500 Punkte` : `Attacke ${a.name} gegen ${gegen}`;
+      k.setAttribute("aria-label", text); if (!handy) k.title = text + (i === 0 ? " (Taste E)" : "");
+      k.addEventListener("click", () => angriffEinsetzen(i));
+      return k;
+    });
+    angriffLeiste.replaceChildren(...knoepfe);
+    angriffLeiste.hidden = !knoepfe.length || zustand !== "laeuft" || RN.aus;
   }
-  function rennenStreich(art) {                            // der Gegner hat einen Glatteis-Booster eingesammelt
-    if (!RN.an || !RN.g || zustand !== "laeuft" || art !== "frost") return;
-    if (B.schild > 0) { meldung("Schild hält!", `Das Glatteis von ${RN.g.name} prallt ab`); return; }
-    S.eis = 4; wackeln = Math.max(wackeln, .3); T.spur(); meldung("Glatteis!", `${RN.g.name} lässt dich rutschen: Lenken geht kurz träge`);
+  function angriffPruefen() {
+    if (!RN.an || RN.aus || punkte < RN.frei) return;
+    RN.frei += ANGRIFF_ALLE;
+    if (RN.angriffe.length >= 3) return;
+    const typ = wahl(Object.keys(ANGRIFFE)), a = ANGRIFFE[typ];
+    RN.angriffe.push(typ); angriffeZeigen(); T.booster();
+    const g = RN.g ? RN.g.name : "deinen Gegner", wie = handy ? "links unten antippen" : "Taste E";
+    meldung(typ === "konter" ? "🪃 Konter frei!" : "🎯 Attacke frei!", typ === "konter" ? `Schickt die nächste Attacke von ${g} zurück · ${wie}` : `${a.bild} ${a.name} gegen ${g} · ${wie}`);
+  }
+  function angriffEinsetzen(i) {
+    const typ = RN.angriffe[i], g = RN.g;
+    if (!typ || !RN.an || !g || zustand !== "laeuft" || RN.aus || !rennModul) return;
+    const a = ANGRIFFE[typ];
+    if (typ === "konter") {
+      if (RN.konter) { meldung("Konter steht schon", "Heb dir diesen für später auf"); return; }
+      RN.konter = true; meldung("🪃 Konter bereit!", `Die nächste Attacke von ${g.name} fliegt zurück`);
+    } else {
+      if (g.z !== "laeuft") { meldung(`${g.name} ist schon raus`, "Heb dir die Attacke auf"); return; }
+      rennModul.streich(typ); meldung(`🎯 ${a.name} geschickt!`, a.ich(g.name));
+    }
+    RN.angriffe.splice(i, 1); T.booster(); angriffeZeigen();
+  }
+  function rennenStreich(art) {                            // der Gegner hat eine Attacke gegen mich eingesetzt (oder meinen Konter abbekommen)
+    if (!RN.an || !RN.g || zustand !== "laeuft" || RN.aus) return;
+    const g = RN.g.name, zurueck = art.startsWith("zurueck-");
+    if (zurueck) art = art.slice(8);
+    if (art !== "frost" && !ANGRIFFE[art]) return;
+    if (!zurueck && RN.konter) {                          // Konter: abwehren und zurückschicken
+      RN.konter = false; punkte += 500; rennModul.streich("zurueck-" + art); T.booster(); wackeln = Math.max(wackeln, .15);
+      meldung("🪃 Gekontert!", `${art === "frost" ? "Das Glatteis" : "Die " + ANGRIFFE[art].name} fliegt zurück zu ${g} · +500 Punkte`);
+      return;
+    }
+    if (B.schild > 0) { meldung("Schild hält!", `Die Attacke von ${g} prallt ab`); return; }
+    if (art === "frost" || art === "eis") { S.eis = art === "eis" ? 5 : 4; wackeln = Math.max(wackeln, .3); T.spur(); }
+    else if (art === "langsam") { B.langsam = 3; wackeln = Math.max(wackeln, .25); T.ducken(); }
+    else if (art === "halb") { B.halb = 5; T.ducken(); }
+    if (zurueck) meldung(`🪃 ${g} kontert!`, `Deine Attacke fliegt zurück: ${{ frost: "Glatteis", eis: "5 Sekunden Glatteis", langsam: "3 Sekunden halbes Tempo", halb: "5 Sekunden halbe Punkte" }[art]} für dich`);
+    else meldung(art === "frost" ? "Glatteis!" : `${ANGRIFFE[art].bild} Attacke von ${g}!`, art === "frost" ? `${g} lässt dich rutschen: Lenken geht kurz träge` : ANGRIFFE[art].er(g));
   }
   // Zuschauen: wer raus ist, sieht dem Gegner zu, bis das Rennen entschieden ist. Die Kamera folgt dem Geist, die Strecke baut sich vor ihm weiter auf.
   const zuschauFeld = document.createElement("div");
@@ -1033,7 +1082,8 @@ if (rahmen) {
   }
   async function rennenLos(seed, gegnerName) {
     zuschauenAus();
-    Object.assign(RN, { an: true, seed, g: { name: gegnerName, m: 0, p: 0, z: "laeuft" }, aus: false, m: 0, urteil: "", zuschauen: false });
+    Object.assign(RN, { an: true, seed, g: { name: gegnerName, m: 0, p: 0, z: "laeuft" }, aus: false, m: 0, urteil: "", zuschauen: false, frei: ANGRIFF_ALLE, angriffe: [], konter: false });
+    angriffeZeigen();
     revancheKnopf.hidden = true; verlassenKnopf.hidden = true; losKnopf.hidden = false; RN.gWeg = false;
     if (handy && !vollbild) vollbildAn();
     await laden();
@@ -1070,7 +1120,7 @@ if (rahmen) {
     if (!RN.an || !g) { rennLeiste.hidden = true; return; }
     const m = RN.aus ? RN.m : Math.round(strecke || 0), d = m - g.m;
     rennLeiste.hidden = zustand === "aus" && !RN.zuschauen;
-    emojiLeiste.hidden = !(zustand === "laeuft" || RN.zuschauen);
+    angriffLeiste.hidden = !RN.angriffe.length || zustand !== "laeuft" || RN.aus;
     const vorbei = RN.aus && zustand === "aus";
     losKnopf.hidden = vorbei; verlassenKnopf.hidden = !vorbei;
     revancheKnopf.hidden = !(RN.aus && RN.urteil); revancheKnopf.disabled = !!RN.gWeg;
@@ -1087,7 +1137,7 @@ if (rahmen) {
     }
   }
   import("./lauf-rennen.js?v=5").then(m => {
-    rennModul = m.rennenStarten({ db: DB, feld: rennFeld, knopf: rennKnopf, verboten: (t) => SPERRE.some(w => t.toLowerCase().replace(/[ ._-]/g, "").includes(w)), vorbereiten: () => { if (kannWebGL) laden(); }, los: rennenLos, stand: rennenStand, gegner: rennenGegner, emoji: rennenEmoji, streich: rennenStreich, weg: rennenGegnerWeg,
+    rennModul = m.rennenStarten({ db: DB, feld: rennFeld, knopf: rennKnopf, verboten: (t) => SPERRE.some(w => t.toLowerCase().replace(/[ ._-]/g, "").includes(w)), vorbereiten: () => { if (kannWebGL) laden(); }, los: rennenLos, stand: rennenStand, gegner: rennenGegner, emoji: () => {}, streich: rennenStreich, weg: rennenGegnerWeg,
       nameFehler: (n) => n.length > 16 || !ERLAUBT.test(n) ? "Bitte nur Buchstaben, Zahlen, Leerzeichen, Punkt und Bindestrich." : SPERRE.some(w => n.toLowerCase().replace(/[ ._-]/g, "").includes(w)) ? "Bitte einen anderen Namen wählen." : "" });
     const code = new URLSearchParams(location.search).get("rennen");     // Einladungslink: Lobby gleich mit dem Code öffnen
     if (code) { if (handy) vollbildAn(); rennModul.oeffnen(code); }
@@ -1211,6 +1261,9 @@ if (rahmen) {
     if (B.doppelt > 0) t += ` · ×2 ${Math.ceil(B.doppelt)}`;
     if (B.schild > 0) t += ` · 🛡 ${Math.ceil(B.schild)}`;
     if (B.ruhe > 0) t += ` · Ruhe ${Math.ceil(B.ruhe)}`;
+    if (B.langsam > 0) t += ` · 🐌 ${Math.ceil(B.langsam)}`;
+    if (B.halb > 0) t += ` · ½ ${Math.ceil(B.halb)}`;
+    if (RN.konter) t += " · 🪃";
     if (hud.textContent !== t) hud.textContent = t;
   }
 
@@ -1253,11 +1306,12 @@ if (rahmen) {
     R.zeit += dt; R.laufZeit += dt;
     anjaPhasePruefen();
     tempoPruefen();
-    const v = tempo * tempoFaktor() * (S.stolper > 0 ? .6 : 1);
-    for (const k of ["schild", "ruhe", "magnet", "doppelt"]) B[k] = Math.max(0, B[k] - dt);
-    const faktor = B.doppelt > 0 ? 2 : 1;
+    const v = tempo * tempoFaktor() * (S.stolper > 0 ? .6 : 1) * (B.langsam > 0 ? .5 : 1);
+    for (const k of ["schild", "ruhe", "magnet", "doppelt", "langsam", "halb"]) B[k] = Math.max(0, B[k] - dt);
+    const faktor = (B.doppelt > 0 ? 2 : 1) * (B.halb > 0 ? .5 : 1);
     const unverwundbar = B.schild > 0 || !!B.schubs || FL.abflug > 0 || FL.rueck > 0;
     S.s += v * dt; strecke += v * dt; punkte += v * dt * faktor;
+    if (RN.an) angriffPruefen();
     S.stolper = Math.max(0, S.stolper - dt);
     // im Winterland geht es nach ein paar Sekunden auf den Schlitten (einmal pro Besuch, nicht kurz vor einer anderen Sonderphase)
     if (!FL.abflug && FL.schlittenBei && punkte >= FL.schlittenBei) {
