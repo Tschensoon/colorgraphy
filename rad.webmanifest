@@ -1,6 +1,6 @@
 {
  "name": "Rad-Cockpit",
- "short_name": "Rad",
+ "short_name": "Rad Cockpit",
  "start_url": "/rad.html",
  "scope": "/rad",
  "display": "standalone",
