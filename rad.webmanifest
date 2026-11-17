@@ -4,8 +4,8 @@
  "start_url": "/rad.html",
  "scope": "/rad",
  "display": "standalone",
- "background_color": "#000000",
- "theme_color": "#1c1c1e",
+ "background_color": "#0B0D10",
+ "theme_color": "#0B0D10",
  "icons": [
   {
    "src": "/rad-icon-192.png",
