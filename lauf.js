@@ -18,7 +18,10 @@ if (rahmen) {
   const DB = { url: "https://gnzasrjjmyrbufdiuatw.supabase.co", key: "sb_publishable_c3NCrNIU-JtHB-9LJEBGFw_vjYDPQ_c" };
   const handy = matchMedia("(pointer: coarse)").matches;
   // Spielerkonto: erst wenn jemand angemeldet ist und der Spielstand vom Server auf dem Gerät liegt, geht es weiter
-  const KONTO = (await import("./lauf-konto.js?v=1")).kontoStarten({ db: DB, rahmen });
+  // „Jetzt spielen“ am Handy muss schon vor der Anmeldung den Rahmen (mit dem Anmeldefenster) im Vollbild zeigen
+  let fruehOffen = false;
+  window.froebelRennen = { oeffnen() { if (handy) { fruehOffen = true; rahmen.classList.add("vollbild"); document.body.classList.add("spiel-offen"); } else rahmen.scrollIntoView({ behavior: "smooth", block: "center" }); } };
+  const KONTO = (await import("./lauf-konto.js?v=2")).kontoStarten({ db: DB, rahmen });
   await KONTO.bereit();
   // Weihnachtszeit (bis einschließlich 31.12.2026): leiser Schneefall über der Seite und ein Gruß im Startmenü
   const weihnachtszeit = (() => {
@@ -516,6 +519,7 @@ if (rahmen) {
   zu.addEventListener("click", vollbildAus);
   // Aufruf aus der Spielauswahl: am Handy Vollbild mit Anleitung, gestartet wird erst mit „Los geht’s“
   window.froebelRennen = { oeffnen() { if (handy) { vollbildAn(); if (kannWebGL) laden(); } else rahmen.scrollIntoView({ behavior: "smooth", block: "center" }); } };
+  if (fruehOffen && rahmen.classList.contains("vollbild")) { vollbild = true; if (kannWebGL) laden(); }
   // Das Vollbild geht auch verloren, wenn das Handy gesperrt wird oder man kurz die App wechselt: eine laufende Runde wird dann nur pausiert, nicht beendet
   document.addEventListener("fullscreenchange", () => {
     if (document.fullscreenElement || !vollbild) return;

@@ -553,3 +553,6 @@ li.gold .bl-rang { opacity: 1; font-size: 1.25em; line-height: 1; }
 .lauf-wer b { color: #034a3e; }
 .lauf-wer button { border: 0; background: none; padding: .1rem .3rem; font: inherit; font-size: .75rem; color: #4b5b56; text-decoration: underline; cursor: pointer; }
 .lauf-eintragen input[readonly] { background: #f3f7f4; }
+.lk-zu { display: none; position: absolute; top: calc(env(safe-area-inset-top) + .6rem); right: .6rem; width: 2.4rem; height: 2.4rem; border: 0; border-radius: 50%;
+  background: rgba(255, 255, 255, .9); color: #24332f; font-size: 1.1rem; cursor: pointer; box-shadow: 0 2px 8px rgba(0, 40, 30, .2); }
+.lauf-rahmen.vollbild .lk-zu { display: block; }

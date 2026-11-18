@@ -104,7 +104,7 @@ export function kontoStarten({ db, rahmen }) {
   function fensterZeigen(hinweis) {
     return new Promise((fertig) => {
       const tor = document.createElement("div"); tor.className = "lauf-konto-tor";
-      tor.innerHTML = `<form class="lk-karte" novalidate>
+      tor.innerHTML = `<button type="button" class="lk-zu" aria-label="Schließen">✕</button><form class="lk-karte" novalidate>
         <p class="lauf-titel">Fröbelinchen rennt</p>
         <div class="lk-reiter" role="tablist"><button type="button" role="tab" data-art="neu" aria-selected="true">Registrieren</button><button type="button" role="tab" data-art="an" aria-selected="false">Anmelden</button></div>
         <p class="lk-text"></p>
@@ -117,6 +117,7 @@ export function kontoStarten({ db, rahmen }) {
         <p class="lk-klein lk-nur-an">Passwort vergessen? Melde dich beim Betreiber (<a href="impressum.html">Impressum</a>).</p>
       </form>`;
       rahmen.append(tor);
+      tor.querySelector(".lk-zu").addEventListener("click", () => { rahmen.classList.remove("vollbild"); document.body.classList.remove("spiel-offen"); });
       const f = tor.querySelector("form"), meldung = tor.querySelector(".lk-meldung"), los = tor.querySelector(".lk-los"), text = tor.querySelector(".lk-text");
       const hatAltstand = (+lesen(TEILE.erfahrung) || 0) > 0 && !lesen(GEHOERT);
       let art = hatAltstand || !lesen(KNAME) ? "neu" : "an";
