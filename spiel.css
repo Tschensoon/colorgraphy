@@ -529,3 +529,27 @@ li.gold .bl-rang { opacity: 1; font-size: 1.25em; line-height: 1; }
 /* Ankes Büro: Zeitanzeige wird rot, wenn Anke gleich zurück ist */
 .folie.buero.eilig .fo-zeit { color: #e53935; animation: bu-puls .5s ease-in-out infinite alternate; }
 @keyframes bu-puls { from { transform: scale(1); } to { transform: scale(1.15); } }
+
+/* Spielerkonto: Anmelde-/Registrierfenster und Namenszeile */
+.lauf-konto-tor { position: absolute; inset: 0; z-index: 20; display: flex; align-items: center; justify-content: center; padding: .8rem;
+  background: rgba(255, 255, 255, .6); color: #24332f; overflow-y: auto; }
+.lk-karte { width: min(100%, 360px); margin: auto; display: flex; flex-direction: column; gap: .5rem; padding: 1rem 1.1rem; border-radius: 22px;
+  background: rgba(255, 255, 255, .96); box-shadow: 0 12px 40px rgba(0, 40, 30, .2); text-align: left; }
+.lk-karte .lauf-titel { font-size: 1.3rem; text-align: center; }
+.lk-reiter { display: grid; grid-template-columns: 1fr 1fr; gap: .3rem; padding: .2rem; border-radius: 999px; background: #e7efeb; }
+.lk-reiter button { border: 0; border-radius: 999px; padding: .45rem; font: inherit; font-weight: 700; font-size: .9rem; color: #4b5b56; background: transparent; cursor: pointer; }
+.lk-reiter button[aria-selected="true"] { background: #fff; color: #034a3e; box-shadow: 0 1px 4px rgba(0, 40, 30, .15); }
+.lk-text { margin: 0; font-size: .85rem; color: #4b5b56; text-align: center; }
+.lk-karte label { display: flex; flex-direction: column; gap: .2rem; font-size: .8rem; font-weight: 700; color: #4b5b56; }
+.lk-karte input { padding: .55rem .7rem; border: 1px solid #c9d3cf; border-radius: 10px; font: inherit; font-size: 16px; color: #24332f; background: #fff; }
+.lk-los { width: 100%; margin-top: .2rem; }
+.lk-meldung { margin: 0; font-size: .85rem; font-weight: 700; color: #034a3e; }
+.lk-meldung.fehler { color: #b3261e; }
+.lk-meldung:empty { display: none; }
+.lk-klein { margin: 0; font-size: .72rem; color: #5f6f6a; }
+.lk-klein a { color: #034a3e; }
+.lauf-konto-tor.anmelden .lk-nur-neu, .lauf-konto-tor:not(.anmelden) .lk-nur-an { display: none; }
+.lauf-wer { margin: 0 0 .35rem; font-size: .8rem; color: #4b5b56; display: flex; align-items: center; justify-content: center; gap: .3rem; }
+.lauf-wer b { color: #034a3e; }
+.lauf-wer button { border: 0; background: none; padding: .1rem .3rem; font: inherit; font-size: .75rem; color: #4b5b56; text-decoration: underline; cursor: pointer; }
+.lauf-eintragen input[readonly] { background: #f3f7f4; }

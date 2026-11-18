@@ -17,6 +17,9 @@ if (rahmen) {
   // und das geprüfte Eintragen über die Funktion „eintragen“ (Prüfung von Name und Punkten in der Datenbank).
   const DB = { url: "https://gnzasrjjmyrbufdiuatw.supabase.co", key: "sb_publishable_c3NCrNIU-JtHB-9LJEBGFw_vjYDPQ_c" };
   const handy = matchMedia("(pointer: coarse)").matches;
+  // Spielerkonto: erst wenn jemand angemeldet ist und der Spielstand vom Server auf dem Gerät liegt, geht es weiter
+  const KONTO = (await import("./lauf-konto.js?v=1")).kontoStarten({ db: DB, rahmen });
+  await KONTO.bereit();
   // Weihnachtszeit (bis einschließlich 31.12.2026): leiser Schneefall über der Seite und ein Gruß im Startmenü
   const weihnachtszeit = (() => {
     try { const q = new URLSearchParams(location.search).get("weihnachten"); if (q === "1" || q === "0") return q === "1"; } catch (e) {}
@@ -49,7 +52,8 @@ if (rahmen) {
 
   // ---------- Gespeichertes (Rekord, Sterne-Konto, Ausstattung, Aufgaben, Qualität) ----------
   const lies = (k, v) => { try { const x = localStorage.getItem(k); return x === null ? v : JSON.parse(x); } catch (e) { return v; } };
-  const schreib = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+  const SYNC = new Set(Object.values(KONTO.TEILE));
+  const schreib = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} if (SYNC.has(k)) KONTO.geaendert(); };
   let rekord = +lies("froebelinchen-rennt-rekord", 0) || 0;
   const konto = lies("froebelinchen-rennt-konto", { sterne: 0, besitz: [], an: [] });
   let erledigt = lies("froebelinchen-rennt-aufgaben", []);
@@ -75,7 +79,7 @@ if (rahmen) {
   const alleFrei = lies("froebelinchen-rennt-alle", false) === true;
   const frei = (id) => alleFrei || stufeVon(erfahrung) >= (FIGUR_LISTE.find(f => f.id === id) || { stufe: 99 }).stufe;
   const figurDaten = (id) => FIGUR_LISTE.find(f => f.id === id) || FIGUR_LISTE[0];
-  if (!Array.isArray(konto.figuren)) konto.figuren = [];
+  if (!Array.isArray(konto.figuren)) konto.figuren = []; if (!Array.isArray(konto.besitz)) konto.besitz = []; if (!Array.isArray(konto.an)) konto.an = []; konto.sterne = +konto.sterne || 0;
   const gekauft = (id) => alleFrei || figurDaten(id).preis === 0 || konto.figuren.includes(id);
   let figur = lies("froebelinchen-rennt-figur", "giraffe");
   // wer vor den Preisen schon mit einer freigeschalteten Figur gespielt hat, behält sie
@@ -658,6 +662,9 @@ if (rahmen) {
     stufeBalken.style.width = (rest / EP_JE_STUFE * 100).toFixed(1) + "%";
   }
   stufeZeigen(erfahrung);
+  { const wer = document.createElement("p"); wer.className = "lauf-wer"; wer.append("👤 ", Object.assign(document.createElement("b"), { textContent: KONTO.name() }), " ");
+    const ab = Object.assign(document.createElement("button"), { type: "button", textContent: "Abmelden" }); ab.addEventListener("click", () => KONTO.abmelden());
+    wer.append(ab); stufeFeld.before(wer); }
   function stufeNachRunde(p) {
     const alt = erfahrung, altStufe = stufeVon(alt);
     erfahrung += p; schreib("froebelinchen-rennt-erfahrung", erfahrung);
@@ -848,26 +855,19 @@ if (rahmen) {
     eintragMeldung.textContent = ""; eintragMeldung.classList.remove("fehler");
     if (punkteRunde < 30 || sekunden < 1) { eintragForm.hidden = true; offeneRunde = null; return; }
     offeneRunde = { punkte: punkteRunde, sekunden };
-    try { eintragName.value = localStorage.getItem("froebelinchen-name") || ""; } catch (e) {}
+    eintragName.value = KONTO.name(); eintragName.readOnly = true;
     eintragForm.querySelector(".le-zeile").hidden = false; eintragForm.querySelector("label").hidden = false;
     eintragForm.hidden = false;
   }
   eintragForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     if (!offeneRunde) return;
-    const name = eintragName.value.replace(/\s+/g, " ").trim(), fehler = (t) => { eintragMeldung.textContent = t; eintragMeldung.classList.add("fehler"); };
+    const name = KONTO.name(), fehler = (t) => { eintragMeldung.textContent = t; eintragMeldung.classList.add("fehler"); };
     eintragMeldung.classList.remove("fehler");
-    if (!name || name.length > 16) return fehler("Bitte einen Namen mit 1 bis 16 Zeichen eingeben.");
-    if (!ERLAUBT.test(name)) return fehler("Bitte nur Buchstaben, Zahlen, Leerzeichen, Punkt und Bindestrich.");
-    if (SPERRE.some(w => name.toLowerCase().replace(/[\s._-]/g, "").includes(w))) return fehler("Bitte einen anderen Namen wählen.");
     const runde = offeneRunde; offeneRunde = null;          // jede Runde nur einmal eintragen
     const knopf = eintragForm.querySelector("button"); knopf.disabled = true; eintragMeldung.textContent = "Wird eingetragen …";
     try {
-      const r = await fetch(`${DB.url}/rest/v1/rpc/eintragen`, {
-        method: "POST", headers: { apikey: DB.key, "Content-Type": "application/json" },
-        body: JSON.stringify({ p_name: name, p_punkte: runde.punkte, p_sekunden: runde.sekunden, p_spiel: "rennt" }) });
-      if (!r.ok) { let m = ""; try { m = (await r.json()).message; } catch (x) {} throw new Error(m || "Fehler " + r.status); }
-      try { localStorage.setItem("froebelinchen-name", name); } catch (x) {}
+      await KONTO.eintragen(runde.punkte, runde.sekunden);
       meinEintrag = { name, punkte: runde.punkte };
       await bestenlisteLaden();
       const platzIn = (l) => l.findIndex(x => x.name === name && x.punkte === runde.punkte) + 1;
@@ -1158,7 +1158,7 @@ if (rahmen) {
         : `Du: ${RN.m} m · ${g.name} läuft noch: ${g.m} m`;
     }
   }
-  import("./lauf-rennen.js?v=5").then(m => {
+  import("./lauf-rennen.js?v=6").then(m => {
     rennModul = m.rennenStarten({ db: DB, feld: rennFeld, knopf: rennKnopf, verboten: (t) => SPERRE.some(w => t.toLowerCase().replace(/[ ._-]/g, "").includes(w)), vorbereiten: () => { if (kannWebGL) laden(); }, los: rennenLos, stand: rennenStand, gegner: rennenGegner, emoji: () => {}, streich: rennenStreich, weg: rennenGegnerWeg,
       nameFehler: (n) => n.length > 16 || !ERLAUBT.test(n) ? "Bitte nur Buchstaben, Zahlen, Leerzeichen, Punkt und Bindestrich." : SPERRE.some(w => n.toLowerCase().replace(/[ ._-]/g, "").includes(w)) ? "Bitte einen anderen Namen wählen." : "" });
     const code = new URLSearchParams(location.search).get("rennen");     // Einladungslink: Lobby gleich mit dem Code öffnen
@@ -1168,7 +1168,7 @@ if (rahmen) {
   // Chat: verbindet sich gleich beim Öffnen der Seite, damit man sieht, wer online ist und ob es Neues gibt
   const chatFeld = $(".lauf-chat"), chatKnopf = $(".lauf-chat-knopf");
   let chat = null;
-  import("./lauf-chat.js?v=2").then(m => { chat = m.chatStarten({ db: DB, feld: chatFeld, knopf: chatKnopf }); }).catch(() => { chatKnopf.hidden = true; });
+  import("./lauf-chat.js?v=3").then(m => { chat = m.chatStarten({ db: DB, feld: chatFeld, knopf: chatKnopf }); }).catch(() => { chatKnopf.hidden = true; });
   chatKnopf.addEventListener("click", () => { if (chat) chat.oeffnen(); });
   $(".lc-x").addEventListener("click", () => { if (chat) chat.schliessen(); else chatFeld.hidden = true; });
   const panelBeobachter = new MutationObserver(() => rahmen.classList.toggle("panel-offen", !shop.hidden || !topFeld.hidden || !chatFeld.hidden || !rennFeld.hidden));

@@ -17,6 +17,7 @@ export function rennenStarten({ db, feld, knopf, nameFehler, verboten, vorbereit
   const standZeile = document.createElement("p"); standZeile.className = "lr-info lr-raum-stand"; standZeile.hidden = true;
   $(".lr-spieler").before(standZeile);
   try { nameFeld.value = localStorage.getItem("froebelinchen-name") || ""; } catch (e) {}
+  try { const k = localStorage.getItem("froebelinchen-konto-name"); if (k) { nameFeld.value = JSON.parse(k); nameFeld.readOnly = true; } } catch (e) {}
 
   const zeigen = (teil) => { for (const t of [teilStart, teilWarten, teilZaehler, teilLobby]) t.hidden = t !== teil; };
   const melden = (text, fehler) => { status.textContent = text; status.classList.toggle("fehler", !!fehler); };

@@ -12,6 +12,7 @@ export function chatStarten({ db, feld, knopf }) {
   const nachrichten = [], gesehen = new Set(), verlaufTimer = new Map();
   let leute = {};
   try { nameFeld.value = localStorage.getItem("froebelinchen-name") || ""; } catch (e) {}
+  try { const k = localStorage.getItem("froebelinchen-konto-name"); if (k) { nameFeld.value = JSON.parse(k); nameFeld.readOnly = true; } } catch (e) {}
 
   const rein = (event, payload) => {
     if (ws && ws.readyState === 1 && verbunden) ws.send(JSON.stringify({ topic: kanal, event, payload, ref: String(++ref), join_ref: joinRef }));
